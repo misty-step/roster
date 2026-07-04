@@ -138,21 +138,15 @@ pub enum RosterError {
 
 pub fn render_claude_agent(agent: &Agent) -> String {
     let role = &agent.role;
-    let skills = role
-        .skills
-        .iter()
-        .map(|skill| format!("  - {}", skill.name))
-        .collect::<Vec<_>>()
-        .join("\n");
+    let model = claude_model(role);
+    let tools = claude_tools(role);
 
     format!(
         r#"---
 name: {name}
 description: {description}
-model: {preferred}
-reasoning: {reasoning}
-skills:
-{skills}
+model: {model}
+tools: {tools}
 ---
 
 # {name}
@@ -164,6 +158,10 @@ skills:
 - Preferred: {preferred}
 - Fallbacks: {fallbacks}
 - Reasoning: {reasoning}
+
+## Skills To Read
+
+{skills}
 
 ## Permissions
 
@@ -179,13 +177,11 @@ skills:
 "#,
         name = role.name,
         description = role.description,
+        model = model,
+        tools = tools,
         preferred = role.model_policy.preferred,
         reasoning = role.model_policy.reasoning,
-        skills = if skills.is_empty() {
-            "  []".to_string()
-        } else {
-            skills
-        },
+        skills = render_skills(&role.skills, &[]),
         instructions = agent.instructions.trim(),
         fallbacks = role.model_policy.fallbacks.join(", "),
         filesystem = role.permissions.filesystem,
@@ -195,6 +191,32 @@ skills:
         mutations = role.permissions.mutations,
         evidence = bullet_list(&role.evidence_expectations),
     )
+}
+
+fn claude_model(_role: &Role) -> &'static str {
+    "sonnet"
+}
+
+fn claude_tools(role: &Role) -> String {
+    let mut tools = vec!["Read"];
+
+    if role.permissions.filesystem.contains("write") || role.permissions.mutations != "none" {
+        tools.push("Write");
+        tools.push("Edit");
+    }
+
+    tools.push("Grep");
+    tools.push("Glob");
+
+    if role.permissions.commands != "none" && role.permissions.commands != "disabled-by-default" {
+        tools.push("Bash");
+    }
+
+    if role.permissions.network == "allowed" {
+        tools.push("WebSearch");
+    }
+
+    tools.join(", ")
 }
 
 pub fn render_bb_agent(agent: &Agent) -> String {
