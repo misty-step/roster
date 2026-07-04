@@ -2,6 +2,7 @@ use assert_cmd::Command;
 use predicates::prelude::*;
 use std::{
     collections::BTreeMap,
+    fs,
     io::{Read, Write},
     net::TcpListener,
     path::PathBuf,
@@ -283,10 +284,136 @@ fn unknown_agent_is_reported() {
 }
 
 #[test]
-fn sync_is_p2_stub() {
+fn sync_installs_lead_and_curated_primitives_without_touching_harness_kit() {
+    let home = tempfile::tempdir().expect("temp home");
+    let codex_global = home.path().join(".codex/AGENTS.md");
+    let claude_global = home.path().join(".claude/CLAUDE.md");
+    let pi_settings = home.path().join(".pi/settings.json");
+    write_file(&codex_global, "harness-kit codex global");
+    write_file(&claude_global, "harness-kit claude global");
+    write_file(&pi_settings, "{\"harness\":\"kit\"}");
+
     roster_cmd()
-        .arg("sync")
+        .args(["sync", "--home"])
+        .arg(home.path())
         .assert()
-        .failure()
-        .stderr(predicate::str::contains("P2"));
+        .success()
+        .stdout(predicate::str::contains("Installed roster lead sync"))
+        .stdout(predicate::str::contains(".roster/lead/manifest.json"))
+        .stdout(predicate::str::contains("roster sync --disable"));
+
+    assert_eq!(
+        fs::read_to_string(&codex_global).expect("codex global"),
+        "harness-kit codex global"
+    );
+    assert_eq!(
+        fs::read_to_string(&claude_global).expect("claude global"),
+        "harness-kit claude global"
+    );
+    assert_eq!(
+        fs::read_to_string(&pi_settings).expect("pi settings"),
+        "{\"harness\":\"kit\"}"
+    );
+
+    let roster_brief = read(home.path().join(".roster/lead/brief.md"));
+    assert!(roster_brief.contains("# Roster Brief: lead"));
+    assert!(roster_brief.contains("Read: "));
+    assert!(roster_brief.contains("## Skills To Read"));
+
+    let claude_agent = read(home.path().join(".claude/agents/lead.md"));
+    assert!(claude_agent.contains("<!-- roster-sync:lead:v1 -->"));
+    assert!(claude_agent.contains("model: sonnet"));
+    assert!(claude_agent.contains("tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch"));
+
+    let codex_agent = read(home.path().join(".codex/agents/lead.md"));
+    assert!(codex_agent.contains("<!-- roster-sync:lead:v1 -->"));
+    assert!(codex_agent.contains("# Roster Brief: lead"));
+
+    let pi_agent = read(home.path().join(".pi/agents/lead.md"));
+    assert!(pi_agent.contains("<!-- roster-sync:lead:v1 -->"));
+    assert!(pi_agent.contains("# Roster Brief: lead"));
+
+    let skills_index = read(
+        home.path()
+            .join(".roster/lead/primitives/skills-index.json"),
+    );
+    assert!(skills_index.contains("\"schema_version\": \"roster.sync.skills.v1\""));
+    assert!(skills_index.contains("\"name\": \"deliver\""));
+    assert!(skills_index.contains("\"name\": \"harness-engineering\""));
+    assert!(!skills_index.contains("\"name\": \"research\""));
+    assert!(
+        !home
+            .path()
+            .join(".roster/lead/skills/deliver/SKILL.md")
+            .exists()
+    );
+
+    let manifest = read(home.path().join(".roster/lead/manifest.json"));
+    assert!(manifest.contains("\"schema_version\": \"roster.sync.v1\""));
+    assert!(manifest.contains("\".codex/agents/lead.md\""));
+    assert!(manifest.contains("\".claude/agents/lead.md\""));
+    assert!(manifest.contains("\".pi/agents/lead.md\""));
+
+    let rollback = read(home.path().join(".roster/lead/ROLLBACK.md"));
+    assert!(rollback.contains("roster sync --disable"));
+    assert!(rollback.contains("leaves harness-kit bootstrap files untouched"));
+}
+
+#[test]
+fn sync_disable_removes_only_roster_managed_files() {
+    let home = tempfile::tempdir().expect("temp home");
+    let codex_global = home.path().join(".codex/AGENTS.md");
+    let unrelated_agent = home.path().join(".codex/agents/custom.md");
+    write_file(&codex_global, "harness-kit codex global");
+    write_file(&unrelated_agent, "operator-owned");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .arg("--disable")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Disabled roster lead sync"))
+        .stdout(predicate::str::contains(".codex/agents/lead.md"));
+
+    assert!(!home.path().join(".roster/lead").exists());
+    assert!(!home.path().join(".codex/agents/lead.md").exists());
+    assert!(!home.path().join(".claude/agents/lead.md").exists());
+    assert!(!home.path().join(".pi/agents/lead.md").exists());
+    assert_eq!(
+        fs::read_to_string(&codex_global).expect("codex global"),
+        "harness-kit codex global"
+    );
+    assert_eq!(
+        fs::read_to_string(&unrelated_agent).expect("unrelated agent"),
+        "operator-owned"
+    );
+}
+
+#[test]
+fn sync_disable_without_manifest_is_a_noop() {
+    let home = tempfile::tempdir().expect("temp home");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .arg("--disable")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No roster lead sync manifest"));
+}
+
+fn write_file(path: &std::path::Path, contents: &str) {
+    fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
+    fs::write(path, contents).expect("write file");
+}
+
+fn read(path: impl AsRef<std::path::Path>) -> String {
+    fs::read_to_string(path).expect("read file")
 }
