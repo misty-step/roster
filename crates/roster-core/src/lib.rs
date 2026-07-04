@@ -197,6 +197,49 @@ skills:
     )
 }
 
+pub fn render_bb_agent(agent: &Agent) -> String {
+    let role = &agent.role;
+    let model = bb_model(role);
+    let skills = toml_array(
+        &role
+            .skills
+            .iter()
+            .map(|skill| skill.name.clone())
+            .collect::<Vec<_>>(),
+    );
+
+    format!(
+        r#"# Generated from roster agent {name}.
+# Roster preferred model: {preferred}
+# Roster reasoning: {reasoning}
+version = 1
+harness = "pi"
+model = "{model}"
+provider = "openrouter"
+auth = "api"
+role = "{name}"
+skills = {skills}
+secrets = ["OPENROUTER_API_KEY"]
+
+[policy]
+authority = "read"
+model_allowlist = ["{model}"]
+trigger_bindings = ["manual"]
+iteration_cap = 24
+turn_cap = 40
+tool_action_cap = 80
+output_bytes_cap = 30000
+wall_clock_minutes = 30
+side_effect_policy = "kill"
+"#,
+        name = toml_escape(&role.name),
+        preferred = toml_escape(&role.model_policy.preferred),
+        reasoning = toml_escape(&role.model_policy.reasoning),
+        model = toml_escape(&model),
+        skills = skills,
+    )
+}
+
 pub fn render_brief(
     agent: &Agent,
     add_skills: &[String],
@@ -286,6 +329,21 @@ Read: {instruction_path}
     }
 
     output
+}
+
+fn bb_model(role: &Role) -> String {
+    if let Some(model) = openrouter_model(&role.model_policy.preferred) {
+        return model.to_string();
+    }
+    role.model_policy
+        .fallbacks
+        .iter()
+        .find_map(|fallback| openrouter_model(fallback).map(ToOwned::to_owned))
+        .unwrap_or_else(|| role.model_policy.preferred.clone())
+}
+
+fn openrouter_model(value: &str) -> Option<&str> {
+    value.strip_prefix("openrouter/")
 }
 
 pub fn render_show(agent: &Agent) -> String {
@@ -493,4 +551,17 @@ fn bullet_list(items: &[String]) -> String {
             .collect::<Vec<_>>()
             .join("\n")
     }
+}
+
+fn toml_array(items: &[String]) -> String {
+    let values = items
+        .iter()
+        .map(|item| format!("\"{}\"", toml_escape(item)))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("[{values}]")
+}
+
+fn toml_escape(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
 }
