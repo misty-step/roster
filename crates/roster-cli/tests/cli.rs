@@ -39,12 +39,20 @@ fn materialize_codex_prints_brief_header() {
 }
 
 #[test]
-fn materialize_bb_is_p1_stub() {
+fn materialize_bb_prints_agent_binding() {
     roster_cmd()
         .args(["materialize", "cerberus", "--harness", "bb"])
         .assert()
-        .failure()
-        .stderr(predicate::str::contains("P1"));
+        .success()
+        .stdout(predicate::str::contains(
+            "# Generated from roster agent cerberus",
+        ))
+        .stdout(predicate::str::contains("harness = \"pi\""))
+        .stdout(predicate::str::contains(
+            "model = \"moonshotai/kimi-k2.7-code\"",
+        ))
+        .stdout(predicate::str::contains("role = \"cerberus\""))
+        .stdout(predicate::str::contains("side_effect_policy = \"kill\""));
 }
 
 #[test]

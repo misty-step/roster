@@ -1,6 +1,8 @@
 use anyhow::{Context, Result, anyhow, bail};
 use clap::{Parser, Subcommand, ValueEnum};
-use roster_core::{CardContext, Roster, render_brief, render_claude_agent, render_show};
+use roster_core::{
+    CardContext, Roster, render_bb_agent, render_brief, render_claude_agent, render_show,
+};
 use serde_json::Value;
 use std::path::PathBuf;
 
@@ -71,7 +73,7 @@ fn main() -> Result<()> {
             match harness {
                 Harness::Claude => print!("{}", render_claude_agent(agent)),
                 Harness::Codex => print!("{}", render_brief(agent, &[], &[], None)),
-                Harness::Bb => bail!("P1"),
+                Harness::Bb => print!("{}", render_bb_agent(agent)),
             }
         }
         Command::Brief {
