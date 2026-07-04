@@ -1,6 +1,6 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
-use std::path::PathBuf;
+use std::{collections::BTreeMap, path::PathBuf};
 
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -54,6 +54,64 @@ fn materialize_bb_prints_agent_binding() {
         .stdout(predicate::str::contains("role = \"cerberus\""))
         .stdout(predicate::str::contains("output_bytes_cap = 120000"))
         .stdout(predicate::str::contains("side_effect_policy = \"kill\""));
+}
+
+#[test]
+fn materialize_claude_prints_native_subagent_frontmatter() {
+    for (agent, expected_tools) in [
+        ("lead", "Read, Write, Edit, Grep, Glob, Bash, WebSearch"),
+        ("cerberus", "Read, Grep, Glob, Bash"),
+    ] {
+        let output = roster_cmd()
+            .args(["materialize", agent, "--harness", "claude"])
+            .assert()
+            .success()
+            .get_output()
+            .stdout
+            .clone();
+        let output = String::from_utf8(output).expect("utf8 stdout");
+        let frontmatter = frontmatter_fields(&output);
+
+        assert_eq!(
+            frontmatter.keys().map(String::as_str).collect::<Vec<_>>(),
+            ["description", "model", "name", "tools"]
+        );
+        assert_eq!(frontmatter.get("name").map(String::as_str), Some(agent));
+        assert!(
+            frontmatter
+                .get("description")
+                .is_some_and(|description| !description.is_empty())
+        );
+        assert_eq!(frontmatter.get("model").map(String::as_str), Some("sonnet"));
+        assert_eq!(
+            frontmatter.get("tools").map(String::as_str),
+            Some(expected_tools)
+        );
+        assert!(
+            !["fable-class", "codex-class", "openrouter-class"]
+                .contains(&frontmatter["model"].as_str())
+        );
+    }
+}
+
+fn frontmatter_fields(output: &str) -> BTreeMap<String, String> {
+    let frontmatter = output
+        .strip_prefix("---\n")
+        .and_then(|rest| rest.split_once("\n---\n"))
+        .map(|(frontmatter, _)| frontmatter)
+        .expect("claude subagent frontmatter");
+
+    let mut fields = BTreeMap::new();
+    for line in frontmatter.lines() {
+        let (key, value) = line.split_once(':').expect("frontmatter key-value");
+        assert!(
+            fields
+                .insert(key.to_string(), value.trim().to_string())
+                .is_none(),
+            "duplicate frontmatter key {key}"
+        );
+    }
+    fields
 }
 
 #[test]
