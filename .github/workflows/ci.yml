@@ -19,3 +19,11 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Test
         run: cargo test --workspace
+      - name: Coverage
+        # Ratchet from roster-010 baseline (2026-07-04):
+        # cargo llvm-cov --workspace --fail-under-file-lines 82
+        # roster-cli/src/main.rs 100.00% line coverage; workspace minimum file
+        # line coverage was roster-core/src/lib.rs at 82.35%.
+        run: |
+          cargo install cargo-llvm-cov --locked
+          cargo llvm-cov --workspace --fail-under-file-lines 82
