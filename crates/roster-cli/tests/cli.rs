@@ -1,6 +1,12 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{
+    collections::BTreeMap,
+    io::{Read, Write},
+    net::TcpListener,
+    path::PathBuf,
+    thread::{self, JoinHandle},
+};
 
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -16,6 +22,50 @@ fn roster_cmd() -> Command {
     command
 }
 
+struct PowderStub {
+    base_url: String,
+    handle: JoinHandle<String>,
+}
+
+impl PowderStub {
+    fn once(status: &str, body: &str) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind powder stub");
+        let base_url = format!("http://{}", listener.local_addr().expect("stub addr"));
+        let status = status.to_string();
+        let body = body.to_string();
+        let handle = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept powder request");
+            let mut request = Vec::new();
+            let mut buffer = [0; 1024];
+            loop {
+                let read = stream.read(&mut buffer).expect("read powder request");
+                if read == 0 {
+                    break;
+                }
+                request.extend_from_slice(&buffer[..read]);
+                if request.windows(4).any(|window| window == b"\r\n\r\n") {
+                    break;
+                }
+            }
+
+            let response = format!(
+                "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            stream
+                .write_all(response.as_bytes())
+                .expect("write powder response");
+            String::from_utf8(request).expect("utf8 powder request")
+        });
+
+        Self { base_url, handle }
+    }
+
+    fn request(self) -> String {
+        self.handle.join().expect("powder stub thread")
+    }
+}
+
 #[test]
 fn list_prints_seed_agents() {
     roster_cmd()
@@ -25,6 +75,18 @@ fn list_prints_seed_agents() {
         .stdout(predicate::str::contains("cerberus\tcodex-class\txhigh"))
         .stdout(predicate::str::contains("lead\tfable-class\tlow"))
         .stdout(predicate::str::contains("sweep\topenrouter-class\tmedium"));
+}
+
+#[test]
+fn show_prints_agent_detail() {
+    roster_cmd()
+        .args(["show", "lead"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("# lead"))
+        .stdout(predicate::str::contains("Preferred model: fable-class"))
+        .stdout(predicate::str::contains("MCPs: powder, qmd, todoist"))
+        .stdout(predicate::str::contains("Evidence Expectations"));
 }
 
 #[test]
@@ -112,6 +174,112 @@ fn frontmatter_fields(output: &str) -> BTreeMap<String, String> {
         );
     }
     fields
+}
+
+#[test]
+fn brief_without_card_renders_agent_context_and_overrides() {
+    roster_cmd()
+        .args([
+            "brief",
+            "sweep",
+            "--add-skill",
+            "extra-skill",
+            "--add-mcp",
+            "extra-mcp",
+        ])
+        .env_remove("POWDER_API_BASE_URL")
+        .env_remove("POWDER_API_KEY")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("# Roster Brief: sweep"))
+        .stdout(predicate::str::contains("Read: "))
+        .stdout(predicate::str::contains("- override: extra-skill"))
+        .stdout(predicate::str::contains("- override: extra-mcp"))
+        .stdout(predicate::str::contains("## Evidence Contract"))
+        .stdout(predicate::str::contains("## Powder Card").not());
+}
+
+#[test]
+fn brief_with_card_fetches_powder_context() {
+    let stub = PowderStub::once(
+        "200 OK",
+        r#"{"card":{"title":"Test card","body":"Card body from Powder","acceptance":["first criterion","second criterion"]}}"#,
+    );
+
+    roster_cmd()
+        .args(["brief", "lead", "--card", "roster-123"])
+        .env("POWDER_API_BASE_URL", &stub.base_url)
+        .env("POWDER_API_KEY", "powder-test-key")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("## Powder Card"))
+        .stdout(predicate::str::contains("- ID: roster-123"))
+        .stdout(predicate::str::contains("- Title: Test card"))
+        .stdout(predicate::str::contains("- first criterion"))
+        .stdout(predicate::str::contains("Card body from Powder"));
+
+    let request = stub.request();
+    assert!(request.starts_with("GET /api/v1/cards/roster-123 HTTP/1.1"));
+    assert!(request.contains("Authorization: Bearer powder-test-key"));
+}
+
+#[test]
+fn brief_card_404_reports_fetch_error() {
+    let stub = PowderStub::once("404 Not Found", r#"{"error":"missing"}"#);
+
+    roster_cmd()
+        .args(["brief", "lead", "--card", "missing-card"])
+        .env("POWDER_API_BASE_URL", &stub.base_url)
+        .env("POWDER_API_KEY", "powder-test-key")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("failed to fetch Powder card"))
+        .stderr(predicate::str::contains("404"));
+
+    let request = stub.request();
+    assert!(request.starts_with("GET /api/v1/cards/missing-card HTTP/1.1"));
+}
+
+#[test]
+fn brief_card_malformed_json_reports_decode_error() {
+    let stub = PowderStub::once("200 OK", "not json");
+
+    roster_cmd()
+        .args(["brief", "lead", "--card", "bad-json"])
+        .env("POWDER_API_BASE_URL", &stub.base_url)
+        .env("POWDER_API_KEY", "powder-test-key")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("failed to fetch Powder card"))
+        .stderr(predicate::str::contains(
+            "decode Powder response for bad-json",
+        ));
+
+    let request = stub.request();
+    assert!(request.starts_with("GET /api/v1/cards/bad-json HTTP/1.1"));
+}
+
+#[test]
+fn brief_card_requires_powder_environment() {
+    roster_cmd()
+        .args(["brief", "lead", "--card", "roster-123"])
+        .env_remove("POWDER_API_BASE_URL")
+        .env_remove("POWDER_API_KEY")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("failed to fetch Powder card"))
+        .stderr(predicate::str::contains(
+            "POWDER_API_BASE_URL is required for --card",
+        ));
+}
+
+#[test]
+fn unknown_agent_is_reported() {
+    roster_cmd()
+        .args(["show", "missing-agent"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("unknown agent \"missing-agent\""));
 }
 
 #[test]
