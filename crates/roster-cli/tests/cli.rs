@@ -124,7 +124,7 @@ fn materialize_bb_prints_agent_binding() {
 
 #[test]
 fn materialize_claude_prints_native_subagent_frontmatter() {
-    // Expected models come from primitives/providers.yaml's `tiers` table:
+    // Expected models come from primitives/tiers.yaml's `tiers` table:
     // orchestrator's tier is fable-class (claude: inherit), cerberus's is
     // codex-class (claude: sonnet) -- resolved through the table, not
     // hardcoded per agent.
@@ -340,7 +340,7 @@ fn sync_installs_orchestrator_and_curated_primitives_without_touching_harness_ki
 
     let claude_agent = read(home.path().join(".claude/agents/orchestrator.md"));
     assert!(claude_agent.contains("<!-- roster-sync:orchestrator:v1 -->"));
-    // orchestrator's tier is fable-class; providers.yaml resolves that to
+    // orchestrator's tier is fable-class; tiers.yaml resolves that to
     // `inherit` for the claude harness, not the old hardcoded `sonnet`.
     assert!(claude_agent.contains("model: inherit"));
     assert!(claude_agent.contains("tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch"));

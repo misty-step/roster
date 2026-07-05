@@ -95,15 +95,18 @@ agents (`agents/cerberus`, `agents/oracle`, `agents/orchestrator`,
 means operationally is doctrine (`VISION.md`: fable-class → strategy/planning/
 review at low-to-medium reasoning, rarely high; codex-class → implementation
 lanes on GPT-5.5 at high/xhigh; openrouter-class → cheap OpenRouter sweeps).
-`primitives/providers.yaml`'s `tiers` key (distinct from that same file's
-older `providers` key, which is an unrelated peer-harness-CLI dispatch table)
-is where each tier resolves to a concrete, invocable id per roster harness;
+`primitives/tiers.yaml` (a NEW file, distinct from the pre-existing
+`primitives/providers.yaml` — that file is an unrelated peer-harness-CLI
+dispatch table migrated from harness-kit's `agents.yaml` at P0, how to invoke
+codex/claude/pi/etc; `tiers.yaml` is how a `model_policy` tier resolves to a
+concrete, invocable id when ROSTER renders its own agent declarations) is
+where each tier resolves to a concrete id per roster harness;
 `roster_core::Providers::load` reads it and every `materialize --harness`
 target consults it except `codex`:
 
 - **`--harness claude`** (`render_claude_agent` / `claude_model` in
-  `roster-core/src/lib.rs`): looks `preferred` up in `providers.yaml`'s
-  `tiers` table for the `claude` column (e.g. `fable-class` → `inherit`,
+  `roster-core/src/lib.rs`): looks `preferred` up in `tiers.yaml`'s `tiers`
+  table for the `claude` column (e.g. `fable-class` → `inherit`,
   `codex-class` → `sonnet`, `openrouter-class` → `haiku`). If `preferred`
   isn't a known tier, a small conservative literal-id map applies
   (`claude-opus-4-8` → `opus`, etc.); anything still unrecognized falls back
@@ -112,21 +115,21 @@ target consults it except `codex`:
   `model: sonnet` for every agent regardless of tier.
 - **`--harness codex`** and **`brief`** (`render_brief`): print `preferred`,
   `fallbacks`, and `reasoning` as literal text under `## Model Policy`. No
-  table resolution happens here (the `providers.yaml` `tiers` table does
-  carry a `codex` column for future use, but nothing consumes it yet); a
-  human or the orchestrator reads the tier and applies the doctrine above to
-  pick a concrete model.
+  table resolution happens here (`tiers.yaml`'s table does carry a `codex`
+  column for future use, but nothing consumes it yet); a human or the
+  orchestrator reads the tier and applies the doctrine above to pick a
+  concrete model.
 - **`--harness bb`** (`render_bb_agent` / `bb_model`): resolves to the first
   `openrouter/`-prefixed value found in `preferred` then `fallbacks`,
   stripping the prefix (unchanged — this is how cerberus and sweep resolve).
-  Only if neither is `openrouter/`-prefixed does it fall through to the
-  `providers.yaml` `tiers` table's `bb` column for `preferred` (e.g.
-  `fable-class` → `openrouter/moonshotai/kimi-k2.7-code`, prefix stripped the
-  same way). If the tier isn't in the table either, `render_bb_agent` returns
-  `Err` — it never emits a bare tier string like `model = "fable-class"` into
-  the generated TOML. Fixed 2026-07-05 (roster-909): this used to be the
-  gap — `orchestrator`'s preferred/fallbacks (`fable-class`,
-  `claude-opus-4-8`, `gpt-5.5-pro-browser`) are still all non-`openrouter/`,
+  Only if neither is `openrouter/`-prefixed does it fall through to
+  `tiers.yaml`'s `bb` column for `preferred` (e.g. `fable-class` →
+  `openrouter/moonshotai/kimi-k2.7-code`, prefix stripped the same way). If
+  the tier isn't in the table either, `render_bb_agent` returns `Err` — it
+  never emits a bare tier string like `model = "fable-class"` into the
+  generated TOML. Fixed 2026-07-05 (roster-909): this used to be the gap —
+  `orchestrator`'s preferred/fallbacks (`fable-class`, `claude-opus-4-8`,
+  `gpt-5.5-pro-browser`) are still all non-`openrouter/`,
   but now resolve through the table instead of leaking the bare tier.
 
 ## Add a new agent (quickstart)

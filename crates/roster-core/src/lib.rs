@@ -49,11 +49,13 @@ impl Roster {
     }
 }
 
-/// Tier -> per-harness invocable model id, loaded from the `tiers` key of
-/// `primitives/providers.yaml`. That file's top-level `providers` key is an
-/// unrelated, pre-existing table (which peer harness CLI to dispatch, with
-/// what flags); this struct only reads `tiers` and ignores the rest.
+/// Tier -> per-harness invocable model id, loaded from `primitives/
+/// tiers.yaml`. Distinct from the pre-existing `primitives/providers.yaml`
+/// (a peer-harness-CLI dispatch table migrated from harness-kit's
+/// agents.yaml at P0 -- how to invoke codex/claude/pi/etc, not consulted by
+/// this struct): two files, two concepts.
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Providers {
     pub schema_version: String,
     pub tiers: BTreeMap<String, TierBindings>,
@@ -69,7 +71,7 @@ pub struct TierBindings {
 
 impl Providers {
     pub fn load(root: impl AsRef<Path>) -> Result<Self, RosterError> {
-        let path = root.as_ref().join("primitives/providers.yaml");
+        let path = root.as_ref().join("primitives/tiers.yaml");
         let text = fs::read_to_string(&path).map_err(|source| RosterError::Io {
             path: path.clone(),
             source,
@@ -444,7 +446,7 @@ fn bb_model(role: &Role, providers: &Providers) -> Result<String, String> {
             format!(
                 "cannot resolve bb model for agent {:?}: preferred {:?} is not an \
                  openrouter/-prefixed literal, has no openrouter/-prefixed fallback, \
-                 and is not a known tier in primitives/providers.yaml",
+                 and is not a known tier in primitives/tiers.yaml",
                 role.name, role.model_policy.preferred
             )
         })

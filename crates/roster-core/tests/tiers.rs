@@ -15,7 +15,7 @@ fn workspace_root() -> PathBuf {
 #[test]
 fn orchestrator_claude_render_resolves_fable_class_to_inherit_not_sonnet() {
     let roster = Roster::load(workspace_root()).expect("roster loads");
-    let providers = Providers::load(workspace_root()).expect("providers.yaml loads");
+    let providers = Providers::load(workspace_root()).expect("tiers.yaml loads");
     let orchestrator = roster.agent("orchestrator").expect("orchestrator exists");
 
     let rendered = render_claude_agent(orchestrator, &providers);
@@ -27,7 +27,7 @@ fn orchestrator_claude_render_resolves_fable_class_to_inherit_not_sonnet() {
 #[test]
 fn orchestrator_bb_render_resolves_fable_class_to_kimi_not_bare_tier() {
     let roster = Roster::load(workspace_root()).expect("roster loads");
-    let providers = Providers::load(workspace_root()).expect("providers.yaml loads");
+    let providers = Providers::load(workspace_root()).expect("tiers.yaml loads");
     let orchestrator = roster.agent("orchestrator").expect("orchestrator exists");
 
     let rendered =
@@ -41,16 +41,16 @@ fn orchestrator_bb_render_resolves_fable_class_to_kimi_not_bare_tier() {
 }
 
 #[test]
-fn sweep_bb_render_is_unchanged_by_the_providers_table() {
+fn sweep_bb_render_is_unchanged_by_the_tiers_table() {
     let roster = Roster::load(workspace_root()).expect("roster loads");
-    let providers = Providers::load(workspace_root()).expect("providers.yaml loads");
+    let providers = Providers::load(workspace_root()).expect("tiers.yaml loads");
     let sweep = roster.agent("sweep").expect("sweep exists");
 
     let rendered = render_bb_agent(sweep, &providers)
         .expect("sweep resolves via its own openrouter-prefixed fallback, same as before");
 
     // sweep already resolves through its own fallback list (existing
-    // literal-openrouter-prefix behavior), so the providers table is never
+    // literal-openrouter-prefix behavior), so the tiers table is never
     // consulted for it -- this pins that this card did not change its output.
     assert!(
         rendered.contains("model = \"moonshotai/kimi-k2.7-code\""),
@@ -61,11 +61,11 @@ fn sweep_bb_render_is_unchanged_by_the_providers_table() {
 #[test]
 fn bb_render_fails_loudly_instead_of_emitting_an_unresolvable_bare_tier() {
     let roster = Roster::load(workspace_root()).expect("roster loads");
-    let providers = Providers::load(workspace_root()).expect("providers.yaml loads");
+    let providers = Providers::load(workspace_root()).expect("tiers.yaml loads");
     let agent = unresolvable_tier_agent();
 
     let error = render_bb_agent(&agent, &providers)
-        .expect_err("a tier absent from providers.yaml and with no openrouter fallback must fail");
+        .expect_err("a tier absent from tiers.yaml and with no openrouter fallback must fail");
 
     assert!(error.contains("cannot resolve bb model"), "{error}");
     assert!(error.contains("made-up-tier"), "{error}");
@@ -79,7 +79,7 @@ fn unresolvable_tier_agent() -> Agent {
         role: Role {
             schema_version: "roster.role.v1".to_string(),
             name: "fixture-unresolvable".to_string(),
-            description: "Fixture agent with a tier absent from providers.yaml.".to_string(),
+            description: "Fixture agent with a tier absent from tiers.yaml.".to_string(),
             model_policy: ModelPolicy {
                 preferred: "made-up-tier".to_string(),
                 fallbacks: vec!["also-not-a-real-tier".to_string()],

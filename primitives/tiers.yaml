@@ -1,0 +1,29 @@
+# Tier resolution: model_policy.preferred/fallbacks tier symbol × roster
+# materialize harness (claude, codex, bb) -> concrete, invocable model id.
+#
+# Distinct concern from primitives/providers.yaml: that file is "how to
+# invoke a peer harness CLI" (dispatch command, flags, a model already baked
+# in, migrated from harness-kit's agents.yaml at P0). This file is "how a
+# role.yaml model_policy tier resolves to a concrete, invocable model id when
+# ROSTER renders one of its OWN agent declarations" (claude subagent
+# frontmatter, codex brief text, bb TOML config). Two files, two concepts —
+# do not merge them.
+#
+# Consumed by `roster_core::Providers::load`. Per-agent literal model ids in
+# role.yaml bypass this table entirely; a dispatch-time override always
+# trumps both. Update on evidence (capability ledger / crucible routing
+# bench), not vibes.
+schema_version: roster.tiers.v1
+tiers:
+  fable-class:
+    claude: inherit # session brain; subagent form inherits the session model
+    codex: gpt-5.5-pro
+    bb: openrouter/moonshotai/kimi-k2.7-code # best available on the OpenRouter rail; fable itself is not on it
+  codex-class:
+    claude: sonnet
+    codex: gpt-5.5
+    bb: openrouter/moonshotai/kimi-k2.7-code
+  openrouter-class:
+    claude: haiku
+    codex: gpt-5.5-mini
+    bb: openrouter/deepseek/deepseek-v4-flash
