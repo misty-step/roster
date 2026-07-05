@@ -30,6 +30,7 @@ fn mcp_stdio_smoke_records_structured_success_and_error() {
         json!({"jsonrpc":"2.0","id":2,"method":"tools/list"}),
         json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"brief","arguments":{"root":workspace_root(),"agent":"lead"}}}),
         json!({"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"show","arguments":{"root":workspace_root(),"agent":"missing"}}}),
+        json!({"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"materialize","arguments":{"root":workspace_root(),"agent":"cerberus","harness":"codex"}}}),
     ] {
         writeln!(stdin, "{request}").expect("write request");
     }
@@ -45,7 +46,7 @@ fn mcp_stdio_smoke_records_structured_success_and_error() {
         .map(|line| serde_json::from_str::<Value>(line).expect("json response"))
         .collect::<Vec<_>>();
 
-    assert_eq!(responses.len(), 4);
+    assert_eq!(responses.len(), 5);
     assert_eq!(
         responses[0]["result"]["serverInfo"]["name"].as_str(),
         Some("roster")
@@ -64,5 +65,15 @@ fn mcp_stdio_smoke_records_structured_success_and_error() {
             .as_str()
             .unwrap()
             .contains("unknown agent")
+    );
+    assert!(
+        responses[4]["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("# Roster Brief: cerberus")
+    );
+    assert_eq!(
+        responses[4]["result"]["structuredContent"]["harness"],
+        "codex"
     );
 }

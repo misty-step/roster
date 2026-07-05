@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use roster_core::{Roster, render_brief, render_show};
+use roster_core::{Roster, render_bb_agent, render_brief, render_claude_agent, render_show};
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 
@@ -11,6 +11,15 @@ pub struct ToolDef {
     pub input_schema: &'static str,
 }
 
+// `sync` (the CLI's other mutating verb) intentionally has no MCP tool. It
+// writes managed files across the CALLER'S `$HOME` (`.codex/agents/`,
+// `.claude/agents/`, `.pi/agents/`, `.roster/lead/`) with an install/disable
+// lifecycle tied to that specific filesystem. An MCP call has no reliable
+// notion of "the caller's home" the way a locally-run CLI invocation does,
+// and remote/arbitrary MCP callers writing harness config files on whatever
+// host runs this server is a materially different risk than rendering text.
+// `materialize` has no such issue: like `show`/`brief`, it only reads the
+// roster and returns a rendered string, so it gets full MCP parity below.
 pub const TOOLS: &[ToolDef] = &[
     ToolDef {
         name: "list",
@@ -26,6 +35,11 @@ pub const TOOLS: &[ToolDef] = &[
         name: "brief",
         description: "Render a prompt-native dispatch brief for one roster agent.",
         input_schema: r#"{"type":"object","required":["agent"],"properties":{"root":{"type":"string"},"agent":{"type":"string"},"add_skills":{"type":"array","items":{"type":"string"}},"add_mcps":{"type":"array","items":{"type":"string"}}}}"#,
+    },
+    ToolDef {
+        name: "materialize",
+        description: "Render one roster agent declaration for a specific harness (claude, codex, or bb).",
+        input_schema: r#"{"type":"object","required":["agent","harness"],"properties":{"root":{"type":"string"},"agent":{"type":"string"},"harness":{"type":"string","enum":["claude","codex","bb"]}}}"#,
     },
 ];
 
@@ -85,6 +99,7 @@ pub fn call_tool(name: &str, args: &Value) -> Result<Value, String> {
         "list" => list_agents(args),
         "show" => show_agent(args),
         "brief" => brief_agent(args),
+        "materialize" => materialize_agent(args),
         other => Err(format!("unknown tool: {other}")),
     }
 }
@@ -148,6 +163,29 @@ fn brief_agent(args: &Value) -> Result<Value, String> {
             "added_skills": add_skills,
             "added_mcps": add_mcps,
         }),
+    ))
+}
+
+fn materialize_agent(args: &Value) -> Result<Value, String> {
+    let roster = load_roster(args)?;
+    let agent_name = required_str(args, "agent")?;
+    let agent = roster
+        .agent(agent_name)
+        .ok_or_else(|| format!("unknown agent {agent_name:?}"))?;
+    let harness = required_str(args, "harness")?;
+    let text = match harness {
+        "claude" => render_claude_agent(agent),
+        "codex" => render_brief(agent, &[], &[], None),
+        "bb" => render_bb_agent(agent),
+        other => {
+            return Err(format!(
+                "unknown harness {other:?}; expected claude, codex, or bb"
+            ));
+        }
+    };
+    Ok(tool_result(
+        text,
+        json!({ "agent": agent.role.name, "harness": harness }),
     ))
 }
 
@@ -228,8 +266,12 @@ mod tests {
             .map(|tool| tool["name"].as_str().unwrap())
             .collect::<Vec<_>>();
 
-        assert_eq!(names, ["list", "show", "brief"]);
+        assert_eq!(names, ["list", "show", "brief", "materialize"]);
         assert_eq!(tools[2]["inputSchema"]["required"][0], "agent");
+        assert_eq!(
+            tools[3]["inputSchema"]["required"],
+            json!(["agent", "harness"])
+        );
     }
 
     #[test]
@@ -256,6 +298,49 @@ mod tests {
         assert!(text(&brief).contains("# Roster Brief: sweep"));
         assert!(text(&brief).contains("- override: extra-skill"));
         assert_eq!(brief["structuredContent"]["added_mcps"][0], "extra-mcp");
+    }
+
+    #[test]
+    fn mcp_materialize_matches_cli_output_per_harness() {
+        let root = workspace_root();
+
+        // Same substrings the CLI's own `materialize --harness codex/bb` tests
+        // assert on the same agent, proving MCP/CLI parity rather than just
+        // "materialize renders something."
+        let codex = call_tool(
+            "materialize",
+            &json!({"root": root, "agent": "cerberus", "harness": "codex"}),
+        )
+        .unwrap();
+        assert!(text(&codex).contains("# Roster Brief: cerberus"));
+        assert!(text(&codex).contains("Read:"));
+        assert!(text(&codex).contains("Code-review master"));
+        assert_eq!(codex["structuredContent"]["harness"], "codex");
+
+        let bb = call_tool(
+            "materialize",
+            &json!({"root": root, "agent": "cerberus", "harness": "bb"}),
+        )
+        .unwrap();
+        assert!(text(&bb).contains("# Generated from roster agent cerberus"));
+        assert!(text(&bb).contains("harness = \"pi\""));
+        assert!(text(&bb).contains("role = \"cerberus\""));
+
+        let claude = call_tool(
+            "materialize",
+            &json!({"root": root, "agent": "lead", "harness": "claude"}),
+        )
+        .unwrap();
+        assert!(text(&claude).contains("name: lead"));
+        assert!(text(&claude).contains("tools:"));
+        assert_eq!(claude["structuredContent"]["agent"], "lead");
+
+        let bad_harness = call_tool(
+            "materialize",
+            &json!({"root": root, "agent": "lead", "harness": "unknown"}),
+        )
+        .unwrap_err();
+        assert!(bad_harness.contains("unknown harness"), "{bad_harness}");
     }
 
     #[test]
