@@ -4,6 +4,18 @@ Roster is the agent declaration repository for Misty Step Factory. It keeps
 agent identities, prompts, model policy, primitive references, and materializers
 in one plain-file tree.
 
+## Install
+
+```sh
+cargo install --locked --path crates/roster-cli   # installs `roster` to ~/.cargo/bin
+cargo install --locked --path crates/roster-mcp   # installs `roster-mcp` to ~/.cargo/bin
+```
+
+Both binaries read the roster checkout via `--root <path>` (CLI, per
+invocation) or the `ROSTER_ROOT` env var (MCP server); either defaults to the
+current directory otherwise. See `SKILL.md` for the MCP tool contract and the
+skill-facing operating rules.
+
 P0 provides:
 
 - `agents/<name>/role.yaml` and `instructions.md` declarations.
@@ -11,16 +23,20 @@ P0 provides:
 - Reference-only primitive indexes for skills and MCP servers.
 
 ```sh
-cargo run -p roster-cli -- list
-cargo run -p roster-cli -- show cerberus
-cargo run -p roster-cli -- materialize cerberus --harness codex
-cargo run -p roster-cli -- brief cerberus
+roster --root . list
+roster --root . show cerberus
+roster --root . materialize cerberus --harness codex
+roster --root . brief cerberus
 ```
+
+(Working from inside the checkout, `--root .` is the default and can be
+omitted. During development against uncommitted source, use
+`cargo run -p roster-cli --` in place of `roster`.)
 
 P2 adds an opt-in workstation sync for the default orchestrator agent:
 
 ```sh
-cargo run -p roster-cli -- sync
+roster --root . sync
 ```
 
 `roster sync` installs roster-managed orchestrator artifacts under
@@ -35,7 +51,7 @@ overwritten during the parallel run.
 Rollback is manifest-driven:
 
 ```sh
-cargo run -p roster-cli -- sync --disable
+roster --root . sync --disable
 ```
 
 For tests or staged installs, pass `--home <path>` to either command. Disable
