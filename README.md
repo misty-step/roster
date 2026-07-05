@@ -115,10 +115,14 @@ target consults it except `codex`:
   `model: sonnet` for every agent regardless of tier.
 - **`--harness codex`** and **`brief`** (`render_brief`): print `preferred`,
   `fallbacks`, and `reasoning` as literal text under `## Model Policy`. No
-  table resolution happens here (`tiers.yaml`'s table does carry a `codex`
-  column for future use, but nothing consumes it yet); a human or the
-  orchestrator reads the tier and applies the doctrine above to pick a
-  concrete model.
+  table resolution happens here; a human or the orchestrator reads the tier
+  and applies the doctrine above to pick a concrete model. `tiers.yaml`'s
+  `codex` column exists but nothing consumes it yet — the roster-910
+  dispatch-matrix research found this machine's live codex custom-agent
+  pattern is `config.toml [agents.<name>]` pointing at a
+  `~/.codex/roles/<name>.toml` file with its own `model` field, distinct
+  from `render_brief`'s prompt-text output; the `codex` column is reserved
+  for a future materializer targeting that file, not for `render_brief`.
 - **`--harness bb`** (`render_bb_agent` / `bb_model`): resolves to the first
   `openrouter/`-prefixed value found in `preferred` then `fallbacks`,
   stripping the prefix (unchanged — this is how cerberus and sweep resolve).
