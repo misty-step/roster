@@ -74,19 +74,22 @@ fn list_prints_seed_agents() {
         .assert()
         .success()
         .stdout(predicate::str::contains("cerberus\tcodex-class\txhigh"))
-        .stdout(predicate::str::contains("lead\tfable-class\tlow"))
+        .stdout(predicate::str::contains("orchestrator\tfable-class\tlow"))
         .stdout(predicate::str::contains("sweep\topenrouter-class\tmedium"));
 }
 
 #[test]
 fn show_prints_agent_detail() {
     roster_cmd()
-        .args(["show", "lead"])
+        .args(["show", "orchestrator"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("# lead"))
+        .stdout(predicate::str::contains("# orchestrator"))
         .stdout(predicate::str::contains("Preferred model: fable-class"))
-        .stdout(predicate::str::contains("MCPs: powder, qmd, todoist"))
+        .stdout(predicate::str::contains("MCPs: powder"))
+        .stdout(predicate::str::contains(
+            "Contextual MCPs: qmd, todoist, bitterblossom, glass",
+        ))
         .stdout(predicate::str::contains("Evidence Expectations"));
 }
 
@@ -122,7 +125,10 @@ fn materialize_bb_prints_agent_binding() {
 #[test]
 fn materialize_claude_prints_native_subagent_frontmatter() {
     for (agent, expected_tools) in [
-        ("lead", "Read, Write, Edit, Grep, Glob, Bash, WebSearch"),
+        (
+            "orchestrator",
+            "Read, Write, Edit, Grep, Glob, Bash, WebSearch",
+        ),
         ("cerberus", "Read, Grep, Glob, Bash"),
     ] {
         let output = roster_cmd()
@@ -208,7 +214,7 @@ fn brief_with_card_fetches_powder_context() {
     );
 
     roster_cmd()
-        .args(["brief", "lead", "--card", "roster-123"])
+        .args(["brief", "orchestrator", "--card", "roster-123"])
         .env("POWDER_API_BASE_URL", &stub.base_url)
         .env("POWDER_API_KEY", "powder-test-key")
         .assert()
@@ -229,7 +235,7 @@ fn brief_card_404_reports_fetch_error() {
     let stub = PowderStub::once("404 Not Found", r#"{"error":"missing"}"#);
 
     roster_cmd()
-        .args(["brief", "lead", "--card", "missing-card"])
+        .args(["brief", "orchestrator", "--card", "missing-card"])
         .env("POWDER_API_BASE_URL", &stub.base_url)
         .env("POWDER_API_KEY", "powder-test-key")
         .assert()
@@ -246,7 +252,7 @@ fn brief_card_malformed_json_reports_decode_error() {
     let stub = PowderStub::once("200 OK", "not json");
 
     roster_cmd()
-        .args(["brief", "lead", "--card", "bad-json"])
+        .args(["brief", "orchestrator", "--card", "bad-json"])
         .env("POWDER_API_BASE_URL", &stub.base_url)
         .env("POWDER_API_KEY", "powder-test-key")
         .assert()
@@ -263,7 +269,7 @@ fn brief_card_malformed_json_reports_decode_error() {
 #[test]
 fn brief_card_requires_powder_environment() {
     roster_cmd()
-        .args(["brief", "lead", "--card", "roster-123"])
+        .args(["brief", "orchestrator", "--card", "roster-123"])
         .env_remove("POWDER_API_BASE_URL")
         .env_remove("POWDER_API_KEY")
         .assert()
@@ -284,7 +290,7 @@ fn unknown_agent_is_reported() {
 }
 
 #[test]
-fn sync_installs_lead_and_curated_primitives_without_touching_harness_kit() {
+fn sync_installs_orchestrator_and_curated_primitives_without_touching_harness_kit() {
     let home = tempfile::tempdir().expect("temp home");
     let codex_global = home.path().join(".codex/AGENTS.md");
     let claude_global = home.path().join(".claude/CLAUDE.md");
@@ -298,8 +304,12 @@ fn sync_installs_lead_and_curated_primitives_without_touching_harness_kit() {
         .arg(home.path())
         .assert()
         .success()
-        .stdout(predicate::str::contains("Installed roster lead sync"))
-        .stdout(predicate::str::contains(".roster/lead/manifest.json"))
+        .stdout(predicate::str::contains(
+            "Installed roster orchestrator sync",
+        ))
+        .stdout(predicate::str::contains(
+            ".roster/orchestrator/manifest.json",
+        ))
         .stdout(predicate::str::contains("roster sync --disable"));
 
     assert_eq!(
@@ -315,46 +325,46 @@ fn sync_installs_lead_and_curated_primitives_without_touching_harness_kit() {
         "{\"harness\":\"kit\"}"
     );
 
-    let roster_brief = read(home.path().join(".roster/lead/brief.md"));
-    assert!(roster_brief.contains("# Roster Brief: lead"));
+    let roster_brief = read(home.path().join(".roster/orchestrator/brief.md"));
+    assert!(roster_brief.contains("# Roster Brief: orchestrator"));
     assert!(roster_brief.contains("Read: "));
     assert!(roster_brief.contains("## Skills To Read"));
 
-    let claude_agent = read(home.path().join(".claude/agents/lead.md"));
-    assert!(claude_agent.contains("<!-- roster-sync:lead:v1 -->"));
+    let claude_agent = read(home.path().join(".claude/agents/orchestrator.md"));
+    assert!(claude_agent.contains("<!-- roster-sync:orchestrator:v1 -->"));
     assert!(claude_agent.contains("model: sonnet"));
     assert!(claude_agent.contains("tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch"));
 
-    let codex_agent = read(home.path().join(".codex/agents/lead.md"));
-    assert!(codex_agent.contains("<!-- roster-sync:lead:v1 -->"));
-    assert!(codex_agent.contains("# Roster Brief: lead"));
+    let codex_agent = read(home.path().join(".codex/agents/orchestrator.md"));
+    assert!(codex_agent.contains("<!-- roster-sync:orchestrator:v1 -->"));
+    assert!(codex_agent.contains("# Roster Brief: orchestrator"));
 
-    let pi_agent = read(home.path().join(".pi/agents/lead.md"));
-    assert!(pi_agent.contains("<!-- roster-sync:lead:v1 -->"));
-    assert!(pi_agent.contains("# Roster Brief: lead"));
+    let pi_agent = read(home.path().join(".pi/agents/orchestrator.md"));
+    assert!(pi_agent.contains("<!-- roster-sync:orchestrator:v1 -->"));
+    assert!(pi_agent.contains("# Roster Brief: orchestrator"));
 
     let skills_index = read(
         home.path()
-            .join(".roster/lead/primitives/skills-index.json"),
+            .join(".roster/orchestrator/primitives/skills-index.json"),
     );
     assert!(skills_index.contains("\"schema_version\": \"roster.sync.skills.v1\""));
-    assert!(skills_index.contains("\"name\": \"deliver\""));
-    assert!(skills_index.contains("\"name\": \"harness-engineering\""));
-    assert!(!skills_index.contains("\"name\": \"research\""));
+    assert!(skills_index.contains("\"name\": \"orient\""));
+    assert!(skills_index.contains("\"name\": \"powder\""));
+    assert!(!skills_index.contains("\"name\": \"deliver\""));
     assert!(
         !home
             .path()
-            .join(".roster/lead/skills/deliver/SKILL.md")
+            .join(".roster/orchestrator/skills/orient/SKILL.md")
             .exists()
     );
 
-    let manifest = read(home.path().join(".roster/lead/manifest.json"));
+    let manifest = read(home.path().join(".roster/orchestrator/manifest.json"));
     assert!(manifest.contains("\"schema_version\": \"roster.sync.v1\""));
-    assert!(manifest.contains("\".codex/agents/lead.md\""));
-    assert!(manifest.contains("\".claude/agents/lead.md\""));
-    assert!(manifest.contains("\".pi/agents/lead.md\""));
+    assert!(manifest.contains("\".codex/agents/orchestrator.md\""));
+    assert!(manifest.contains("\".claude/agents/orchestrator.md\""));
+    assert!(manifest.contains("\".pi/agents/orchestrator.md\""));
 
-    let rollback = read(home.path().join(".roster/lead/ROLLBACK.md"));
+    let rollback = read(home.path().join(".roster/orchestrator/ROLLBACK.md"));
     assert!(rollback.contains("roster sync --disable"));
     assert!(rollback.contains("leaves harness-kit bootstrap files untouched"));
 }
@@ -379,13 +389,15 @@ fn sync_disable_removes_only_roster_managed_files() {
         .arg("--disable")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Disabled roster lead sync"))
-        .stdout(predicate::str::contains(".codex/agents/lead.md"));
+        .stdout(predicate::str::contains(
+            "Disabled roster orchestrator sync",
+        ))
+        .stdout(predicate::str::contains(".codex/agents/orchestrator.md"));
 
-    assert!(!home.path().join(".roster/lead").exists());
-    assert!(!home.path().join(".codex/agents/lead.md").exists());
-    assert!(!home.path().join(".claude/agents/lead.md").exists());
-    assert!(!home.path().join(".pi/agents/lead.md").exists());
+    assert!(!home.path().join(".roster/orchestrator").exists());
+    assert!(!home.path().join(".codex/agents/orchestrator.md").exists());
+    assert!(!home.path().join(".claude/agents/orchestrator.md").exists());
+    assert!(!home.path().join(".pi/agents/orchestrator.md").exists());
     assert_eq!(
         fs::read_to_string(&codex_global).expect("codex global"),
         "harness-kit codex global"
@@ -406,7 +418,9 @@ fn sync_disable_without_manifest_is_a_noop() {
         .arg("--disable")
         .assert()
         .success()
-        .stdout(predicate::str::contains("No roster lead sync manifest"));
+        .stdout(predicate::str::contains(
+            "No roster orchestrator sync manifest",
+        ));
 }
 
 fn write_file(path: &std::path::Path, contents: &str) {

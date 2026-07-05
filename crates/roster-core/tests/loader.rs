@@ -18,7 +18,7 @@ fn loads_seed_agents_from_repo() {
         .map(|agent| agent.role.name.as_str())
         .collect();
 
-    assert_eq!(names, ["cerberus", "lead", "sweep"]);
+    assert_eq!(names, ["cerberus", "orchestrator", "sweep"]);
 
     let cerberus = roster.agent("cerberus").expect("cerberus exists");
     assert!(cerberus.role.description.contains("Code-review master"));
@@ -28,6 +28,14 @@ fn loads_seed_agents_from_repo() {
         cerberus
             .instructions
             .contains("Cerberus code-review master")
+    );
+    assert!(cerberus.role.mcps_contextual.is_empty());
+
+    let orchestrator = roster.agent("orchestrator").expect("orchestrator exists");
+    assert_eq!(orchestrator.role.mcps, ["powder"]);
+    assert_eq!(
+        orchestrator.role.mcps_contextual,
+        ["qmd", "todoist", "bitterblossom", "glass"]
     );
 }
 

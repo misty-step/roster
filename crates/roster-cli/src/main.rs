@@ -9,10 +9,10 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-const DEFAULT_AGENT: &str = "lead";
-const SYNC_MARKER: &str = "<!-- roster-sync:lead:v1 -->";
-const SYNC_DIR_REL: &str = ".roster/lead";
-const MANIFEST_REL: &str = ".roster/lead/manifest.json";
+const DEFAULT_AGENT: &str = "orchestrator";
+const SYNC_MARKER: &str = "<!-- roster-sync:orchestrator:v1 -->";
+const SYNC_DIR_REL: &str = ".roster/orchestrator";
+const MANIFEST_REL: &str = ".roster/orchestrator/manifest.json";
 
 #[derive(Debug, Parser)]
 #[command(name = "roster")]
@@ -190,7 +190,7 @@ fn install_sync(root: &Path, home: &Path) -> Result<()> {
     }
 
     println!(
-        "Installed roster lead sync at {}",
+        "Installed roster orchestrator sync at {}",
         home.join(SYNC_DIR_REL).display()
     );
     println!("Manifest: {}", home.join(MANIFEST_REL).display());
@@ -208,27 +208,30 @@ fn sync_files(agent: &roster_core::Agent) -> Result<Vec<(String, String)>> {
 
     let mut files = vec![
         (
-            ".roster/lead/brief.md".to_string(),
+            ".roster/orchestrator/brief.md".to_string(),
             managed_markdown(&brief),
         ),
         (
-            ".roster/lead/claude.md".to_string(),
+            ".roster/orchestrator/claude.md".to_string(),
             managed_markdown(&claude_agent),
         ),
         (
-            ".roster/lead/primitives/skills-index.json".to_string(),
+            ".roster/orchestrator/primitives/skills-index.json".to_string(),
             skills_index,
         ),
-        (".roster/lead/ROLLBACK.md".to_string(), rollback),
+        (".roster/orchestrator/ROLLBACK.md".to_string(), rollback),
         (
-            ".codex/agents/lead.md".to_string(),
+            ".codex/agents/orchestrator.md".to_string(),
             managed_markdown(&brief),
         ),
         (
-            ".claude/agents/lead.md".to_string(),
+            ".claude/agents/orchestrator.md".to_string(),
             managed_markdown(&claude_agent),
         ),
-        (".pi/agents/lead.md".to_string(), managed_markdown(&brief)),
+        (
+            ".pi/agents/orchestrator.md".to_string(),
+            managed_markdown(&brief),
+        ),
     ];
 
     let mut managed_paths = files
@@ -274,7 +277,7 @@ fn skills_index_json(agent: &roster_core::Agent) -> Result<String> {
         "schema_version": "roster.sync.skills.v1",
         "phase": "P2-reference-only",
         "agent": agent.role.name,
-        "note": "Skill bodies remain in harness-kit until the P3 primitives migration; this is the curated lead subset.",
+        "note": "Skill bodies remain in harness-kit until the P3 primitives migration; this is the curated orchestrator subset.",
         "skills": skills,
         "mcps": agent.role.mcps,
     });
@@ -285,7 +288,7 @@ fn skills_index_json(agent: &roster_core::Agent) -> Result<String> {
 fn rollback_doc() -> String {
     format!(
         r#"{SYNC_MARKER}
-# Roster Lead Sync Rollback
+# Roster Orchestrator Sync Rollback
 
 Run:
 
@@ -299,8 +302,8 @@ For a staged install root, pass the same home used during install:
 roster sync --home <path> --disable
 ```
 
-The disable path removes only files recorded in `.roster/lead/manifest.json`
-and carrying the roster sync marker outside `.roster/lead`.
+The disable path removes only files recorded in `.roster/orchestrator/manifest.json`
+and carrying the roster sync marker outside `.roster/orchestrator`.
 It leaves harness-kit bootstrap files untouched.
 "#
     )
@@ -334,7 +337,7 @@ fn disable_sync(home: &Path) -> Result<()> {
     let manifest_path = home.join(MANIFEST_REL);
     if !manifest_path.exists() {
         println!(
-            "No roster lead sync manifest at {}; nothing to disable.",
+            "No roster orchestrator sync manifest at {}; nothing to disable.",
             manifest_path.display()
         );
         return Ok(());
@@ -373,7 +376,7 @@ fn disable_sync(home: &Path) -> Result<()> {
         removed.push(SYNC_DIR_REL.to_string());
     }
 
-    println!("Disabled roster lead sync.");
+    println!("Disabled roster orchestrator sync.");
     if !removed.is_empty() {
         println!("Removed:");
         for relative_path in removed {
@@ -422,5 +425,5 @@ fn safe_home_path(home: &Path, relative_path: &str) -> Result<PathBuf> {
 }
 
 fn is_roster_state_path(relative_path: &str) -> bool {
-    relative_path == SYNC_DIR_REL || relative_path.starts_with(".roster/lead/")
+    relative_path == SYNC_DIR_REL || relative_path.starts_with(".roster/orchestrator/")
 }

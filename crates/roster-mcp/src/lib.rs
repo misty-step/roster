@@ -13,7 +13,7 @@ pub struct ToolDef {
 
 // `sync` (the CLI's other mutating verb) intentionally has no MCP tool. It
 // writes managed files across the CALLER'S `$HOME` (`.codex/agents/`,
-// `.claude/agents/`, `.pi/agents/`, `.roster/lead/`) with an install/disable
+// `.claude/agents/`, `.pi/agents/`, `.roster/orchestrator/`) with an install/disable
 // lifecycle tied to that specific filesystem. An MCP call has no reliable
 // notion of "the caller's home" the way a locally-run CLI invocation does,
 // and remote/arbitrary MCP callers writing harness config files on whatever
@@ -278,12 +278,16 @@ mod tests {
     fn mcp_tools_render_list_show_and_brief() {
         let root = workspace_root();
         let list = call_tool("list", &json!({"root": root})).unwrap();
-        assert!(text(&list).contains("lead\tfable-class\tlow"));
+        assert!(text(&list).contains("orchestrator\tfable-class\tlow"));
         assert_eq!(list["structuredContent"]["agents"][0]["name"], "cerberus");
 
-        let show = call_tool("show", &json!({"root": workspace_root(), "agent": "lead"})).unwrap();
-        assert!(text(&show).contains("# lead"));
-        assert_eq!(show["structuredContent"]["agent"], "lead");
+        let show = call_tool(
+            "show",
+            &json!({"root": workspace_root(), "agent": "orchestrator"}),
+        )
+        .unwrap();
+        assert!(text(&show).contains("# orchestrator"));
+        assert_eq!(show["structuredContent"]["agent"], "orchestrator");
 
         let brief = call_tool(
             "brief",
@@ -328,16 +332,16 @@ mod tests {
 
         let claude = call_tool(
             "materialize",
-            &json!({"root": root, "agent": "lead", "harness": "claude"}),
+            &json!({"root": root, "agent": "orchestrator", "harness": "claude"}),
         )
         .unwrap();
-        assert!(text(&claude).contains("name: lead"));
+        assert!(text(&claude).contains("name: orchestrator"));
         assert!(text(&claude).contains("tools:"));
-        assert_eq!(claude["structuredContent"]["agent"], "lead");
+        assert_eq!(claude["structuredContent"]["agent"], "orchestrator");
 
         let bad_harness = call_tool(
             "materialize",
-            &json!({"root": root, "agent": "lead", "harness": "unknown"}),
+            &json!({"root": root, "agent": "orchestrator", "harness": "unknown"}),
         )
         .unwrap_err();
         assert!(bad_harness.contains("unknown harness"), "{bad_harness}");
@@ -386,7 +390,7 @@ surprise: should fail
             "jsonrpc": "2.0",
             "id": 1,
             "method": "tools/call",
-            "params": {"name": "show", "arguments": {"root": workspace_root(), "agent": "lead"}},
+            "params": {"name": "show", "arguments": {"root": workspace_root(), "agent": "orchestrator"}},
         }))
         .expect("success response");
         assert_eq!(success["jsonrpc"], "2.0");
@@ -395,7 +399,7 @@ surprise: should fail
             success["result"]["content"][0]["text"]
                 .as_str()
                 .unwrap()
-                .contains("# lead")
+                .contains("# orchestrator")
         );
 
         let tool_error = handle_json_rpc(&json!({

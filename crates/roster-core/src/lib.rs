@@ -72,6 +72,8 @@ pub struct Role {
     pub permissions: Permissions,
     pub skills: Vec<SkillRef>,
     pub mcps: Vec<String>,
+    #[serde(default)]
+    pub mcps_contextual: Vec<String>,
     pub subagent_rights: SubagentRights,
     pub evidence_expectations: Vec<String>,
 }
@@ -163,6 +165,10 @@ tools: {tools}
 
 {skills}
 
+## MCP Servers
+
+{mcp_servers}
+
 ## Permissions
 
 - Filesystem: {filesystem}
@@ -184,6 +190,7 @@ tools: {tools}
         skills = render_skills(&role.skills, &[]),
         instructions = agent.instructions.trim(),
         fallbacks = role.model_policy.fallbacks.join(", "),
+        mcp_servers = render_mcp_servers(&role.mcps, &role.mcps_contextual, &[]),
         filesystem = role.permissions.filesystem,
         commands = role.permissions.commands,
         network = role.permissions.network,
@@ -219,6 +226,8 @@ fn claude_tools(role: &Role) -> String {
     tools.join(", ")
 }
 
+// bb (Bitterblossom) config has no MCP concept: `role.mcps`/`mcps_contextual`
+// are not rendered into the generated TOML at all, required or contextual.
 pub fn render_bb_agent(agent: &Agent) -> String {
     let role = &agent.role;
     let model = bb_model(role);
@@ -292,9 +301,9 @@ Read: {instruction_path}
 
 {skills}
 
-## MCP Selection
+## MCP Servers
 
-{mcps}
+{mcp_servers}
 
 ## Permissions
 
@@ -322,7 +331,7 @@ Read: {instruction_path}
         instruction_path = agent.instruction_path().display(),
         instructions = agent.instructions.trim(),
         skills = render_skills(&role.skills, add_skills),
-        mcps = render_mcps(&role.mcps, add_mcps),
+        mcp_servers = render_mcp_servers(&role.mcps, &role.mcps_contextual, add_mcps),
         filesystem = role.permissions.filesystem,
         commands = role.permissions.commands,
         network = role.permissions.network,
@@ -382,6 +391,7 @@ pub fn render_show(agent: &Agent) -> String {
 - Reasoning: {reasoning}
 - Skills: {skill_count}
 - MCPs: {mcps}
+- Contextual MCPs: {mcps_contextual}
 
 ## Evidence Expectations
 
@@ -399,6 +409,11 @@ pub fn render_show(agent: &Agent) -> String {
             "none".to_string()
         } else {
             role.mcps.join(", ")
+        },
+        mcps_contextual = if role.mcps_contextual.is_empty() {
+            "none".to_string()
+        } else {
+            role.mcps_contextual.join(", ")
         },
         evidence = bullet_list(&role.evidence_expectations),
     )
@@ -499,6 +514,10 @@ fn validate_agent(directory: &Path, role: &Role, instructions: &str) -> Result<(
         require_non_empty(mcp, "mcps[]", directory)?;
     }
 
+    for mcp in &role.mcps_contextual {
+        require_non_empty(mcp, "mcps_contextual[]", directory)?;
+    }
+
     for expectation in &role.evidence_expectations {
         require_non_empty(expectation, "evidence_expectations[]", directory)?;
     }
@@ -548,12 +567,18 @@ fn render_skills(skills: &[SkillRef], add_skills: &[String]) -> String {
     }
 }
 
-fn render_mcps(mcps: &[String], add_mcps: &[String]) -> String {
+fn render_mcp_servers(mcps: &[String], mcps_contextual: &[String], add_mcps: &[String]) -> String {
+    let required = mcp_lines(mcps, &[]);
+    let contextual = mcp_lines(mcps_contextual, add_mcps);
+    format!("### Required\n\n{required}\n\n### Contextual (bind when present)\n\n{contextual}")
+}
+
+fn mcp_lines(mcps: &[String], overrides: &[String]) -> String {
     let mut lines = mcps
         .iter()
         .map(|mcp| format!("- {mcp}"))
         .collect::<Vec<_>>();
-    for mcp in add_mcps {
+    for mcp in overrides {
         lines.push(format!("- override: {mcp}"));
     }
     if lines.is_empty() {

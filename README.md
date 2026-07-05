@@ -17,19 +17,20 @@ cargo run -p roster-cli -- materialize cerberus --harness codex
 cargo run -p roster-cli -- brief cerberus
 ```
 
-P2 adds an opt-in workstation sync for the default lead agent:
+P2 adds an opt-in workstation sync for the default orchestrator agent:
 
 ```sh
 cargo run -p roster-cli -- sync
 ```
 
-`roster sync` installs roster-managed lead artifacts under `.roster/lead/` and
-harness-native agent files at `.codex/agents/lead.md`,
-`.claude/agents/lead.md`, and `.pi/agents/lead.md` beneath the target home
-directory. The curated primitive subset is reference-only: skill bodies stay in
-harness-kit until the P3 primitives migration. Existing harness-kit bootstrap
-globals such as `.codex/AGENTS.md`, `.claude/CLAUDE.md`, and `.pi/settings.json`
-are not overwritten during the parallel run.
+`roster sync` installs roster-managed orchestrator artifacts under
+`.roster/orchestrator/` and harness-native agent files at
+`.codex/agents/orchestrator.md`, `.claude/agents/orchestrator.md`, and
+`.pi/agents/orchestrator.md` beneath the target home directory. The curated
+primitive subset is reference-only: skill bodies stay in harness-kit until the
+P3 primitives migration. Existing harness-kit bootstrap globals such as
+`.codex/AGENTS.md`, `.claude/CLAUDE.md`, and `.pi/settings.json` are not
+overwritten during the parallel run.
 
 Rollback is manifest-driven:
 
@@ -38,9 +39,9 @@ cargo run -p roster-cli -- sync --disable
 ```
 
 For tests or staged installs, pass `--home <path>` to either command. Disable
-removes only files recorded in `.roster/lead/manifest.json`, and harness-agent
-files outside `.roster/lead/` are removed only when they still carry the roster
-sync marker.
+removes only files recorded in `.roster/orchestrator/manifest.json`, and
+harness-agent files outside `.roster/orchestrator/` are removed only when they
+still carry the roster sync marker.
 
 ## `role.yaml` field reference
 
@@ -48,24 +49,25 @@ Every declaration lives at `agents/<name>/role.yaml` + `agents/<name>/instructio
 and is validated by `roster_core::Roster::load` (`deny_unknown_fields`: an
 unrecognized key or a missing `instructions.md` fails the load, not just a lint
 warning). Values below are the actual fields in use across the three seed
-agents (`agents/cerberus`, `agents/lead`, `agents/sweep`).
+agents (`agents/cerberus`, `agents/orchestrator`, `agents/sweep`).
 
 | Field | Type | What it's for | Actual values in use |
 |---|---|---|---|
 | `schema_version` | string | Declaration format version | `roster.role.v1` on all three agents |
-| `name` | string | Agent id; must match the directory name and be unique across `agents/` | `cerberus`, `lead`, `sweep` |
+| `name` | string | Agent id; must match the directory name and be unique across `agents/` | `cerberus`, `orchestrator`, `sweep` |
 | `description` | string | One-sentence purpose, echoed by `roster list`/`show`/`brief` | see `roster list` output below |
-| `model_policy.preferred` | string | Model tier or literal model id (see resolution table below) | `codex-class` (cerberus), `fable-class` (lead), `openrouter-class` (sweep) |
+| `model_policy.preferred` | string | Model tier or literal model id (see resolution table below) | `codex-class` (cerberus), `fable-class` (orchestrator), `openrouter-class` (sweep) |
 | `model_policy.fallbacks` | list\<string\> | Ordered fallback tiers/models | e.g. sweep: `openrouter/moonshotai/kimi-k2.7-code`, `openrouter/deepseek/deepseek-v4-flash`, `openrouter/qwen/qwen3-coder-next` |
-| `model_policy.reasoning` | string | Reasoning-effort tier, printed as-is, never parsed | `xhigh` (cerberus), `low` (lead), `medium` (sweep) |
-| `permissions.filesystem` | string | Free text; feeds `claude_tools()` (`Write`/`Edit` are added when this contains `"write"`) | `workspace-write` (lead), `read-only` (cerberus, sweep) |
-| `permissions.commands` | string | Free text; `Bash` is added by `claude_tools()` unless this is `"none"` or `"disabled-by-default"` | `allowed` (lead), `verification-only` (cerberus), `read-only` (sweep) |
-| `permissions.network` | string | Free text; `WebSearch` is added by `claude_tools()` only when this is exactly `"allowed"` | `allowed` (lead, sweep), `disabled-by-default` (cerberus) |
-| `permissions.secrets` | string | Free text, documentation only (no code branches on it today) | `env-refs-only` (lead), `none` (cerberus, sweep) |
-| `permissions.mutations` | string | Free text; `Write`/`Edit` are also added by `claude_tools()` when this is not `"none"` | `with-explicit-scope` (lead), `none` (cerberus, sweep) |
-| `skills` | list\<{name, path, reason}\> | Skill files the agent should read; `path` is an absolute filesystem path (currently all under `harness-kit`, pending the P3 primitives migration) | lead has 8, cerberus has 3, sweep has 3 |
-| `mcps` | list\<string\> | Bare MCP server names to reach at dispatch time | lead: `powder`, `qmd`, `todoist`; sweep: `qmd`; cerberus: none |
-| `subagent_rights.may_dispatch` / `may_spawn_subagents` / `may_use_peer_harnesses` | bool | What the agent is allowed to fan work out to | lead and cerberus: all `true`; sweep: all `false` (it is a leaf sweep lane) |
+| `model_policy.reasoning` | string | Reasoning-effort tier, printed as-is, never parsed | `xhigh` (cerberus), `low` (orchestrator), `medium` (sweep) |
+| `permissions.filesystem` | string | Free text; feeds `claude_tools()` (`Write`/`Edit` are added when this contains `"write"`) | `workspace-write` (orchestrator), `read-only` (cerberus, sweep) |
+| `permissions.commands` | string | Free text; `Bash` is added by `claude_tools()` unless this is `"none"` or `"disabled-by-default"` | `allowed` (orchestrator), `verification-only` (cerberus), `read-only` (sweep) |
+| `permissions.network` | string | Free text; `WebSearch` is added by `claude_tools()` only when this is exactly `"allowed"` | `allowed` (orchestrator, sweep), `disabled-by-default` (cerberus) |
+| `permissions.secrets` | string | Free text, documentation only (no code branches on it today) | `env-refs-only` (orchestrator), `none` (cerberus, sweep) |
+| `permissions.mutations` | string | Free text; `Write`/`Edit` are also added by `claude_tools()` when this is not `"none"` | `with-explicit-scope` (orchestrator), `none` (cerberus, sweep) |
+| `skills` | list\<{name, path, reason}\> | Skill files the agent should read; `path` is an absolute filesystem path (currently all under `harness-kit`, pending the P3 primitives migration) | orchestrator has 8, cerberus has 3, sweep has 3 |
+| `mcps` | list\<string\> | Bare MCP server names required at dispatch time (rendered as claude/codex/brief's "MCP Servers → Required") | orchestrator: `powder`; sweep: `qmd`; cerberus: none |
+| `mcps_contextual` | list\<string\>, optional (defaults empty) | MCP server names to bind only when present in the calling harness (rendered as "MCP Servers → Contextual (bind when present)"); not rendered for `bb` (no MCP concept there) | orchestrator: `qmd`, `todoist`, `bitterblossom`, `glass`; cerberus, sweep: none |
+| `subagent_rights.may_dispatch` / `may_spawn_subagents` / `may_use_peer_harnesses` | bool | What the agent is allowed to fan work out to | orchestrator and cerberus: all `true`; sweep: all `false` (it is a leaf sweep lane) |
 | `evidence_expectations` | list\<string\> | Free prose bullets, no fixed vocabulary; printed verbatim under `## Evidence Contract` / `## Evidence Expectations` | see `agents/*/role.yaml` |
 
 ### Model tier vocabulary and per-harness resolution
@@ -85,15 +87,15 @@ handles it differently, and this is current, verified behavior, not aspiration:
   doctrine is hardcoded, not tier-driven.
 - **`--harness codex`** and **`brief`** (`render_brief`): print `preferred`,
   `fallbacks`, and `reasoning` as literal text under `## Model Policy`. No
-  resolution happens in code; a human or the lead reads the tier and applies
-  the doctrine above to pick a concrete model.
+  resolution happens in code; a human or the orchestrator reads the tier and
+  applies the doctrine above to pick a concrete model.
 - **`--harness bb`** (`render_bb_agent` / `bb_model`): resolves to the first
   `openrouter/`-prefixed value found in `preferred` then `fallbacks`, stripping
   the prefix. Example: cerberus's preferred (`codex-class`) isn't
   openrouter-prefixed, so `bb_model` falls through to its second fallback and
   emits `model = "moonshotai/kimi-k2.7-code"` in the generated TOML. **Known
   gap:** if no value in `preferred`/`fallbacks` is `openrouter/`-prefixed (this
-  is true of `lead` today — `fable-class`, `claude-opus-4-8`,
+  is true of `orchestrator` today — `fable-class`, `claude-opus-4-8`,
   `gpt-5.5-pro-browser` — none match), `bb_model` emits the literal preferred
   string (`model = "fable-class"`), which is not a real invocable model. This
   only matters if a non-OpenRouter-only agent is ever bb-materialized; sweep
@@ -118,7 +120,7 @@ agent):
 $ cargo run -q -p roster-cli -- list
 cerberus	codex-class	xhigh	Code-review master agent that turns available change context into grounded findings, verdicts, and a review artifact without overstating inspected evidence.
 example	openrouter-class	medium	Minimal placeholder agent used by the README quickstart to demonstrate adding a new agent.
-lead	fable-class	low	Master orchestrator for framing factory work, composing lanes, selecting primitives, comparing evidence, verifying outcomes, and closing the workspace cleanly.
+orchestrator	fable-class	low	Master orchestrator — frames factory work, grooms and shapes the board, composes and dispatches lanes, compares evidence, verifies outcomes, and closes the workspace cleanly.
 sweep	openrouter-class	medium	Cheap read-only research and repository sweep lane for broad scanning, source collection, and concise discrepancy reports.
 
 $ cargo test --workspace
@@ -126,8 +128,8 @@ $ cargo test --workspace
 test loads_seed_agents_from_repo ... FAILED
 thread 'loads_seed_agents_from_repo' panicked at crates/roster-core/tests/loader.rs:21:5:
 assertion `left == right` failed
-  left: ["cerberus", "example", "lead", "sweep"]
- right: ["cerberus", "lead", "sweep"]
+  left: ["cerberus", "example", "orchestrator", "sweep"]
+ right: ["cerberus", "orchestrator", "sweep"]
 ```
 
 The `list` step proves the loader picked up the new declaration; the `test`
@@ -161,7 +163,7 @@ Read: ./agents/sweep/instructions.md
 # Sweep Lane
 
 You are a cheap read-only sweep lane. Search broadly, cite exactly what you
-inspected, and keep the output compact enough for a lead agent to act on.
+inspected, and keep the output compact enough for the orchestrator to act on.
 
 Use repository files, command output, and current external sources when allowed.
 Separate confirmed evidence from inference. Do not edit files, update trackers,
@@ -177,9 +179,15 @@ confidence.
 - orient: /Users/phaedrus/Development/harness-kit/skills/orient/SKILL.md (fast repository orientation from live evidence)
 - diagnose: /Users/phaedrus/Development/harness-kit/skills/diagnose/SKILL.md (structured triage when the sweep finds a contradiction)
 
-## MCP Selection
+## MCP Servers
+
+### Required
 
 - qmd
+
+### Contextual (bind when present)
+
+- none
 
 ## Permissions
 
@@ -222,6 +230,6 @@ Current README is 18 lines: three bare `cargo run` invocations with no explanati
 This is exactly the "dynamic composition" seam `VISION.md` calls out as the
 critical design consideration: one declaration (`agents/sweep/role.yaml` +
 `instructions.md`), one CLI invocation, and the brief carries role prompt,
-skill paths, MCP selection, permissions, subagent rights, evidence contract,
-and — when `--card` is passed — the live Powder card context, ready for any
-harness to consume as prompt-native text.
+skill paths, required/contextual MCP servers, permissions, subagent rights,
+evidence contract, and — when `--card` is passed — the live Powder card
+context, ready for any harness to consume as prompt-native text.

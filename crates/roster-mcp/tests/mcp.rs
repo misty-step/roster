@@ -28,7 +28,7 @@ fn mcp_stdio_smoke_records_structured_success_and_error() {
     for request in [
         json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05"}}),
         json!({"jsonrpc":"2.0","id":2,"method":"tools/list"}),
-        json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"brief","arguments":{"root":workspace_root(),"agent":"lead"}}}),
+        json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"brief","arguments":{"root":workspace_root(),"agent":"orchestrator"}}}),
         json!({"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"show","arguments":{"root":workspace_root(),"agent":"missing"}}}),
         json!({"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"materialize","arguments":{"root":workspace_root(),"agent":"cerberus","harness":"codex"}}}),
     ] {
@@ -56,9 +56,12 @@ fn mcp_stdio_smoke_records_structured_success_and_error() {
         responses[2]["result"]["content"][0]["text"]
             .as_str()
             .unwrap()
-            .contains("# Roster Brief: lead")
+            .contains("# Roster Brief: orchestrator")
     );
-    assert_eq!(responses[2]["result"]["structuredContent"]["agent"], "lead");
+    assert_eq!(
+        responses[2]["result"]["structuredContent"]["agent"],
+        "orchestrator"
+    );
     assert_eq!(responses[3]["result"]["isError"], true);
     assert!(
         responses[3]["result"]["content"][0]["text"]
