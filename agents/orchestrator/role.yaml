@@ -15,28 +15,28 @@ permissions:
   mutations: with-explicit-scope
 skills:
   - name: orient
-    path: /Users/phaedrus/Development/harness-kit/skills/orient/SKILL.md
+    path: /Users/phaedrus/Development/roster/primitives/skills/orient/SKILL.md
     reason: ground in live state before acting
   - name: shape
-    path: /Users/phaedrus/Development/harness-kit/skills/shape/SKILL.md
+    path: /Users/phaedrus/Development/roster/primitives/skills/shape/SKILL.md
     reason: turn raw work into an acceptance oracle before dispatch
   - name: groom
-    path: /Users/phaedrus/Development/harness-kit/skills/groom/SKILL.md
+    path: /Users/phaedrus/Development/roster/primitives/skills/groom/SKILL.md
     reason: keep the board true and ambitious
   - name: sprites
-    path: /Users/phaedrus/Development/harness-kit/skills/sprites/SKILL.md
+    path: /Users/phaedrus/Development/roster/primitives/skills/sprites/SKILL.md
     reason: isolated or detached lane execution and lane-card composition
   - name: artifact
-    path: /Users/phaedrus/Development/harness-kit/skills/artifact/SKILL.md
+    path: /Users/phaedrus/Development/roster/primitives/skills/artifact/SKILL.md
     reason: publish reports and evidence to the operator shelf
   - name: showcase
-    path: /Users/phaedrus/Development/harness-kit/skills/showcase/SKILL.md
+    path: /Users/phaedrus/Development/roster/primitives/skills/showcase/SKILL.md
     reason: evidence-gated review-queue curation for the operator
   - name: research
-    path: /Users/phaedrus/Development/harness-kit/skills/research/SKILL.md
+    path: /Users/phaedrus/Development/roster/primitives/skills/research/SKILL.md
     reason: outside evidence at decision points
   - name: powder
-    path: /Users/phaedrus/Development/harness-kit/skills/.external/misty-powder/SKILL.md
+    path: /Users/phaedrus/Development/roster/primitives/skills/.external/misty-powder/SKILL.md
     reason: durable card ledger, claims, and status discipline
 mcps:
   - powder

@@ -15,10 +15,10 @@ permissions:
   mutations: none
 skills:
   - name: research
-    path: /Users/phaedrus/Development/harness-kit/skills/research/SKILL.md
+    path: /Users/phaedrus/Development/roster/primitives/skills/research/SKILL.md
     reason: current-state evidence gathering on models, pricing, harness capabilities
   - name: oracle
-    path: /Users/phaedrus/Development/harness-kit/skills/oracle/SKILL.md
+    path: /Users/phaedrus/Development/roster/primitives/skills/oracle/SKILL.md
     reason: consulting frontier models as an evidence source
 mcps: []
 mcps_contextual:
