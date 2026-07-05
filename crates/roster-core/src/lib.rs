@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fs,
     path::{Path, PathBuf},
 };
@@ -46,6 +46,45 @@ impl Roster {
 
     pub fn agent(&self, name: &str) -> Option<&Agent> {
         self.agents.iter().find(|agent| agent.role.name == name)
+    }
+}
+
+/// Tier -> per-harness invocable model id, loaded from the `tiers` key of
+/// `primitives/providers.yaml`. That file's top-level `providers` key is an
+/// unrelated, pre-existing table (which peer harness CLI to dispatch, with
+/// what flags); this struct only reads `tiers` and ignores the rest.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Providers {
+    pub schema_version: String,
+    pub tiers: BTreeMap<String, TierBindings>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct TierBindings {
+    pub claude: String,
+    pub codex: String,
+    pub bb: String,
+}
+
+impl Providers {
+    pub fn load(root: impl AsRef<Path>) -> Result<Self, RosterError> {
+        let path = root.as_ref().join("primitives/providers.yaml");
+        let text = fs::read_to_string(&path).map_err(|source| RosterError::Io {
+            path: path.clone(),
+            source,
+        })?;
+        serde_yaml::from_str(&text).map_err(|source| RosterError::Yaml { path, source })
+    }
+
+    fn claude_tier(&self, tier: &str) -> Option<&str> {
+        self.tiers
+            .get(tier)
+            .map(|bindings| bindings.claude.as_str())
+    }
+
+    fn bb_tier(&self, tier: &str) -> Option<&str> {
+        self.tiers.get(tier).map(|bindings| bindings.bb.as_str())
     }
 }
 
@@ -138,9 +177,9 @@ pub enum RosterError {
     Validation(String),
 }
 
-pub fn render_claude_agent(agent: &Agent) -> String {
+pub fn render_claude_agent(agent: &Agent, providers: &Providers) -> String {
     let role = &agent.role;
-    let model = claude_model(role);
+    let model = claude_model(role, providers);
     let tools = claude_tools(role);
 
     format!(
@@ -200,8 +239,26 @@ tools: {tools}
     )
 }
 
-fn claude_model(_role: &Role) -> &'static str {
-    "sonnet"
+fn claude_model(role: &Role, providers: &Providers) -> String {
+    let preferred = &role.model_policy.preferred;
+
+    if let Some(model) = providers.claude_tier(preferred) {
+        return model.to_string();
+    }
+
+    // `preferred` isn't a known tier symbol, so treat it as a literal model
+    // id. Pass Claude subagent model names straight through; conservatively
+    // map the handful of literal Claude ids role.yaml might carry to their
+    // subagent-frontmatter short form; anything else (a codex/browser-only
+    // id, or an unrecognized string) falls back to `inherit` — the subagent
+    // runs on the session's own model — rather than guessing a wrong one.
+    match preferred.as_str() {
+        "sonnet" | "opus" | "haiku" | "inherit" => preferred.clone(),
+        "claude-opus-4-8" => "opus".to_string(),
+        "claude-sonnet-5" => "sonnet".to_string(),
+        "claude-haiku-4-5" | "claude-haiku-4-5-20251001" => "haiku".to_string(),
+        _ => "inherit".to_string(),
+    }
 }
 
 fn claude_tools(role: &Role) -> String {
@@ -228,9 +285,9 @@ fn claude_tools(role: &Role) -> String {
 
 // bb (Bitterblossom) config has no MCP concept: `role.mcps`/`mcps_contextual`
 // are not rendered into the generated TOML at all, required or contextual.
-pub fn render_bb_agent(agent: &Agent) -> String {
+pub fn render_bb_agent(agent: &Agent, providers: &Providers) -> Result<String, String> {
     let role = &agent.role;
-    let model = bb_model(role);
+    let model = bb_model(role, providers)?;
     let skills = toml_array(
         &role
             .skills
@@ -239,7 +296,7 @@ pub fn render_bb_agent(agent: &Agent) -> String {
             .collect::<Vec<_>>(),
     );
 
-    format!(
+    Ok(format!(
         r#"# Generated from roster agent {name}.
 # Roster preferred model: {preferred}
 # Roster reasoning: {reasoning}
@@ -268,7 +325,7 @@ side_effect_policy = "kill"
         reasoning = toml_escape(&role.model_policy.reasoning),
         model = toml_escape(&model),
         skills = skills,
-    )
+    ))
 }
 
 pub fn render_brief(
@@ -362,15 +419,35 @@ Read: {instruction_path}
     output
 }
 
-fn bb_model(role: &Role) -> String {
+fn bb_model(role: &Role, providers: &Providers) -> Result<String, String> {
     if let Some(model) = openrouter_model(&role.model_policy.preferred) {
-        return model.to_string();
+        return Ok(model.to_string());
     }
-    role.model_policy
+    if let Some(model) = role
+        .model_policy
         .fallbacks
         .iter()
-        .find_map(|fallback| openrouter_model(fallback).map(ToOwned::to_owned))
-        .unwrap_or_else(|| role.model_policy.preferred.clone())
+        .find_map(|fallback| openrouter_model(fallback))
+    {
+        return Ok(model.to_string());
+    }
+
+    // Neither `preferred` nor any fallback is a literal `openrouter/`-prefixed
+    // model id. Resolve `preferred` as a tier symbol through providers.yaml
+    // instead of ever falling back to the bare tier string (that string is
+    // not an invocable model, so a bb config carrying it would silently fail
+    // at dispatch time rather than at render time).
+    providers
+        .bb_tier(&role.model_policy.preferred)
+        .map(|model| openrouter_model(model).unwrap_or(model).to_string())
+        .ok_or_else(|| {
+            format!(
+                "cannot resolve bb model for agent {:?}: preferred {:?} is not an \
+                 openrouter/-prefixed literal, has no openrouter/-prefixed fallback, \
+                 and is not a known tier in primitives/providers.yaml",
+                role.name, role.model_policy.preferred
+            )
+        })
 }
 
 fn openrouter_model(value: &str) -> Option<&str> {

@@ -124,12 +124,17 @@ fn materialize_bb_prints_agent_binding() {
 
 #[test]
 fn materialize_claude_prints_native_subagent_frontmatter() {
-    for (agent, expected_tools) in [
+    // Expected models come from primitives/providers.yaml's `tiers` table:
+    // orchestrator's tier is fable-class (claude: inherit), cerberus's is
+    // codex-class (claude: sonnet) -- resolved through the table, not
+    // hardcoded per agent.
+    for (agent, expected_tools, expected_model) in [
         (
             "orchestrator",
             "Read, Write, Edit, Grep, Glob, Bash, WebSearch",
+            "inherit",
         ),
-        ("cerberus", "Read, Grep, Glob, Bash"),
+        ("cerberus", "Read, Grep, Glob, Bash", "sonnet"),
     ] {
         let output = roster_cmd()
             .args(["materialize", agent, "--harness", "claude"])
@@ -151,7 +156,10 @@ fn materialize_claude_prints_native_subagent_frontmatter() {
                 .get("description")
                 .is_some_and(|description| !description.is_empty())
         );
-        assert_eq!(frontmatter.get("model").map(String::as_str), Some("sonnet"));
+        assert_eq!(
+            frontmatter.get("model").map(String::as_str),
+            Some(expected_model)
+        );
         assert_eq!(
             frontmatter.get("tools").map(String::as_str),
             Some(expected_tools)
@@ -332,7 +340,9 @@ fn sync_installs_orchestrator_and_curated_primitives_without_touching_harness_ki
 
     let claude_agent = read(home.path().join(".claude/agents/orchestrator.md"));
     assert!(claude_agent.contains("<!-- roster-sync:orchestrator:v1 -->"));
-    assert!(claude_agent.contains("model: sonnet"));
+    // orchestrator's tier is fable-class; providers.yaml resolves that to
+    // `inherit` for the claude harness, not the old hardcoded `sonnet`.
+    assert!(claude_agent.contains("model: inherit"));
     assert!(claude_agent.contains("tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch"));
 
     let codex_agent = read(home.path().join(".codex/agents/orchestrator.md"));

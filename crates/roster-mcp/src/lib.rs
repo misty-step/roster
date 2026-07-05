@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
-use roster_core::{Roster, render_bb_agent, render_brief, render_claude_agent, render_show};
+use roster_core::{
+    Providers, Roster, render_bb_agent, render_brief, render_claude_agent, render_show,
+};
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 
@@ -174,9 +176,9 @@ fn materialize_agent(args: &Value) -> Result<Value, String> {
         .ok_or_else(|| format!("unknown agent {agent_name:?}"))?;
     let harness = required_str(args, "harness")?;
     let text = match harness {
-        "claude" => render_claude_agent(agent),
+        "claude" => render_claude_agent(agent, &load_providers(args)?),
         "codex" => render_brief(agent, &[], &[], None),
-        "bb" => render_bb_agent(agent),
+        "bb" => render_bb_agent(agent, &load_providers(args)?)?,
         other => {
             return Err(format!(
                 "unknown harness {other:?}; expected claude, codex, or bb"
@@ -191,6 +193,10 @@ fn materialize_agent(args: &Value) -> Result<Value, String> {
 
 fn load_roster(args: &Value) -> Result<Roster, String> {
     Roster::load(root_path(args)).map_err(|error| error.to_string())
+}
+
+fn load_providers(args: &Value) -> Result<Providers, String> {
+    Providers::load(root_path(args)).map_err(|error| error.to_string())
 }
 
 fn root_path(args: &Value) -> PathBuf {

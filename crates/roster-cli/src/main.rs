@@ -1,7 +1,7 @@
 use anyhow::{Context, Result, anyhow, bail};
 use clap::{Parser, Subcommand, ValueEnum};
 use roster_core::{
-    CardContext, Roster, render_bb_agent, render_brief, render_claude_agent, render_show,
+    CardContext, Providers, Roster, render_bb_agent, render_brief, render_claude_agent, render_show,
 };
 use serde_json::{Value, json};
 use std::{
@@ -84,9 +84,18 @@ fn main() -> Result<()> {
             let roster = Roster::load(&cli.root)?;
             let agent = find_agent(&roster, &agent)?;
             match harness {
-                Harness::Claude => print!("{}", render_claude_agent(agent)),
+                Harness::Claude => {
+                    let providers = Providers::load(&cli.root)?;
+                    print!("{}", render_claude_agent(agent, &providers));
+                }
                 Harness::Codex => print!("{}", render_brief(agent, &[], &[], None)),
-                Harness::Bb => print!("{}", render_bb_agent(agent)),
+                Harness::Bb => {
+                    let providers = Providers::load(&cli.root)?;
+                    print!(
+                        "{}",
+                        render_bb_agent(agent, &providers).map_err(|error| anyhow!(error))?
+                    );
+                }
             }
         }
         Command::Brief {
@@ -183,7 +192,8 @@ fn run_sync(root: &Path, home: Option<PathBuf>, disable: bool) -> Result<()> {
 fn install_sync(root: &Path, home: &Path) -> Result<()> {
     let roster = Roster::load(root)?;
     let agent = find_agent(&roster, DEFAULT_AGENT)?;
-    let files = sync_files(agent)?;
+    let providers = Providers::load(root)?;
+    let files = sync_files(agent, &providers)?;
 
     for (relative_path, contents) in &files {
         write_managed_file(home, relative_path, contents)?;
@@ -200,9 +210,9 @@ fn install_sync(root: &Path, home: &Path) -> Result<()> {
     Ok(())
 }
 
-fn sync_files(agent: &roster_core::Agent) -> Result<Vec<(String, String)>> {
+fn sync_files(agent: &roster_core::Agent, providers: &Providers) -> Result<Vec<(String, String)>> {
     let brief = render_brief(agent, &[], &[], None);
-    let claude_agent = render_claude_agent(agent);
+    let claude_agent = render_claude_agent(agent, providers);
     let skills_index = skills_index_json(agent)?;
     let rollback = rollback_doc();
 

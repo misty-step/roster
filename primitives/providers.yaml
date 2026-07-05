@@ -161,3 +161,28 @@ providers:
     permissions: human supplied
     worktree: not_applicable
     notes: Fallback for GUI-only tools, unavailable CLIs, or imported reports.
+
+# Added 2026-07-05 (roster-909). Distinct concern from `providers:` above:
+# that table is "how to invoke a peer harness CLI" (dispatch command, flags,
+# a model already baked in); this table is "how a role.yaml model_policy tier
+# resolves to a concrete, invocable model id when ROSTER renders one of its
+# own agent declarations" (claude subagent frontmatter, codex brief text, bb
+# TOML config). Consumed by `roster_core::Providers::load` (parses only this
+# `tiers` key; unrelated to and does not touch `providers:` above). Per-agent
+# literal model ids in role.yaml bypass this table entirely; a dispatch-time
+# override always trumps both. Update on evidence (capability ledger /
+# crucible routing bench), not vibes.
+schema_version: roster.providers.v1
+tiers:
+  fable-class:
+    claude: inherit # session brain; subagent form inherits the session model
+    codex: gpt-5.5-pro
+    bb: openrouter/moonshotai/kimi-k2.7-code # best available on the OpenRouter rail; fable itself is not on it
+  codex-class:
+    claude: sonnet
+    codex: gpt-5.5
+    bb: openrouter/moonshotai/kimi-k2.7-code
+  openrouter-class:
+    claude: haiku
+    codex: gpt-5.5-mini
+    bb: openrouter/deepseek/deepseek-v4-flash
