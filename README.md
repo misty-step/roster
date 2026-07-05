@@ -48,26 +48,27 @@ still carry the roster sync marker.
 Every declaration lives at `agents/<name>/role.yaml` + `agents/<name>/instructions.md`
 and is validated by `roster_core::Roster::load` (`deny_unknown_fields`: an
 unrecognized key or a missing `instructions.md` fails the load, not just a lint
-warning). Values below are the actual fields in use across the three seed
-agents (`agents/cerberus`, `agents/orchestrator`, `agents/sweep`).
+warning). Values below are the actual fields in use across the four seed
+agents (`agents/cerberus`, `agents/oracle`, `agents/orchestrator`,
+`agents/sweep`).
 
 | Field | Type | What it's for | Actual values in use |
 |---|---|---|---|
-| `schema_version` | string | Declaration format version | `roster.role.v1` on all three agents |
-| `name` | string | Agent id; must match the directory name and be unique across `agents/` | `cerberus`, `orchestrator`, `sweep` |
+| `schema_version` | string | Declaration format version | `roster.role.v1` on all four agents |
+| `name` | string | Agent id; must match the directory name and be unique across `agents/` | `cerberus`, `oracle`, `orchestrator`, `sweep` |
 | `description` | string | One-sentence purpose, echoed by `roster list`/`show`/`brief` | see `roster list` output below |
-| `model_policy.preferred` | string | Model tier or literal model id (see resolution table below) | `codex-class` (cerberus), `fable-class` (orchestrator), `openrouter-class` (sweep) |
+| `model_policy.preferred` | string | Model tier or literal model id (see resolution table below) | `codex-class` (cerberus), `openrouter-class` (oracle, sweep), `fable-class` (orchestrator) |
 | `model_policy.fallbacks` | list\<string\> | Ordered fallback tiers/models | e.g. sweep: `openrouter/moonshotai/kimi-k2.7-code`, `openrouter/deepseek/deepseek-v4-flash`, `openrouter/qwen/qwen3-coder-next` |
-| `model_policy.reasoning` | string | Reasoning-effort tier, printed as-is, never parsed | `xhigh` (cerberus), `low` (orchestrator), `medium` (sweep) |
-| `permissions.filesystem` | string | Free text; feeds `claude_tools()` (`Write`/`Edit` are added when this contains `"write"`) | `workspace-write` (orchestrator), `read-only` (cerberus, sweep) |
-| `permissions.commands` | string | Free text; `Bash` is added by `claude_tools()` unless this is `"none"` or `"disabled-by-default"` | `allowed` (orchestrator), `verification-only` (cerberus), `read-only` (sweep) |
-| `permissions.network` | string | Free text; `WebSearch` is added by `claude_tools()` only when this is exactly `"allowed"` | `allowed` (orchestrator, sweep), `disabled-by-default` (cerberus) |
-| `permissions.secrets` | string | Free text, documentation only (no code branches on it today) | `env-refs-only` (orchestrator), `none` (cerberus, sweep) |
-| `permissions.mutations` | string | Free text; `Write`/`Edit` are also added by `claude_tools()` when this is not `"none"` | `with-explicit-scope` (orchestrator), `none` (cerberus, sweep) |
-| `skills` | list\<{name, path, reason}\> | Skill files the agent should read; `path` is an absolute filesystem path (currently all under `harness-kit`, pending the P3 primitives migration) | orchestrator has 8, cerberus has 3, sweep has 3 |
-| `mcps` | list\<string\> | Bare MCP server names required at dispatch time (rendered as claude/codex/brief's "MCP Servers → Required") | orchestrator: `powder`; sweep: `qmd`; cerberus: none |
-| `mcps_contextual` | list\<string\>, optional (defaults empty) | MCP server names to bind only when present in the calling harness (rendered as "MCP Servers → Contextual (bind when present)"); not rendered for `bb` (no MCP concept there) | orchestrator: `qmd`, `todoist`, `bitterblossom`, `glass`; cerberus, sweep: none |
-| `subagent_rights.may_dispatch` / `may_spawn_subagents` / `may_use_peer_harnesses` | bool | What the agent is allowed to fan work out to | orchestrator and cerberus: all `true`; sweep: all `false` (it is a leaf sweep lane) |
+| `model_policy.reasoning` | string | Reasoning-effort tier, printed as-is, never parsed | `xhigh` (cerberus), `high` (oracle), `low` (orchestrator), `medium` (sweep) |
+| `permissions.filesystem` | string | Free text; feeds `claude_tools()` (`Write`/`Edit` are added when this contains `"write"`) | `workspace-write` (orchestrator), `read-only` (cerberus, oracle, sweep) |
+| `permissions.commands` | string | Free text; `Bash` is added by `claude_tools()` unless this is `"none"` or `"disabled-by-default"` | `allowed` (orchestrator), `verification-only` (cerberus, oracle), `read-only` (sweep) |
+| `permissions.network` | string | Free text; `WebSearch` is added by `claude_tools()` only when this is exactly `"allowed"` | `allowed` (oracle, orchestrator, sweep), `disabled-by-default` (cerberus) |
+| `permissions.secrets` | string | Free text, documentation only (no code branches on it today) | `env-refs-only` (orchestrator), `none` (cerberus, oracle, sweep) |
+| `permissions.mutations` | string | Free text; `Write`/`Edit` are also added by `claude_tools()` when this is not `"none"` | `with-explicit-scope` (orchestrator), `none` (cerberus, oracle, sweep) |
+| `skills` | list\<{name, path, reason}\> | Skill files the agent should read; `path` is an absolute filesystem path (currently all under `harness-kit`, pending the P3 primitives migration) | orchestrator has 8, cerberus has 3, oracle has 2, sweep has 3 |
+| `mcps` | list\<string\> | Bare MCP server names required at dispatch time (rendered as claude/codex/brief's "MCP Servers → Required") | orchestrator: `powder`; sweep: `qmd`; cerberus, oracle: none |
+| `mcps_contextual` | list\<string\>, optional (defaults empty) | MCP server names to bind only when present in the calling harness (rendered as "MCP Servers → Contextual (bind when present)"); not rendered for `bb` (no MCP concept there) | orchestrator: `qmd`, `todoist`, `bitterblossom`, `glass`; oracle: `exa`, `firecrawl`, `context7`; cerberus, sweep: none |
+| `subagent_rights.may_dispatch` / `may_spawn_subagents` / `may_use_peer_harnesses` | bool | What the agent is allowed to fan work out to | orchestrator and cerberus: all `true`; oracle and sweep: all `false` (leaf lanes) |
 | `evidence_expectations` | list\<string\> | Free prose bullets, no fixed vocabulary; printed verbatim under `## Evidence Contract` / `## Evidence Expectations` | see `agents/*/role.yaml` |
 
 ### Model tier vocabulary and per-harness resolution
@@ -120,6 +121,7 @@ agent):
 $ cargo run -q -p roster-cli -- list
 cerberus	codex-class	xhigh	Code-review master agent that turns available change context into grounded findings, verdicts, and a review artifact without overstating inspected evidence.
 example	openrouter-class	medium	Minimal placeholder agent used by the README quickstart to demonstrate adding a new agent.
+oracle	openrouter-class	high	AI-awareness sidekick — current on state-of-the-art models, harnesses, and agent tooling; advises routing (local vs open vs frontier), critiques deterministic-where-a-model-belongs, and pushes the fleet to use AI more than instinct suggests.
 orchestrator	fable-class	low	Master orchestrator — frames factory work, grooms and shapes the board, composes and dispatches lanes, compares evidence, verifies outcomes, and closes the workspace cleanly.
 sweep	openrouter-class	medium	Cheap read-only research and repository sweep lane for broad scanning, source collection, and concise discrepancy reports.
 
@@ -128,8 +130,8 @@ $ cargo test --workspace
 test loads_seed_agents_from_repo ... FAILED
 thread 'loads_seed_agents_from_repo' panicked at crates/roster-core/tests/loader.rs:21:5:
 assertion `left == right` failed
-  left: ["cerberus", "example", "orchestrator", "sweep"]
- right: ["cerberus", "orchestrator", "sweep"]
+  left: ["cerberus", "example", "oracle", "orchestrator", "sweep"]
+ right: ["cerberus", "oracle", "orchestrator", "sweep"]
 ```
 
 The `list` step proves the loader picked up the new declaration; the `test`

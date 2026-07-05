@@ -18,7 +18,7 @@ fn loads_seed_agents_from_repo() {
         .map(|agent| agent.role.name.as_str())
         .collect();
 
-    assert_eq!(names, ["cerberus", "orchestrator", "sweep"]);
+    assert_eq!(names, ["cerberus", "oracle", "orchestrator", "sweep"]);
 
     let cerberus = roster.agent("cerberus").expect("cerberus exists");
     assert!(cerberus.role.description.contains("Code-review master"));
@@ -37,6 +37,17 @@ fn loads_seed_agents_from_repo() {
         orchestrator.role.mcps_contextual,
         ["qmd", "todoist", "bitterblossom", "glass"]
     );
+
+    let oracle = roster.agent("oracle").expect("oracle exists");
+    assert_eq!(oracle.role.model_policy.preferred, "openrouter-class");
+    assert_eq!(oracle.role.model_policy.reasoning, "high");
+    assert!(oracle.role.mcps.is_empty());
+    assert_eq!(
+        oracle.role.mcps_contextual,
+        ["exa", "firecrawl", "context7"]
+    );
+    assert!(!oracle.role.subagent_rights.may_dispatch);
+    assert!(oracle.instructions.contains("probe the cheap tier"));
 }
 
 #[test]
