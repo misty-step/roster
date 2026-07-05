@@ -285,7 +285,8 @@ mod tests {
         let root = workspace_root();
         let list = call_tool("list", &json!({"root": root})).unwrap();
         assert!(text(&list).contains("orchestrator\tfable-class\tlow"));
-        assert_eq!(list["structuredContent"]["agents"][0]["name"], "cerberus");
+        // Roster::load sorts agents by name; `builder` now sorts first.
+        assert_eq!(list["structuredContent"]["agents"][0]["name"], "builder");
 
         let show = call_tool(
             "show",

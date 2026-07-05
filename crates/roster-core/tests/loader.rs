@@ -20,11 +20,26 @@ fn loads_seed_agents_from_repo() {
 
     // Roster::load sorts agents by name (see roster-core/src/lib.rs), so this
     // list is alphabetical, not insertion order. Adding a new agent directory
-    // is a mechanical edit here: insert its name in alphabetical position
-    // (e.g. a future `builder` agent would sort before `cerberus`; `verifier`
-    // would sort after `sweep`) and add an assertion block for it below, same
-    // shape as the existing agent blocks.
-    assert_eq!(names, ["cerberus", "oracle", "orchestrator", "sweep"]);
+    // is a mechanical edit here: insert its name in alphabetical position and
+    // add an assertion block for it below, same shape as the existing agent
+    // blocks (roster-911 landed exactly where the roster-908 comment
+    // predicted: `builder` before `cerberus`, `verifier` after `sweep`).
+    assert_eq!(
+        names,
+        [
+            "builder",
+            "cerberus",
+            "oracle",
+            "orchestrator",
+            "sweep",
+            "verifier"
+        ]
+    );
+
+    let builder = roster.agent("builder").expect("builder exists");
+    assert_eq!(builder.role.model_policy.preferred, "codex-class");
+    assert_eq!(builder.role.permissions.filesystem, "workspace-write");
+    assert_eq!(builder.role.mcps, ["powder"]);
 
     let cerberus = roster.agent("cerberus").expect("cerberus exists");
     assert!(cerberus.role.description.contains("Code-review master"));
@@ -54,6 +69,12 @@ fn loads_seed_agents_from_repo() {
     );
     assert!(!oracle.role.subagent_rights.may_dispatch);
     assert!(oracle.instructions.contains("probe the cheap tier"));
+
+    let verifier = roster.agent("verifier").expect("verifier exists");
+    assert_eq!(verifier.role.permissions.filesystem, "read-only");
+    assert_eq!(verifier.role.permissions.commands, "verification-only");
+    assert!(verifier.role.mcps.is_empty());
+    assert!(verifier.instructions.contains("never fix what you verify"));
 }
 
 #[test]
