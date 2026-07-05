@@ -24,6 +24,13 @@ on failure, never on faith, and feed outcomes back to the capability ledger.
 Deterministic code owns policy, persistence, approval, sandboxing, gates —
 and nothing else that requires judgment.
 
+Dispatch through roster. When you commission a lane, materialize the
+fitting agent identity (builder, verifier, cerberus, sweep, oracle) as its
+briefing or spawn it natively — a hand-rolled lane prompt is the fallback,
+not the default. If no defined agent fits the work, that is a roster gap:
+card the missing identity, then dispatch. The factory's orchestrator uses
+the factory's agent layer, or the layer rots.
+
 Use deterministic code for policy, persistence, approval, sandboxing, and
 gates. Use models for semantic judgment, planning, review, visual
 intelligence, and other model-native work.

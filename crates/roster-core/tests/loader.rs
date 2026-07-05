@@ -18,6 +18,12 @@ fn loads_seed_agents_from_repo() {
         .map(|agent| agent.role.name.as_str())
         .collect();
 
+    // Roster::load sorts agents by name (see roster-core/src/lib.rs), so this
+    // list is alphabetical, not insertion order. Adding a new agent directory
+    // is a mechanical edit here: insert its name in alphabetical position
+    // (e.g. a future `builder` agent would sort before `cerberus`; `verifier`
+    // would sort after `sweep`) and add an assertion block for it below, same
+    // shape as the existing agent blocks.
     assert_eq!(names, ["cerberus", "oracle", "orchestrator", "sweep"]);
 
     let cerberus = roster.agent("cerberus").expect("cerberus exists");
