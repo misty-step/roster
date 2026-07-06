@@ -386,6 +386,18 @@ declined to touch (unmanaged real files, foreign symlinks) untouched.
 }
 
 fn managed_markdown(contents: &str) -> String {
+    // Claude Code agent files require frontmatter at byte 0 — a marker line
+    // before the opening `---` makes the harness silently ignore the agent
+    // (found live: fresh sessions listed no roster agents). When the content
+    // opens with a frontmatter block, the marker goes right after it;
+    // ownership detection is `contains`, so position is free.
+    if let Some(rest) = contents.strip_prefix("---\n") {
+        if let Some(end) = rest.find("\n---\n") {
+            let split = 4 + end + 5;
+            let (front, body) = contents.split_at(split);
+            return format!("{front}{SYNC_MARKER}\n{body}");
+        }
+    }
     format!("{SYNC_MARKER}\n{contents}")
 }
 

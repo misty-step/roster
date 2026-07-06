@@ -29,11 +29,11 @@ fn loads_seed_agents_from_repo() {
     assert_eq!(
         names,
         [
+            "ai-scout",
             "builder",
             "cerberus",
             "designer",
             "incident-hound",
-            "oracle",
             "orchestrator",
             "sweep",
             "verifier"
@@ -108,19 +108,19 @@ fn loads_seed_agents_from_repo() {
         "xhigh"
     );
 
-    let oracle = roster.agent("oracle").expect("oracle exists");
+    let ai_scout = roster.agent("ai-scout").expect("ai-scout exists");
     assert_eq!(
-        oracle.role.model_policy.preferred.model,
+        ai_scout.role.model_policy.preferred.model,
         "openrouter/deepseek/deepseek-v4-flash"
     );
-    assert_eq!(oracle.role.model_policy.preferred.reasoning, "high");
-    assert!(oracle.role.mcps.is_empty());
+    assert_eq!(ai_scout.role.model_policy.preferred.reasoning, "high");
+    assert!(ai_scout.role.mcps.is_empty());
     assert_eq!(
-        oracle.role.mcps_contextual,
+        ai_scout.role.mcps_contextual,
         ["exa", "firecrawl", "context7"]
     );
-    assert!(!oracle.role.subagent_rights.may_dispatch);
-    assert!(oracle.role.subagent_rights.may_spawn_subagents);
+    assert!(!ai_scout.role.subagent_rights.may_dispatch);
+    assert!(ai_scout.role.subagent_rights.may_spawn_subagents);
     assert!(oracle.instructions.contains("probe the cheap tier"));
 
     let sweep = roster.agent("sweep").expect("sweep exists");

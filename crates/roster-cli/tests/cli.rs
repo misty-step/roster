@@ -657,3 +657,30 @@ fn write_file(path: &std::path::Path, contents: &str) {
 fn read(path: impl AsRef<std::path::Path>) -> String {
     fs::read_to_string(path).expect("read file")
 }
+
+#[test]
+fn synced_agent_files_keep_frontmatter_at_byte_zero() {
+    // Claude Code silently ignores an agent file whose frontmatter is not the
+    // first bytes — the sync marker must land AFTER the frontmatter block.
+    let home = tempfile::tempdir().expect("home");
+    let root = workspace_root();
+    Command::cargo_bin("roster")
+        .expect("roster binary")
+        .current_dir(&root)
+        .args([
+            "sync",
+            "--home",
+            home.path().to_str().expect("utf8"),
+            "--all-agents",
+        ])
+        .assert()
+        .success();
+    let agent = std::fs::read_to_string(home.path().join(".claude/agents/ai-scout.md"))
+        .expect("ai-scout installed");
+    assert!(
+        agent.starts_with("---\n"),
+        "agent file must start with frontmatter, got: {}",
+        &agent[..40.min(agent.len())]
+    );
+    assert!(agent.contains("roster-sync:orchestrator:v1"));
+}
