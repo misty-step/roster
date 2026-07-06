@@ -121,7 +121,7 @@ fn loads_seed_agents_from_repo() {
     );
     assert!(!ai_scout.role.subagent_rights.may_dispatch);
     assert!(ai_scout.role.subagent_rights.may_spawn_subagents);
-    assert!(oracle.instructions.contains("probe the cheap tier"));
+    assert!(ai_scout.instructions.contains("probe the cheap tier"));
 
     let sweep = roster.agent("sweep").expect("sweep exists");
     assert!(sweep.role.subagent_rights.may_spawn_subagents);
