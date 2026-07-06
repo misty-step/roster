@@ -78,12 +78,12 @@ test below — most patterns are prompts, not skills.
   examples, templates, assets, evals, or append-only data when prose would
   make the agent reconstruct repeatable work.
 - Model/provider/harness selection facts live in the roster skill
-  (`skills/roster/references/model-provider-harness-index.md`). Keep that
+  (`primitives/skills/roster/references/model-provider-harness-index.md`). Keep that
   file factual: model ids, context, price, latency/smoke evidence, tool
   support, benchmark sources, deprecations, and freshness. Do not encode
   role-fit policy there; the lead agent composes task-specific teams from
   current evidence.
-- Harness Kit source skills live in `skills/`; repo-local `.agents/skills/` and
+- Harness Kit source skills live in `primitives/skills/`; repo-local `.agents/skills/` and
   harness-specific skill bridge dirs are `/seed` output for consumer repos.
 - Generated/root `AGENTS.md` is a router, not a manual. Keep non-obvious facts
   only.

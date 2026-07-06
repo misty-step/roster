@@ -91,7 +91,7 @@ separating agent-owned action from user-owned external action.
 
 ## Verification
 
-When editing this skill in Harness Kit:
+When editing this skill in the roster source repo:
 
 ```sh
 cargo run --locked -p harness-kit-checks -- check-frontmatter --repo .

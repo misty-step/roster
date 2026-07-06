@@ -2,7 +2,7 @@
 > `<target-repo>/.agents/skills/<repo>-<domain>/evals/<repo>-<domain>-eval.md`
 > and fill every bracketed placeholder. Delete this line and every other
 > `> ` guidance line before committing. This is a smaller instrument than
-> Harness Kit's first-party `skills/skill-eval/templates/eval-spec.md` — one
+> Harness Kit's first-party `primitives/skills/skill-eval/templates/eval-spec.md` — one
 > claim, cold-agent-run fixtures, no multi-arm A/B judge panel. See
 > `../../../references/repo-local-skill-generation.md`.
 

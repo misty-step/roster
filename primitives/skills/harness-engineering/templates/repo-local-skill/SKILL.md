@@ -15,7 +15,7 @@ argument-hint: "[<surface1>|<surface2>|<surface3>]"
 
 <!--
 Generated via harness-kit's repo-local skill generation pattern
-(skills/harness-engineering/references/repo-local-skill-generation.md).
+(primitives/skills/harness-engineering/references/repo-local-skill-generation.md).
 Source repo: <owner/repo> @ <sha>. Generated: <YYYY-MM-DD>.
 Generator ref: harness-kit@<sha used to generate this>.
 Facts below are repo-derived at generation time, not invented. Re-verify

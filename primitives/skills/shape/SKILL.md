@@ -206,7 +206,7 @@ cargo run --locked -p harness-kit-checks -- premise-source self-test
 HTML plan artifact:
 
 ```sh
-cp skills/shape/templates/html-plan.html /tmp/<card-id>-plan.html
+cp primitives/skills/shape/templates/html-plan.html /tmp/<card-id>-plan.html
 # fill it, then publish + attach (never `open` it):
 python3 ~/Development/roster/primitives/skills/artifact/scripts/artifact_create.py \
   --title "<title>" --slug <card-id> --tag "Plan" --html-file /tmp/<card-id>-plan.html

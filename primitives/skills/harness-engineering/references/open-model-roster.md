@@ -138,7 +138,7 @@ Source: https://openrouter.ai/docs/cookbook/coding-agents/opencode-integration.
   behavior is not.
 - Promote a default only with: live OpenRouter catalog evidence, local binary
   probe, and at least one real Harness Kit smoke receipt.
-- Keep model facts in `skills/roster/references/model-provider-harness-index.md`.
+- Keep model facts in `primitives/skills/roster/references/model-provider-harness-index.md`.
   Keep role-fit policy here and in shared doctrine.
 - Do not add a new provider wrapper if Pi/Goose/OpenCode plus model variants
   cover the failure mode.

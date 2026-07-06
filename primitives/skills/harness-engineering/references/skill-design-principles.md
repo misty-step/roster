@@ -72,21 +72,21 @@ Loop already demands.
 Every new first-party skill ships with eval coverage from the first commit,
 not as a follow-up. The `check-eval-coverage` gate
 (`cargo run --locked -p harness-kit-checks -- check-eval-coverage --repo .`,
-folded into the repo gate) fails the build for any `skills/<name>/SKILL.md`
-with no `skills/<name>/evals/*.md` and no live `skills/<name>/evals/WAIVER.md`
+folded into the repo gate) fails the build for any `primitives/skills/<name>/SKILL.md`
+with no `primitives/skills/<name>/evals/*.md` and no live `primitives/skills/<name>/evals/WAIVER.md`
 — so this step is enforced, not just recommended.
 
 When scaffolding a new skill:
 
 1. Copy `../../skill-eval/templates/eval-spec.md` to
-   `skills/<name>/evals/<name>-eval.md` and fill in the one claim the skill
+   `primitives/skills/<name>/evals/<name>-eval.md` and fill in the one claim the skill
    must earn, 2–3 fixtures, objective checks, and a pass condition — even if
-   the run itself hasn't happened yet (see `skills/orient/evals/orient-eval.md`
+   the run itself hasn't happened yet (see `primitives/skills/orient/evals/orient-eval.md`
    for a seeded-but-unrun example).
 2. If the skill's claim genuinely can't be evaled yet (external live
    dependency, taste-heavy rubric needing a human anchor, no fixture budget
-   yet), write `skills/<name>/evals/WAIVER.md` instead: a reason plus an
-   `expires: YYYY-MM-DD` line. See any file under `skills/*/evals/WAIVER.md`
+   yet), write `primitives/skills/<name>/evals/WAIVER.md` instead: a reason plus an
+   `expires: YYYY-MM-DD` line. See any file under `primitives/skills/*/evals/WAIVER.md`
    for the expected shape. A waiver is a time-boxed deferral, not a permanent
    opt-out — an expired waiver fails the gate exactly like a missing eval.
 3. Never satisfy the gate with an empty or placeholder eval file just to pass

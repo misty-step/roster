@@ -10,7 +10,7 @@ retrofit of an existing repo. The 2026-07-01 groom teardown estimated
 7-crate workspace, crucible a 2-crate one — neither matches the template
 topology) and judged retrofit uneconomical. If a repo already ships a working
 product in a different shape, do not migrate it to this layout; the shape
-argument in `skills/harness-engineering/SKILL.md` and this file's own doctrine
+argument in `primitives/skills/harness-engineering/SKILL.md` and this file's own doctrine
 still apply without the file layout.
 
 ## Source Signals
@@ -104,7 +104,7 @@ taxonomy.
 
 ## Template
 
-Copy `skills/harness-engineering/templates/one-core-many-faces/` into a new
+Copy `primitives/skills/harness-engineering/templates/one-core-many-faces/` into a new
 repo or planning branch and replace:
 
 - `{{project}}` with the product name.

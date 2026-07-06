@@ -132,8 +132,8 @@ Stop and report instead of improvising when:
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
-`/refactor` adds:
+See `primitives/shared/AGENTS.md` (Completion Evidence and Closeout) for the
+shared core. `/refactor` adds:
 
 - Goal stop rule satisfied or explicitly blocked.
 - Every significant step has a live-test receipt.

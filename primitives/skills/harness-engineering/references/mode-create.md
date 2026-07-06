@@ -5,7 +5,7 @@ Create a new Harness Kit source skill or agent from scratch.
 For a project-local skill in a consumer repo (bespoke QA drivers, persona
 probes), write it directly into the repo's `.agents/skills/<name>/` with the
 repo's real routes and commands — same craft, local facts. This mode is for
-first-party catalog primitives under `skills/`.
+first-party catalog primitives under `primitives/skills/`.
 
 ## The description field is everything
 
@@ -47,11 +47,11 @@ If you're writing "1. Read the file 2. Find the function 3. Edit it" —
 that's not a skill, that's a task description.
 
 **In-repo exemplars worth reading before drafting:**
-- `skills/sprites/SKILL.md` — one primitive, a routing table, gotchas.
+- `primitives/skills/sprites/SKILL.md` — one primitive, a routing table, gotchas.
   No daemon, no ceremony.
-- `skills/diagnose/SKILL.md` — judgment encoded as a routing table plus
+- `primitives/skills/diagnose/SKILL.md` — judgment encoded as a routing table plus
   phase protocol with concrete stop conditions.
-- `skills/next/SKILL.md` — tiny reusable trigger where app-visible discovery
+- `primitives/skills/next/SKILL.md` — tiny reusable trigger where app-visible discovery
   earns the primitive.
 
 **External exemplars (installed under `primitives/skills/.external/`):**

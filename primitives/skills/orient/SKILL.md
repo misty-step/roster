@@ -4,7 +4,7 @@ description: |
   Fast session-start repository orientation from live local evidence. Use when:
   "orient yourself", "start of session", "new session", "where are we",
   "catch me up before acting", after compaction,
-  after switching worktrees, or before choosing a Harness Kit workflow. Trigger:
+  after switching worktrees, or before choosing a workflow. Trigger:
   /orient, /ground, /session-start.
 argument-hint: "[scope|--deep]"
 ---
@@ -58,6 +58,7 @@ rather than guess from vibes.
 | Item already in verification | `/qa` or closeout before new delivery |
 | Running surface needs proof | `/qa` |
 | Finished work needing closeout | `/ship`, `/yeet`, or `/reflect` |
+| Human external blocker | Say the agent is blocked; do not invent process work |
 | Readiness or profile question | `/qa` or the repo's readiness surface |
 | "What happened / why does it matter" | `/orient --deep` or `/shape` |
 | Skill or harness primitive change | `/harness-engineering` |
@@ -72,7 +73,7 @@ broad, stale, or contested. Scoped `AGENTS.md` governs — respect it.
 
 ## Verification
 
-Editing this skill in the Harness Kit source repo:
+Editing this skill in the roster source repo:
 
 ```sh
 cargo run --locked -p harness-kit-checks -- check-frontmatter --repo .

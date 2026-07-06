@@ -38,7 +38,7 @@ adding surface for automation, optimization, or refactor pressure, see
 
 For non-trivial execution, start from the HTML plan artifact when one exists;
 otherwise author a small one directly from
-`skills/shape/templates/html-plan.html`, open it, and use the rendered page to
+`primitives/skills/shape/templates/html-plan.html`, open it, and use the rendered page to
 check clarity, sequence, risk, and proof before coding. The plan must stand
 alone for the executor: hero as the work contract, support sections for
 alternatives/tradeoffs, acceptance, verification, communication cadence, stop

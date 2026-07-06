@@ -63,7 +63,7 @@ Rank candidate domains by whether a cold agent can run something real and
 observe pass/fail, not by topic importance:
 
 - **Verification/QA** is almost always the strongest first domain — every
-  repo has a shape and a real command to exercise it (`skills/qa/SKILL.md`'s
+  repo has a shape and a real command to exercise it (`primitives/skills/qa/SKILL.md`'s
   shape table: browser app, API/service, CLI, library, MCP, hybrid). This is
   child 1 of backlog 131 for exactly this reason.
 - **Deploy/release runbooks** are the second-strongest — a real deploy
@@ -94,7 +94,7 @@ against role-scoped bundles instead.
   frontmatter (`name`, `description` with explicit `Use when:`/`Trigger:`
   phrasing, `argument-hint`), the provenance comment block, a surfaces/routes
   table, exact commands, gotchas, and a report contract — same shape as
-  `skills/qa/SKILL.md` and the `canary-qa` exemplar, scaled to what this
+  `primitives/skills/qa/SKILL.md` and the `canary-qa` exemplar, scaled to what this
   repo actually has.
 
 ## Provenance header
@@ -105,7 +105,7 @@ frontmatter closing `---`, before the first heading:
 ```markdown
 <!--
 Generated via harness-kit's repo-local skill generation pattern
-(skills/harness-engineering/references/repo-local-skill-generation.md).
+(primitives/skills/harness-engineering/references/repo-local-skill-generation.md).
 Source repo: <owner/repo> @ <sha>. Generated: <YYYY-MM-DD>.
 Generator ref: harness-kit@<sha used to generate this>.
 Facts below are repo-derived at generation time, not invented. Re-verify
@@ -125,7 +125,7 @@ generated content from hand-authored content and judge staleness.
 Copy `templates/repo-local-skill/evals/eval-stub.md.tmpl` to
 `<target-repo>/.agents/skills/<repo>-<domain>/evals/<repo>-<domain>-eval.md`.
 It is a deliberately smaller instrument than
-`skills/skill-eval/templates/eval-spec.md` (Harness Kit's first-party
+`primitives/skills/skill-eval/templates/eval-spec.md` (Harness Kit's first-party
 template): one falsifiable claim, one to two fixtures built around a cold-
 agent run (not a multi-arm A/B judge panel — the claim being tested is "does
 a cold agent execute the real command from this skill alone," not "does this
