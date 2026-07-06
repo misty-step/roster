@@ -285,8 +285,8 @@ mod tests {
         let root = workspace_root();
         let list = call_tool("list", &json!({"root": root})).unwrap();
         assert!(text(&list).contains("orchestrator\tclaude-fable-5\thigh"));
-        // Roster::load sorts agents by name; `builder` now sorts first.
-        assert_eq!(list["structuredContent"]["agents"][0]["name"], "builder");
+        // Roster::load sorts agents by name; `ai-scout` sorts first.
+        assert_eq!(list["structuredContent"]["agents"][0]["name"], "ai-scout");
 
         let show = call_tool(
             "show",
