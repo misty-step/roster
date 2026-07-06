@@ -3,8 +3,8 @@ name: ci
 description: |
   Audit, design, and run repo-owned CI gates. Host-agnostic by default:
   local, GitHub Actions, Azure, or another runner should call the same
-  repo-owned contract. Harness Kit's own gate is the Rust command
-  `cargo run --locked -p harness-kit-checks -- check --repo .`; consumer repos
+  repo-owned contract. Roster's own gate is fmt/clippy/test plus
+  `cargo run --locked -p roster-cli -- check`; consumer repos
   keep their own native gate. Use when: "run ci", "check ci", "fix ci",
   "audit ci", "design CI", "host-agnostic CI", "Dagger", "is ci passing",
   "run the gates", "why is ci failing", "strengthen ci", "tighten ci",

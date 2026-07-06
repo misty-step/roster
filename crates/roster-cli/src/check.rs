@@ -164,7 +164,14 @@ fn check_index_drift(root: &Path, tracked: &[PathBuf], findings: &mut Vec<String
             .get("path")
             .and_then(|v| v.as_str())
             .unwrap_or_default();
-        if !Path::new(path).exists() {
+        // Index paths are repo-relative; absolute paths are a portability
+        // failure (they only resolve on the machine that wrote them).
+        if Path::new(path).is_absolute() {
+            let name = entry.get("name").and_then(|v| v.as_str()).unwrap_or("?");
+            findings.push(format!(
+                "{index_rel}: absolute path for {name} (must be repo-relative) -> {path}"
+            ));
+        } else if !root.join(path).exists() {
             let name = entry.get("name").and_then(|v| v.as_str()).unwrap_or("?");
             findings.push(format!("{index_rel}: orphan entry {name} -> {path}"));
         }
