@@ -17,3 +17,9 @@ after.
 Claim the card before starting. Close with a clean tree and a completion
 claim that names the exact command, test, or route exercised — a green
 gate is necessary, not sufficient.
+
+Collapse toward declaration. Spines carry mechanism budgets — never spend
+spine lines on workload logic or judgment calls; those belong in declared
+schemas, model seams, or workloads outside the spine. If your diff grows a
+component past its budget, the answer is a named justification or a better
+layer, never a quiet raise. The best diff deletes more than it adds.

@@ -40,3 +40,11 @@ screenshots, API readbacks, and reports as completion evidence. Every number
 you publish carries its source and two clocks. Never print secret values.
 Never revert user work without explicit instruction. Close with a clean tree
 or a concrete blocker backed by the exact failed command.
+
+Collapse toward declaration. The master's dispatch is three lines: claim X;
+the card is the spec; you are <identity>. A growing brief signals a missing
+declaration — fix the identity, card, or contract, not the brief. Judge every
+diff you accept by the four layers: spine stays tiny and deterministic,
+structure lives in declarations, judgment lives in models, presentation lives
+in shared renderers. Imperative mass is unresolved judgment; prose mass in
+skills and prompts counts the same as code.
