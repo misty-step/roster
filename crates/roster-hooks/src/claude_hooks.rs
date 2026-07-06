@@ -107,21 +107,6 @@ const NEVER_APPROVE: &[&str] = &[
     r"killall\b",
 ];
 
-const SAFE_GH_ISSUE_FIELDS: &[&str] = &[
-    "title",
-    "body",
-    "comments",
-    "author",
-    "state",
-    "labels",
-    "assignees",
-    "milestone",
-    "number",
-    "url",
-    "createdAt",
-    "updatedAt",
-];
-
 const DESTRUCTIVE_SUBSTRINGS: &[(&str, &str)] = &[
     (
         "git reset --hard",
@@ -198,17 +183,6 @@ pub fn run_destructive_command_guard_from_stdin() -> Result<()> {
     Ok(())
 }
 
-pub fn run_github_cli_guard_from_stdin() -> Result<()> {
-    let mut input = String::new();
-    std::io::stdin()
-        .read_to_string(&mut input)
-        .context("failed to read stdin")?;
-    if let Some(output) = github_cli_guard(&input) {
-        println!("{}", serde_json::to_string(&output)?);
-    }
-    Ok(())
-}
-
 pub fn run_skill_invocation_tracker_from_stdin() -> Result<()> {
     let mut input = String::new();
     std::io::stdin()
@@ -270,28 +244,6 @@ pub fn destructive_command_guard(input: &str, cwd: &Path) -> Option<Value> {
             "hookEventName": "PreToolUse",
             "permissionDecision": "deny",
             "permissionDecisionReason": format!("BLOCKED: {reason}\n\nCommand: {command}\n\nRun this yourself if truly needed."),
-        }
-    }))
-}
-
-pub fn github_cli_guard(input: &str) -> Option<Value> {
-    let data: Value = serde_json::from_str(input).ok()?;
-    if data.get("tool_name").and_then(Value::as_str) != Some("Bash") {
-        return None;
-    }
-    let tool_input = data.get("tool_input").and_then(Value::as_object)?;
-    let command = tool_input.get("command").and_then(Value::as_str)?;
-    let transformed = transform_gh_issue_view(command)?;
-    Some(json!({
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "modifiedToolInput": {
-                "command": transformed,
-                "description": tool_input
-                    .get("description")
-                    .and_then(Value::as_str)
-                    .unwrap_or("View GitHub issue"),
-            }
         }
     }))
 }
@@ -495,27 +447,6 @@ fn current_branch(cwd: &Path) -> Option<String> {
 
 fn is_protected_branch(branch: &str) -> bool {
     matches!(branch, "main" | "master")
-}
-
-fn transform_gh_issue_view(command: &str) -> Option<String> {
-    let command = command.trim();
-    let captures = Regex::new(r"^gh\s+issue\s+view\s+(\d+|[A-Za-z0-9_/-]+#\d+)(.*)$")
-        .unwrap()
-        .captures(command)?;
-    let issue_ref = captures.get(1)?.as_str();
-    let flags = captures.get(2).map(|m| m.as_str().trim()).unwrap_or("");
-    if flags.contains("--json") || flags.contains("--web") || flags.contains("-w") {
-        return None;
-    }
-    let remaining = flags.replace("--comments", "").trim().to_string();
-    let fields = SAFE_GH_ISSUE_FIELDS.join(",");
-    if remaining.is_empty() {
-        Some(format!("gh issue view {issue_ref} --json {fields}"))
-    } else {
-        Some(format!(
-            "gh issue view {issue_ref} {remaining} --json {fields}"
-        ))
-    }
 }
 
 fn strip_quoted_content(command: &str) -> String {
@@ -895,43 +826,6 @@ mod tests {
                 .as_str()
                 .unwrap()
                 .contains("Force-deleting main")
-        );
-    }
-
-    #[test]
-    fn github_cli_guard_transforms_issue_view_without_json() {
-        let output = github_cli_guard(
-            r#"{"tool_name":"Bash","tool_input":{"command":"gh issue view 123 --comments","description":"Issue"}}"#,
-        )
-        .unwrap();
-        let command = output["hookSpecificOutput"]["modifiedToolInput"]["command"]
-            .as_str()
-            .unwrap();
-        assert!(command.starts_with("gh issue view 123 --json "));
-        assert!(command.contains("title,body,comments"));
-        assert_eq!(
-            output["hookSpecificOutput"]["modifiedToolInput"]["description"],
-            "Issue"
-        );
-    }
-
-    #[test]
-    fn github_cli_guard_leaves_json_web_and_non_issue_commands_alone() {
-        assert!(
-            github_cli_guard(
-                r#"{"tool_name":"Bash","tool_input":{"command":"gh issue view 123 --json title"}}"#
-            )
-            .is_none()
-        );
-        assert!(
-            github_cli_guard(
-                r#"{"tool_name":"Bash","tool_input":{"command":"gh issue view 123 --web"}}"#
-            )
-            .is_none()
-        );
-        assert!(
-            github_cli_guard(r#"{"tool_name":"Bash","tool_input":{"command":"gh pr view 1"}}"#)
-                .is_none()
         );
     }
 

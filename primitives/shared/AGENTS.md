@@ -359,6 +359,8 @@ quality matters, it is probably wrong.
 
 ## Harness
 
+- Prefer `gh --json <fields>` over full `gh issue/pr view` dumps — transcripts
+  are indexed and full dumps are context waste. (Was a rewrite hook; now a rule.)
 - Cross-harness first means filesystem + `SKILL.md` portability, with
   smoke-tested open-model peer lanes preferred for breadth: Pi, Goose, and
   OpenCode through OpenRouter. Runtime features are optimizations.

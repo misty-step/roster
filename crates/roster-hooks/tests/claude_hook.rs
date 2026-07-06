@@ -43,17 +43,6 @@ fn destructive_command_guard_smoke() {
 }
 
 #[test]
-fn github_cli_guard_smoke() {
-    hooks_cmd()
-        .args(["claude-hook", "github-cli-guard"])
-        .write_stdin(r#"{"tool_name":"Bash","tool_input":{"command":"gh issue view 123"}}"#)
-        .assert()
-        .success()
-        .stdout(predicate::str::contains("modifiedToolInput"))
-        .stdout(predicate::str::contains("--json"));
-}
-
-#[test]
 fn skill_invocation_tracker_smoke() {
     let temp = tempfile::tempdir().expect("temp dir");
     let log = temp.path().join("skill-invocations.jsonl");
