@@ -18,20 +18,24 @@ argument-hint: "[--audit-only|--run-only]"
 Confidence in correctness without turning local work into a provider or Docker
 tax.
 
-Harness Kit's canonical source-repo gate is:
+Roster's own source-repo gate is:
 
 ```sh
-cargo run --locked -p harness-kit-checks -- check --repo .
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+cargo run --locked -p roster-cli -- check
 ```
 
-The source-repo gate is implemented in Rust at
-`crates/harness-kit-checks/src/ci_check.rs`. This is Harness Kit maintenance
-plumbing, not a CI framework to project into every consumer repo.
+The Rust checks run in `.github/workflows/ci.yml`; `roster check` (deterministic
+frontmatter/path/index/conflict-marker gate over `primitives/`) is implemented
+at `crates/roster-cli/src/check.rs`. This is roster's own maintenance plumbing,
+not a CI framework to project into every consumer repo.
 
-When `/ci` runs in a consumer repo, do not assume Harness Kit's Rust gate is
+When `/ci` runs in a consumer repo, do not assume roster's Rust gate is
 installed there. Read that repo's root instructions, package manifests, CI
 workflows, hook config, and shipped scripts, then strengthen the repo-owned
-gate. Harness Kit supplies the agent judgment for CI design; the consumer repo
+gate. Roster supplies the agent judgment for CI design; the consumer repo
 owns the implementation.
 
 For CI architecture or Dagger decisions, load
@@ -124,15 +128,17 @@ repair and emergency preservation; the lead owns synthesis.
 
 Check the live gate surface:
 
-- Harness Kit only: root contract names
-  `cargo run --locked -p harness-kit-checks -- check --repo .`; `.githooks`
-  route through `harness-kit-checks`; `ci_check.rs` contains the source-repo
-  lane list; generated docs/index are current after skill/docs/backlog changes.
+- Roster only: root contract names
+  `cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D
+  warnings && cargo test --workspace && cargo run --locked -p roster-cli --
+  check`; `.github/workflows/ci.yml` runs the Rust checks; `check.rs` contains
+  the `roster check` lane list; `skills-index.yaml` is current after
+  skill/primitive changes.
 - Secret scanning covers both committed content and metadata that never appears
   in the working tree: commit message file, outbound commit range, PR title/body,
   and release/changelog text. The report must redact matched values.
 
-For non-Harness Kit repos, replace the Harness Kit-specific bullets above with
+For non-roster repos, replace the roster-specific bullets above with
 that repo's equivalent gate contract, then apply the same security floor.
 Also check:
 
@@ -150,10 +156,13 @@ Also check:
 
 ## Run
 
-For Harness Kit, run:
+For roster, run:
 
 ```sh
-cargo run --locked -p harness-kit-checks -- check --repo .
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+cargo run --locked -p roster-cli -- check
 ```
 
 For consumer repos, run the repo-owned gate discovered in the audit. If none

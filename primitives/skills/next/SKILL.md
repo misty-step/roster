@@ -94,7 +94,7 @@ separating agent-owned action from user-owned external action.
 When editing this skill in the roster source repo:
 
 ```sh
-cargo run --locked -p harness-kit-checks -- check-frontmatter --repo .
+cargo run --locked -p roster-cli -- check
 ```
 
 Semantic acceptance: a useful `/next` answer names current state, one best next

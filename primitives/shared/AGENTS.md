@@ -284,9 +284,9 @@ stacks; work with that grain, not against it.
 - **Sprites are substrate, not providers.** Route heavy, long-running,
   detached, or isolation-needing lanes to `/sprites` regardless of which
   model runs them.
-- Receipts (`dispatch-agent` / sprite-lane) are worth writing when a lane's
-  evidence feeds a ship decision or should outlive the session; a quick
-  second opinion doesn't need one.
+- Receipts (Powder runs/comments/links on the card, or a sprite-lane report)
+  are worth writing when a lane's evidence feeds a ship decision or should
+  outlive the session; a quick second opinion doesn't need one.
 
 Provider output is evidence, not authority. The lead owns the result.
 

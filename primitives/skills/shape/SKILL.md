@@ -196,12 +196,12 @@ For non-trivial packets, include the verification-system block from
 `primitives/shared/references/verification-system-first.md`: claim, falsifier,
 driver, grader, evidence packet, cadence, and gaps/waiver.
 
-Premise-source discipline is enforced by the Rust grader:
-
-```sh
-cargo run --locked -p harness-kit-checks -- premise-source validate <packet>
-cargo run --locked -p harness-kit-checks -- premise-source self-test
-```
+Premise-source discipline splits by seam: the deterministic slice — do the
+files a packet cites actually exist? — is covered by `roster check`'s
+referenced-path gate (`cargo run --locked -p roster-cli -- check`); whether
+those cited premises actually support the packet's claims is semantic
+soundness judgment, not a linter's job — that's critic/reviewer work at the
+milestone gate.
 
 HTML plan artifact:
 

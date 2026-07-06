@@ -99,11 +99,10 @@ not the full bench.
 - Oracle is browser-mode only in Harness Kit. Use it for high-context consults
   through a signed-in ChatGPT session; do not use Oracle API mode or multi-model
   API panels from the Harness Kit roster default.
-- For a bounded lane whose evidence should outlive the session,
-  `harness-kit-checks dispatch-agent` wraps the invocation and writes a
-  delegation receipt (`.harness-kit/traces/delegations.jsonl`). Optional
-  for quick second opinions; useful when the lane's verdict feeds a ship
-  decision.
+- For a bounded lane whose evidence should outlive the session, write the
+  receipt to Powder — a run, comment, or link on the card the lane's work
+  feeds. Optional for quick second opinions; useful when the lane's verdict
+  feeds a ship decision.
 - Heavy, long-running, or isolation-needing lanes run on sprites
   (`/sprites`) regardless of which CLI executes them.
 

@@ -76,7 +76,7 @@ broad, stale, or contested. Scoped `AGENTS.md` governs — respect it.
 Editing this skill in the roster source repo:
 
 ```sh
-cargo run --locked -p harness-kit-checks -- check-frontmatter --repo .
+cargo run --locked -p roster-cli -- check
 ```
 
 Invoked in another repo, that command isn't required — acceptance is the
