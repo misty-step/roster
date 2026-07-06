@@ -7,6 +7,11 @@ or a skill coupled with a CLI/SDK/API. No middleware between agents and their
 tools: when your question gets answered, YOU write the ruling back to the card
 trail with your own powder MCP. Applications stand alone; weave composes them.
 
+**Roster is composition-free** (operator ruling 2026-07-07): roster declares
+who CAN exist — a flat catalog of identities other applications compose. WHO
+REPORTS TO WHOM is declared per-workflow in bitterblossom's workflow config
+(trigger + agent + supervisor chain). Do not encode org structure in roster.
+
 **Escalation hierarchy:** never skip a tier.
 1. Session subagents escalate to their orchestrator — never to the operator.
 2. The orchestrator answers everything it can; it loops the operator in only
