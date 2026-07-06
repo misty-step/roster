@@ -13,7 +13,7 @@ gitignored machine state owned by `harness-kit-checks sync-external`.
 
 1. `harness-kit-checks sync-external` fetches pinned sources and installs selected
    skills under `primitives/skills/.external/<alias>/`.
-2. `bootstrap.sh` projects first-party `skills/*` and synced
+2. `bootstrap.sh` projects first-party `primitives/skills/*` and synced
    `primitives/skills/.external/*` into each detected harness as ordinary skill names.
 3. `harness-kit-checks lint-external-skills --strict` checks imported skills
    are self-contained enough to expose.

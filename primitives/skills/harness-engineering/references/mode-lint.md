@@ -18,7 +18,7 @@ Validate a skill against quality gates.
 | **Freshness** | Do instructions match current model capabilities? | Strip non-load-bearing scaffold |
 | **Mode bloat** | >4 modes with inline content, or any single mode >60 lines inline? | Extract mode content to references/mode-*.md; use router pattern (see /diagnose) |
 | **Reference integrity** | Do all referenced local files in routing tables, gotchas, and examples exist? | Create the missing file, fix the path, or delete the stale reference |
-| **Self-containment** | Do scripts source only paths under `skills/<name>/`? Do they resolve `SCRIPT_DIR` via `readlink -f` and `STATE_ROOT` from the invoking project? | Move shared libs into the skill tree; rewrite source paths to use `$SCRIPT_DIR/lib/…`; decouple state root from script dir. |
+| **Self-containment** | Do scripts source only paths under `primitives/skills/<name>/`? Do they resolve `SCRIPT_DIR` via `readlink -f` and `STATE_ROOT` from the invoking project? | Move shared libs into the skill tree; rewrite source paths to use `$SCRIPT_DIR/lib/…`; decouple state root from script dir. |
 | **Delegation guidance** | Where a skill delegates, does it point at the shared Roster contract instead of restating it? | Point to `../../../shared/AGENTS.md` (Roster); delete restated doctrine. |
 
 ## Self-containment check
@@ -28,21 +28,21 @@ catch most violations:
 
 ```bash
 # Scripts that source files outside their own skill tree
-rg -n 'source.*\$REPO_ROOT|source.*/scripts/lib/' skills/*/scripts/
+rg -n 'source.*\$REPO_ROOT|source.*/scripts/lib/' primitives/skills/*/scripts/
 
-# Scripts that walk up past skills/<name>/ via $SCRIPT_DIR/../..
-rg -n 'SCRIPT_DIR/\.\./\.\.' skills/*/scripts/
+# Scripts that walk up past primitives/skills/<name>/ via $SCRIPT_DIR/../..
+rg -n 'SCRIPT_DIR/\.\./\.\.' primitives/skills/*/scripts/
 ```
 
 Either match is a lint failure. The fix is structural, not a suppression.
 
 Every scripted skill should also ship a distribution smoke test at
-`skills/<name>/scripts/distribution_test.sh` that symlinks the skill into
+`primitives/skills/<name>/scripts/distribution_test.sh` that symlinks the skill into
 a throwaway project and verifies `--help` works from there.
 
 ## Batch lint
 
-Run on all skills: `for s in skills/*/SKILL.md; do /harness-engineering lint "$s"; done`
+Run on all skills: `for s in primitives/skills/*/SKILL.md; do /harness-engineering lint "$s"; done`
 
 For duplicate skills, long descriptions, unused candidates, and prompt-budget
 pressure, use `harness-kit-checks telemetry`, the registry, and the
