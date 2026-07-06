@@ -382,7 +382,8 @@ fn sync_installs_orchestrator_and_curated_primitives_without_touching_harness_ki
 
     let rollback = read(home.path().join(".roster/orchestrator/ROLLBACK.md"));
     assert!(rollback.contains("roster sync --disable"));
-    assert!(rollback.contains("leaves harness-kit bootstrap files untouched"));
+    assert!(rollback.contains("It leaves anything roster sync"));
+    assert!(rollback.contains("declined to touch"));
 }
 
 #[test]
@@ -437,6 +438,177 @@ fn sync_disable_without_manifest_is_a_noop() {
         .stdout(predicate::str::contains(
             "No roster orchestrator sync manifest",
         ));
+}
+
+#[test]
+fn sync_full_catalog_links_first_party_and_external_skills() {
+    let home = tempfile::tempdir().expect("temp home");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+
+    let claude_skill = home.path().join(".claude/skills/artifact");
+    let codex_skill = home.path().join(".codex/skills/artifact");
+    assert!(fs::symlink_metadata(&claude_skill).unwrap().is_symlink());
+    assert_eq!(
+        fs::read_link(&claude_skill).unwrap(),
+        workspace_root().join("primitives/skills/artifact")
+    );
+    assert!(fs::symlink_metadata(&codex_skill).unwrap().is_symlink());
+
+    // .external/* entries link by their own directory name, matching the
+    // harness-kit farm convention.
+    let external_skill = home.path().join(".claude/skills/leon-brutalist-skill");
+    assert!(fs::symlink_metadata(&external_skill).unwrap().is_symlink());
+    assert_eq!(
+        fs::read_link(&external_skill).unwrap(),
+        workspace_root().join("primitives/skills/.external/leon-brutalist-skill")
+    );
+
+    // pi is absent from this sandbox home, so its skills dir is never created.
+    assert!(!home.path().join(".pi/skills").exists());
+}
+
+#[test]
+fn sync_curated_catalog_only_links_orchestrators_skills() {
+    let home = tempfile::tempdir().expect("temp home");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .args(["--catalog", "curated"])
+        .assert()
+        .success();
+
+    assert!(
+        home.path()
+            .join(".claude/skills/orient")
+            .symlink_metadata()
+            .is_ok()
+    );
+    // "deliver" is not in the orchestrator's role.yaml skills list.
+    assert!(!home.path().join(".claude/skills/deliver").exists());
+}
+
+#[test]
+fn sync_replaces_harness_kit_symlink_but_refuses_real_unmanaged_file() {
+    let home = tempfile::tempdir().expect("temp home");
+    let claude_claude_md = home.path().join(".claude/CLAUDE.md");
+    let codex_agents_md = home.path().join(".codex/AGENTS.md");
+
+    // Simulate a pre-existing harness-kit-owned symlink (the real cutover
+    // target) plus a genuine unmanaged real file (operator-authored, never
+    // touched by any sync).
+    fs::create_dir_all(claude_claude_md.parent().unwrap()).unwrap();
+    let fake_harness_kit = home.path().join("fake-harness-kit/shared/AGENTS.md");
+    fs::create_dir_all(fake_harness_kit.parent().unwrap()).unwrap();
+    fs::write(&fake_harness_kit, "harness-kit doctrine").unwrap();
+    std::os::unix::fs::symlink(&fake_harness_kit, &claude_claude_md).unwrap();
+    write_file(&codex_agents_md, "operator-owned codex AGENTS.md");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(".codex/AGENTS.md"));
+
+    assert!(
+        fs::symlink_metadata(&claude_claude_md)
+            .unwrap()
+            .is_symlink()
+    );
+    assert_eq!(
+        fs::read_link(&claude_claude_md).unwrap(),
+        workspace_root().join("primitives/shared/AGENTS.md")
+    );
+    assert_eq!(
+        fs::read_to_string(&codex_agents_md).unwrap(),
+        "operator-owned codex AGENTS.md"
+    );
+}
+
+#[test]
+fn sync_is_idempotent_on_second_run() {
+    let home = tempfile::tempdir().expect("temp home");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+    let first_target = fs::read_link(home.path().join(".claude/skills/orient")).unwrap();
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+    let second_target = fs::read_link(home.path().join(".claude/skills/orient")).unwrap();
+
+    assert_eq!(first_target, second_target);
+}
+
+#[test]
+fn sync_disable_removes_skill_farm_and_doctrine_symlinks() {
+    let home = tempfile::tempdir().expect("temp home");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+    assert!(home.path().join(".claude/skills/orient").exists());
+    assert!(home.path().join(".claude/CLAUDE.md").exists());
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .arg("--disable")
+        .assert()
+        .success();
+
+    assert!(!home.path().join(".claude/skills/orient").exists());
+    assert!(!home.path().join(".claude/CLAUDE.md").exists());
+}
+
+#[test]
+fn sync_all_agents_materializes_every_agent() {
+    let home = tempfile::tempdir().expect("temp home");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .arg("--all-agents")
+        .assert()
+        .success();
+
+    let cerberus_claude = read(home.path().join(".claude/agents/cerberus.md"));
+    assert!(cerberus_claude.contains("<!-- roster-sync:orchestrator:v1 -->"));
+    let cerberus_codex = read(home.path().join(".codex/agents/cerberus.md"));
+    assert!(cerberus_codex.contains("# Roster Brief: cerberus"));
+}
+
+#[test]
+fn sync_links_pi_skills_only_when_pi_is_present() {
+    let home = tempfile::tempdir().expect("temp home");
+    fs::create_dir_all(home.path().join(".pi")).unwrap();
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+
+    assert!(
+        home.path()
+            .join(".pi/skills/orient")
+            .symlink_metadata()
+            .is_ok()
+    );
 }
 
 fn write_file(path: &std::path::Path, contents: &str) {
