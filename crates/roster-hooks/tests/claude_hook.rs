@@ -81,3 +81,29 @@ fn unknown_hook_name_fails_with_usage_message() {
         .failure()
         .stderr(predicate::str::contains("unknown claude-hook"));
 }
+
+#[test]
+fn no_command_prints_usage_and_fails() {
+    hooks_cmd()
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("usage: roster-hooks claude-hook"));
+}
+
+#[test]
+fn unknown_top_level_command_fails_with_message() {
+    hooks_cmd()
+        .arg("not-a-command")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("unknown command"));
+}
+
+#[test]
+fn claude_hook_without_name_prints_usage_and_fails() {
+    hooks_cmd()
+        .arg("claude-hook")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("usage: roster-hooks claude-hook"));
+}
