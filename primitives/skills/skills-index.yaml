@@ -1,6 +1,6 @@
 schema_version: roster.skills_index.v1
-phase: P3-phase-1-done
-note: Physical migration (roster-916, phase 1 of roster-005) copied these bodies byte-identical into primitives/skills/; paths below are roster-owned. harness-kit's copies are untouched and still bootstrap-serve six harnesses. harness-engineering is unreferenced by any agent and is deferred to phase 2 -- its path still points at harness-kit on purpose. roster-919 added the designer and incident-hound agents; their design and factory-apps skills had no prior agent reference and did not migrate in phase 1 either -- both still point at harness-kit on purpose, same phase-2-deferred shape as harness-engineering.
+phase: P3-phase-2-copies-done
+note: Physical migration (roster-916, phase 1 of roster-005) copied these bodies byte-identical into primitives/skills/; paths below are roster-owned. harness-kit's copies are untouched and still bootstrap-serve six harnesses. harness-engineering is unreferenced by any agent and is deferred to phase 2 -- its path still points at harness-kit on purpose. roster-919 added the designer and incident-hound agents; their design and factory-apps skills had no prior agent reference and did not migrate in phase 1 either -- both still point at harness-kit on purpose, same phase-2-deferred shape as harness-engineering. roster-926 phase A (mechanical copy lane) additionally copied compound, council, design, document, factory-apps, harness-engineering, human-writing, next, refactor, roster, skill-eval, todoist, and vision (all from harness-kit/skills/) plus 31 vendored .external/ skills and harness-kit/harnesses/shared/ into primitives/skills/.external/ and primitives/shared/ respectively, all byte-identical with no content edits. Entries below were added only for the newly copied skills that had no prior entry (compound, council, document, human-writing, next, refactor, roster, skill-eval, todoist, vision); the pre-existing design/factory-apps/harness-engineering entries were left pointing at harness-kit per this phase's own no-edit-existing-entries boundary, so those three are now inconsistent -- their bodies live in both places -- and that reconciliation is deferred to the next phase.
 skills:
   - name: deliver
     path: /Users/phaedrus/Development/roster/primitives/skills/deliver/SKILL.md
@@ -28,3 +28,23 @@ skills:
     path: /Users/phaedrus/Development/harness-kit/skills/design/SKILL.md
   - name: factory-apps
     path: /Users/phaedrus/Development/harness-kit/skills/factory-apps/SKILL.md
+  - name: compound
+    path: /Users/phaedrus/Development/roster/primitives/skills/compound/SKILL.md
+  - name: council
+    path: /Users/phaedrus/Development/roster/primitives/skills/council/SKILL.md
+  - name: document
+    path: /Users/phaedrus/Development/roster/primitives/skills/document/SKILL.md
+  - name: human-writing
+    path: /Users/phaedrus/Development/roster/primitives/skills/human-writing/SKILL.md
+  - name: next
+    path: /Users/phaedrus/Development/roster/primitives/skills/next/SKILL.md
+  - name: refactor
+    path: /Users/phaedrus/Development/roster/primitives/skills/refactor/SKILL.md
+  - name: roster
+    path: /Users/phaedrus/Development/roster/primitives/skills/roster/SKILL.md
+  - name: skill-eval
+    path: /Users/phaedrus/Development/roster/primitives/skills/skill-eval/SKILL.md
+  - name: todoist
+    path: /Users/phaedrus/Development/roster/primitives/skills/todoist/SKILL.md
+  - name: vision
+    path: /Users/phaedrus/Development/roster/primitives/skills/vision/SKILL.md
