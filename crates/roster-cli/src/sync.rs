@@ -321,9 +321,15 @@ fn curated_skill_dirs(agent: &Agent) -> Vec<(String, PathBuf)> {
     found
 }
 
+/// pi presence must be judged from a marker roster sync never writes
+/// itself — `.pi/agents/orchestrator.md` is always materialized
+/// unconditionally (existing behavior, matching claude/codex), so it would
+/// make every second sync run see "pi present" from its own prior side
+/// effect. `.pi/settings.json` and `.pi/skills` are pi's own native
+/// surfaces; either existing means pi genuinely runs on this machine.
 fn detect_skill_harness_dirs(home: &Path) -> Vec<String> {
     let mut dirs = vec![".claude/skills".to_string(), ".codex/skills".to_string()];
-    if home.join(".pi").exists() {
+    if home.join(".pi/settings.json").exists() || home.join(".pi/skills").exists() {
         dirs.push(".pi/skills".to_string());
     }
     dirs

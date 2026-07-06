@@ -535,21 +535,32 @@ fn sync_replaces_harness_kit_symlink_but_refuses_real_unmanaged_file() {
 fn sync_is_idempotent_on_second_run() {
     let home = tempfile::tempdir().expect("temp home");
 
-    roster_cmd()
+    let first_output = roster_cmd()
         .args(["sync", "--home"])
         .arg(home.path())
         .assert()
-        .success();
+        .success()
+        .get_output()
+        .stdout
+        .clone();
     let first_target = fs::read_link(home.path().join(".claude/skills/orient")).unwrap();
 
-    roster_cmd()
+    let second_output = roster_cmd()
         .args(["sync", "--home"])
         .arg(home.path())
         .assert()
-        .success();
+        .success()
+        .get_output()
+        .stdout
+        .clone();
     let second_target = fs::read_link(home.path().join(".claude/skills/orient")).unwrap();
 
     assert_eq!(first_target, second_target);
+    // The reported entry count must not grow between runs -- a growing
+    // count on an unchanged catalog means some run is mistaking its own
+    // prior side effect for new state to link (see the pi-skills
+    // regression test above).
+    assert_eq!(first_output, second_output);
 }
 
 #[test]
@@ -595,7 +606,10 @@ fn sync_all_agents_materializes_every_agent() {
 #[test]
 fn sync_links_pi_skills_only_when_pi_is_present() {
     let home = tempfile::tempdir().expect("temp home");
-    fs::create_dir_all(home.path().join(".pi")).unwrap();
+    // `.pi/settings.json` is pi's own native config file — a marker
+    // roster sync never writes itself, unlike `.pi/agents/orchestrator.md`
+    // which it always materializes regardless of pi presence.
+    write_file(&home.path().join(".pi/settings.json"), "{}");
 
     roster_cmd()
         .args(["sync", "--home"])
@@ -609,6 +623,30 @@ fn sync_links_pi_skills_only_when_pi_is_present() {
             .symlink_metadata()
             .is_ok()
     );
+}
+
+#[test]
+fn sync_does_not_link_pi_skills_from_its_own_orchestrator_agent_side_effect() {
+    // Regression test: `.pi/agents/orchestrator.md` is written unconditionally
+    // on every sync (matching claude/codex), which creates `.pi/` itself.
+    // A second run must not mistake that self-inflicted directory for a
+    // genuine pi installation and start linking `.pi/skills/*`.
+    let home = tempfile::tempdir().expect("temp home");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+    assert!(home.path().join(".pi/agents/orchestrator.md").exists());
+    assert!(!home.path().join(".pi/skills").exists());
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+    assert!(!home.path().join(".pi/skills").exists());
 }
 
 fn write_file(path: &std::path::Path, contents: &str) {
