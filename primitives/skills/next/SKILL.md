@@ -66,18 +66,9 @@ Keep it compact. The default answer should fit on one screen.
 
 ## Routing Judgment
 
-| Signal | Best next |
-|---|---|
-| Dirty worktree with unclear ownership | Classify paths, then `/yeet` or ask one scope question |
-| Clean feature branch, work complete | `/ship` or PR closeout |
-| Unshaped idea, unclear acceptance | `/shape` |
-| Open prioritized backlog, no active branch | `/groom` summary, then one pickup |
-| Item already in verification | `/qa` or closeout before new delivery |
-| Broken gate, failing app, unclear root cause | `/diagnose` |
-| Running surface needs proof | `/qa` |
-| User asks "what do I need to do?" | Separate user external action from agent action |
-| Human external blocker | Say the agent is blocked; do not invent process work |
-| Harness primitive/invocation problem | `/harness-engineering` |
+Routing signals per `/orient`'s table (`../orient/SKILL.md`) — this skill adds
+only the next-specific framing: recommend one path and defend it, always
+separating agent-owned action from user-owned external action.
 
 ## Gotchas
 

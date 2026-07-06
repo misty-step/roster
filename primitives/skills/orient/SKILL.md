@@ -50,8 +50,13 @@ rather than guess from vibes.
 |---|---|
 | Shaped ticket, clean branch | `/deliver <ticket>` |
 | Dirty branch, intended changes | `/deliver --polish-only` |
+| Dirty worktree, unclear ownership | Classify paths, then `/yeet` or ask one scope question |
+| Unshaped idea, unclear acceptance | `/shape` |
 | Empty or stale backlog | `/groom` |
+| Open prioritized backlog, no active branch | `/groom` summary, then one pickup |
 | Failure, broken gate, unclear root cause | `/diagnose` |
+| Item already in verification | `/qa` or closeout before new delivery |
+| Running surface needs proof | `/qa` |
 | Finished work needing closeout | `/ship`, `/yeet`, or `/reflect` |
 | Readiness or profile question | `/qa` or the repo's readiness surface |
 | "What happened / why does it matter" | `/orient --deep` or `/shape` |

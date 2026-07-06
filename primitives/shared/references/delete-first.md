@@ -1,5 +1,8 @@
 # Delete-First Lens
 
+Load this when: choosing a build path, or before adding automation,
+optimization, abstractions, dependencies, wrappers, or surface — not after.
+
 Use while shaping, refactoring, or automating. The order matters.
 
 1. **Question the requirement.** What user outcome disappears if this is not

@@ -24,8 +24,9 @@ model family or a genuinely fresh context.
 
 - **Adversarial critique of your own work.** A reviewer from a different
   model family has decorrelated failure modes and no loyalty to your
-  reasoning. Give it the artifact (diff + oracle) only — never your
-  reasoning trail.
+  reasoning. Critics get the artifact and the oracle only — never the
+  author's reasoning trail (shared AGENTS.md: Fresh context beats
+  self-review).
 - **Second opinion on a contested judgment** — architecture call, risk
   assessment, "is this idiomatic" — where one model's taste shouldn't
   decide alone.
@@ -74,7 +75,7 @@ write-path gap — no overlap).
 - **Discover slugs live**: `pi --provider openrouter --list-models
   <family>`. Slugs rot in days; substitute when a family isn't listed.
 - **One distinct lens per critic** (correctness/data-loss, durability,
-  security, perf, API-shape — `harnesses/shared/references/lenses.md`).
+  security, perf, API-shape — `primitives/shared/references/lenses.md`).
   Optionally load that lens or a domain skill into the critic: `pi --skill
   <path>`.
 - **Cold, bounded, artifact-only**: inline diff + oracle + context, run `pi
@@ -121,7 +122,7 @@ not the full bench.
 ## Prompting frontier lanes
 
 For Fable/GPT-5.5-class lanes (and the lead's own operation), load
-`harnesses/shared/references/prompting-frontier.md`: goal-not-steps briefs
+`primitives/shared/references/prompting-frontier.md`: goal-not-steps briefs
 fenced by house rules, executable bars (delegate metric-invention when the
 bar is fuzzy), builder-never-grades verification against the REAL output,
 loop-until-the-bar with a live status artifact, prior traces as fuel, and

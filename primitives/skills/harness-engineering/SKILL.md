@@ -38,11 +38,11 @@ Engineer the harness. Keep it thin.
 | factory app capability routing | `../factory-apps/SKILL.md` |
 | one core / many faces product template | `references/one-core-many-faces.md` + `templates/one-core-many-faces/` |
 | generate a focused repo-local skill for a domain agent | `references/repo-local-skill-generation.md` + `templates/repo-local-skill/` |
-| public-surface "works" critique | `../../harnesses/shared/references/works-critique.md` |
-| model-native product boundary | `../../harnesses/shared/references/model-native-product-primitives.md` |
-| loop readiness / Mode B handoff | `../../harnesses/shared/references/loop-readiness.md` |
-| verification system first | `../../harnesses/shared/references/verification-system-first.md` |
-| delete-first simplification lens | `../../harnesses/shared/references/delete-first.md` |
+| public-surface "works" critique | `../../shared/references/works-critique.md` |
+| model-native product boundary | `../../shared/references/model-native-product-primitives.md` |
+| loop readiness / Mode B handoff | `../../shared/references/loop-readiness.md` |
+| verification system first | `../../shared/references/verification-system-first.md` |
+| delete-first simplification lens | `../../shared/references/delete-first.md` |
 | Ponytail anti-overengineering ladder | `../.external/dietrich-ponytail/SKILL.md` |
 
 Repo-local skills for consumer repos (bespoke QA drivers, deploy runbooks,
@@ -98,10 +98,7 @@ test below — most patterns are prompts, not skills.
 
 ## Delegation Judgment
 
-delegate on judgment per the shared Roster contract: native subagents
-by default; add cross-model critics, roster providers, or sprite lanes
-(`/sprites`) only when they answer a distinct question. See
-`harnesses/shared/AGENTS.md` (Roster).
+Delegate per the shared Roster contract (shared AGENTS.md: Roster).
 
 Local lane guidance: Use lanes for doctrine critique, runtime compatibility, gate design, and regression risk. Do not treat a missing repo-local roster as a waiver; use the resolver-backed probe.
 
@@ -120,7 +117,7 @@ Before creating or growing anything, classify it (2026-06 audit, backlog 103):
 - **Mode B** — event-triggered (on PR-ready, on production error, on
   schedule)? It belongs in the event plane (bitterblossom), not this harness.
   This repo is the ad-hoc operator layer plus the shared disk contracts.
-  Load `harnesses/shared/references/loop-readiness.md` before proposing any
+  Load `../../shared/references/loop-readiness.md` before proposing any
   unattended loop.
 
 History: slash commands were collapsed into skills when skills arrived, so

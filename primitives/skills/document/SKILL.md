@@ -9,7 +9,7 @@ description: |
   codebase", "generate the docs", "build a codebase wiki", "write architecture
   docs", "onboarding docs", "documentation site", "keep the docs in sync",
   "world-class docs". Trigger: /document, /docs, /wiki.
-argument-hint: "[scope-path | --full | --check]"
+argument-hint: "[scope-path|--full|--check]"
 ---
 
 # /document
@@ -96,19 +96,20 @@ deterministic-scaffold failure mode.
   third-party OSS wikis. This documents *your* repo.
 - **Auto-refresh-on-push is Mode B → bitterblossom.** This skill is on-demand
   (Mode A). The freshness script is the trigger contract for that future loop;
-  see `harnesses/shared/references/loop-readiness.md`.
+  see `primitives/shared/references/loop-readiness.md`.
 
 ## Delegation Judgment
 
-Delegate per the shared Roster contract in `harnesses/shared/AGENTS.md`
-(Roster). This skill is parallel-by-default and a heavy token spender; route
+Delegate per the shared Roster contract (shared AGENTS.md: Roster).
+This skill is parallel-by-default and a heavy token spender; route
 heavy/long runs to `/sprites`. Lanes:
 
 - **Recon scouts** — one per lens, blind to the others (compose `/groom`'s bench).
 - **Page generators** — one per facet, just-enough context, dependency order.
 - **Accuracy skeptics** — fresh-context, **different model family**, prompted to
-  *refute* each claim against source. Give them only the page + the repo, never
-  the author's reasoning trail.
+  *refute* each claim against source. Critics get the artifact and the oracle
+  only — never the author's reasoning trail (shared AGENTS.md: Fresh context
+  beats self-review).
 - **Cold-reader navigator** — sees only the generated docs + a real task; must
   land in the right files. Wrong landing = bad IA.
 
@@ -125,8 +126,8 @@ heavy/long runs to `/sprites`. Lanes:
 - **Too much context degrades agents** — which is exactly why these docs target
   humans and `/orient` keeps agents on live source. Do not repurpose this output
   as the agent's primary context feed.
-- **A verifier inheriting the author's context rationalizes the author.** Hand
-  critics the artifact and the repo, nothing else.
+- **A verifier inheriting the author's context rationalizes the author.**
+  Critics get the artifact only (see Delegation Judgment above).
 - **Restating code is not documentation.** A page that paraphrases functions
   adds drift surface and no understanding. Capture intent, flow, and *why*.
 - **Diagrams that do not parse are worse than none.** The render oracle fails the
@@ -138,7 +139,7 @@ heavy/long runs to `/sprites`. Lanes:
 
 ## Completion Gate
 
-See `harnesses/shared/AGENTS.md` (Completion Evidence) for the shared core.
+See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
 `/document` adds:
 
 ```markdown

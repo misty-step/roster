@@ -7,7 +7,7 @@ description: |
   /tmp/refactor-{project}.md. Use when: "refactor this", "clean up the
   architecture", "make the design better", "refactor until you're happy",
   "pay down design debt", "simplify this subsystem". Trigger: /refactor.
-argument-hint: "[scope or subsystem]"
+argument-hint: "[scope|subsystem]"
 ---
 
 # /refactor
@@ -25,7 +25,7 @@ tracking. Do not write "refactor until happy." Write a goal with:
 - **Fitness tests:** live command, route, consumer build, or browser path that
   must keep passing after each significant step.
 - **Verification system:** when the fitness test is not already a credible
-  proof loop, load `harnesses/shared/references/verification-system-first.md`
+  proof loop, load `primitives/shared/references/verification-system-first.md`
   and define claim, falsifier, driver, grader, evidence packet, and cadence.
 - **Stop rule:** what evidence means the architecture is good enough.
 
@@ -48,7 +48,7 @@ Track:
 - Goal, scope, fitness tests, and stop rule.
 - Current architecture read: key modules, smells, constraints.
 - Quality system: standards, proof methods, critic topology, and stop rules
-  from `harnesses/shared/references/quality-system.md`.
+  from `primitives/shared/references/quality-system.md`.
 - Milestones: planned, active, done.
 - Live-test receipts after each significant step.
 - Review findings, decisions, commits, and residual risk.
@@ -63,20 +63,20 @@ Do not put secrets, raw credentials, or private customer data in `/tmp`.
    behavior-preservation loop is a rewrite in disguise.
 2. **Choose one architectural pressure.** Examples: split ownership, shallow
    wrapper, dependency direction, duplicated data shape, feature logic hiding
-   in UI glue. Apply `harnesses/shared/references/delete-first.md` before
-   optimizing or automating the pressure, and use the synced Ponytail skill
-   (`skills/.external/dietrich-ponytail/SKILL.md`) as the default
-   anti-overengineering lens before adding abstractions, files, dependencies,
-   wrappers, or automation. Do not tidy everything.
+   in UI glue. See `primitives/shared/references/delete-first.md` (Ponytail:
+   `primitives/skills/.external/dietrich-ponytail/SKILL.md`). Do not tidy
+   everything.
 3. **Make one significant step.** Significant means a moved boundary, deleted
    abstraction, renamed public concept, data-flow simplification, or large-file
    split. Mechanical formatting is not a milestone.
 4. **Live-test immediately.** Use the repo's verification path, `/qa`, or the
    surface-specific route. Unit tests alone are insufficient for a milestone.
-5. **Autoreview the milestone.** Use fresh-context critique when substantive:
-   diff + architecture goal + fitness tests only, no author reasoning. Fix
-   blockers before continuing. Scale the critic topology with
-   `harnesses/shared/references/quality-system.md`; a risky boundary change
+5. **Autoreview the milestone.** Use fresh-context critique when substantive.
+   Critics get the artifact and the oracle only — never the author's
+   reasoning trail (shared AGENTS.md: Fresh context beats self-review); here
+   that's the diff + architecture goal + fitness tests. Fix blockers before
+   continuing. Scale the critic topology with
+   `primitives/shared/references/quality-system.md`; a risky boundary change
    earns more than one lens.
 6. **Commit green milestones.** One concern per commit. The progress file stays
    in `/tmp`, not the repo, unless the operator asks for a durable plan.
@@ -85,10 +85,7 @@ Do not put secrets, raw credentials, or private customer data in `/tmp`.
 
 ## Delegation Judgment
 
-Delegate on judgment per the shared Roster contract: native subagents by
-default; add cross-model critics, roster providers, or sprite lanes
-(`/sprites`) only when they answer a distinct question. See
-`harnesses/shared/AGENTS.md` (Roster).
+Delegate per the shared Roster contract (shared AGENTS.md: Roster).
 
 Useful lanes:
 
@@ -98,10 +95,11 @@ Useful lanes:
 
 Default harsh critic: load the synced
 `thermo-nuclear-code-quality-review` skill
-(`skills/.external/cursor-thermo-nuclear-code-quality-review/SKILL.md`) for
+(`primitives/skills/.external/cursor-thermo-nuclear-code-quality-review/SKILL.md`) for
 milestone diffs that add abstractions, split modules, cross file-size
-thresholds, or claim "cleaner architecture." Use `julius-caveman` to compress
-progress-file summaries only when they get noisy.
+thresholds, or claim "cleaner architecture." julius-caveman for interim
+synthesis only; findings, code, commits, and final artifacts stay normal
+English.
 
 ## Stop Conditions
 
@@ -122,7 +120,7 @@ Stop and report instead of improvising when:
 - **Unfenced win.** A god-file split, a killed dependency, or a corrected
   dependency direction with no gate to stop it regrowing comes back. Ratchet the
   structural win into a standing gate — a fitness function, a god-file baseline —
-  per `harnesses/shared/references/quality-gates.md`.
+  per `primitives/shared/references/quality-gates.md`.
 - **Big-bang rewrite.** If you cannot test and commit the step independently,
   the step is too large.
 - **Test-only proof.** Refactors break integration seams; run the live surface
@@ -132,14 +130,14 @@ Stop and report instead of improvising when:
 - **Untracked progress.** If `/tmp/refactor-{project}.md` is stale, the
   refactor is no longer resumable.
 
-## Completion
+## Completion Gate
 
-Done means:
+See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
+`/refactor` adds:
 
 - Goal stop rule satisfied or explicitly blocked.
 - Every significant step has a live-test receipt.
 - Blocking review findings fixed or rejected with a reason.
 - Meaningful milestones committed.
-- `/tmp/refactor-{project}.md` names final architecture, commits, verification,
-  residual risk, and follow-up pressure outside scope.
-- Final repo status is clean and branch/remote sync is reported when pushed.
+- `/tmp/refactor-{project}.md` names final architecture, commits,
+  verification, residual risk, and follow-up pressure outside scope.

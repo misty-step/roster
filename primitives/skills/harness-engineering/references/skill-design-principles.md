@@ -62,7 +62,7 @@ Loop already demands.
 4. Move detail into references/scripts/assets/templates when it is repeatable.
 5. Tighten description triggers and aliases before changing body prose.
 6. Convert any repeated gotcha into a script, hook, eval, or gate when feasible.
-   Use `../../../harnesses/shared/references/verification-system-first.md` for
+   Use `../../../shared/references/verification-system-first.md` for
    eval, benchmark, QA, or smoke-path design.
 7. Run `cargo run --locked -p harness-kit-checks -- check-frontmatter --repo .`
    and the full repo gate before shipment.

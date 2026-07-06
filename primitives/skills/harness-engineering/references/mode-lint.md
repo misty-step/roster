@@ -19,7 +19,7 @@ Validate a skill against quality gates.
 | **Mode bloat** | >4 modes with inline content, or any single mode >60 lines inline? | Extract mode content to references/mode-*.md; use router pattern (see /diagnose) |
 | **Reference integrity** | Do all referenced local files in routing tables, gotchas, and examples exist? | Create the missing file, fix the path, or delete the stale reference |
 | **Self-containment** | Do scripts source only paths under `skills/<name>/`? Do they resolve `SCRIPT_DIR` via `readlink -f` and `STATE_ROOT` from the invoking project? | Move shared libs into the skill tree; rewrite source paths to use `$SCRIPT_DIR/lib/…`; decouple state root from script dir. |
-| **Delegation guidance** | Where a skill delegates, does it point at the shared Roster contract instead of restating it? | Point to `harnesses/shared/AGENTS.md` (Roster); delete restated doctrine. |
+| **Delegation guidance** | Where a skill delegates, does it point at the shared Roster contract instead of restating it? | Point to `../../../shared/AGENTS.md` (Roster); delete restated doctrine. |
 
 ## Self-containment check
 

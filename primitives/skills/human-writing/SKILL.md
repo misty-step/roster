@@ -91,7 +91,8 @@ Verdict: publish / revise / needs source.
 - **One-note bluntness.** Direct prose can still be kind, precise, or
   technical. Do not turn every draft into a hardboiled memo.
 
-## Completion
+## Completion Gate
 
-Name what changed: patterns removed, claims preserved, any weak facts flagged,
-and whether the result is ready to publish or needs source review.
+See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
+`/human-writing` adds: patterns removed, claims preserved, any weak facts
+flagged, and whether the result is ready to publish or needs source review.

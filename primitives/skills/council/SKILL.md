@@ -12,7 +12,7 @@ description: |
   diverse perspectives", "panel of AIs", "what would different experts think",
   "divergence pass", "ideate broadly", "stress-test this direction with other
   models". Trigger: /council, /thinktank.
-argument-hint: "[question or task]"
+argument-hint: "[question|task]"
 ---
 
 # /council

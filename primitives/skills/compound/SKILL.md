@@ -5,7 +5,7 @@ description: |
   still fresh. Use when: after a bug fix, diagnosis, delivery, review, or
   incident reveals a reusable pattern worth adding to `docs/solutions/`.
   Trigger: /compound, /capture-learning, /learning.
-argument-hint: "[solved-problem summary]"
+argument-hint: "[solved-problem-summary]"
 ---
 
 # /compound
@@ -16,7 +16,7 @@ Capture the learning, not the whole story.
 
 - One solved problem -> one learning.
 - Corpus: `docs/solutions/<category>/<slug>.md`; schema:
-  `harnesses/shared/references/learnings.md`.
+  `primitives/shared/references/learnings.md`.
 - Overlap first:
   `rg -n --glob '*.md' '^(title|tags|applies_when):|<module>|<failure-mode>' docs/solutions`.
 - If an existing learning covers it, update that file only when the fresh
@@ -34,7 +34,8 @@ Present evidence wins at read. Coherence-neighborhood at write: refresh only
 nearby learnings likely to conflict. On contradiction, scope the refresh to
 the smallest corpus slice that can be wrong.
 
-## Output
+## Completion Gate
 
-Report the path written or updated, the overlap query used, the evidence
-anchor, and 3-6 retrieval terms future agents should grep.
+See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
+`/compound` adds: the path written or updated, the overlap query used, the
+evidence anchor, and 3-6 retrieval terms future agents should grep.

@@ -6,15 +6,15 @@ first-party source.
 ## Source Of Truth
 
 `registry.yaml` declares external sources, pins, paths, include/exclude filters,
-and alias prefixes. Do not hand-edit `skills/.external/`; it is gitignored
-machine state owned by `harness-kit-checks sync-external`.
+and alias prefixes. Do not hand-edit `primitives/skills/.external/`; it is
+gitignored machine state owned by `harness-kit-checks sync-external`.
 
 ## Lifecycle
 
 1. `harness-kit-checks sync-external` fetches pinned sources and installs selected
-   skills under `skills/.external/<alias>/`.
+   skills under `primitives/skills/.external/<alias>/`.
 2. `bootstrap.sh` projects first-party `skills/*` and synced
-   `skills/.external/*` into each detected harness as ordinary skill names.
+   `primitives/skills/.external/*` into each detected harness as ordinary skill names.
 3. `harness-kit-checks lint-external-skills --strict` checks imported skills
    are self-contained enough to expose.
 

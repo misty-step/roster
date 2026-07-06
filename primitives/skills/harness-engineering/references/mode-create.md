@@ -54,7 +54,7 @@ that's not a skill, that's a task description.
 - `skills/next/SKILL.md` — tiny reusable trigger where app-visible discovery
   earns the primitive.
 
-**External exemplars (installed under `skills/.external/`):**
+**External exemplars (installed under `primitives/skills/.external/`):**
 - `anthropic-skill-creator` — the "theory of mind" framing:
   explain the *why* before the *how* so the model can handle
   edge cases the rules don't enumerate.

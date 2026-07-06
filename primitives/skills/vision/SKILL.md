@@ -23,7 +23,7 @@ Conversational first. Artifact always.
 
 - Ask the operator what the deal is unless the request already contains enough
   project intent. One good question at a time; use the interrogate-first lens
-  (`harnesses/shared/references/interrogate-first.md`) when hidden decisions matter.
+  (`primitives/shared/references/interrogate-first.md`) when hidden decisions matter.
 - Read the live repo before drafting: existing `VISION.md`, `AGENTS.md`,
   `README*`, positioning/product docs, roadmap/backlog, manifests, examples,
   demos, tests, screenshots, and repo-local skills or prompts that encode
@@ -50,9 +50,10 @@ Conversational first. Artifact always.
 Load `references/vision-quality.md` when drafting, reviewing, or updating the
 artifact. Use it as a taste/checklist reference, not a template.
 
-## Output
+## Completion Gate
 
-Finish with:
+See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
+`/vision` adds:
 
 1. What changed in `VISION.md`.
 2. What questions were answered, deferred, or still need the operator.

@@ -3,7 +3,7 @@
 Test whether a skill improves agent outcomes, not whether its prose sounds
 reasonable.
 
-Load `../../../harnesses/shared/references/verification-system-first.md` when
+Load `../../../shared/references/verification-system-first.md` when
 designing the eval. The eval is the verification system for an agent-behavior
 claim: task, transcript, outcome, grader, evidence packet, and cadence must all
 be explicit.

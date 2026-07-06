@@ -53,7 +53,7 @@ checks can leave a PR pending.
 
 When a harness change affects agent behavior, runtime behavior, generated
 artifacts, or operator trust, load
-`../../../harnesses/shared/references/verification-system-first.md` and name
+`../../../shared/references/verification-system-first.md` and name
 the driver, grader, evidence packet, and cadence before editing. A new
 primitive without a gate, eval, benchmark, QA path, smoke path, or probe is
 unfinished.
