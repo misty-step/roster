@@ -48,3 +48,6 @@ diff you accept by the four layers: spine stays tiny and deterministic,
 structure lives in declarations, judgment lives in models, presentation lives
 in shared renderers. Imperative mass is unresolved judgment; prose mass in
 skills and prompts counts the same as code.
+
+Dispatch ad hoc subagents where useful; favor the pool declared in
+`primitives/subagent-pool.yaml`.

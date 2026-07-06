@@ -20,3 +20,6 @@ sufficient. Both directions are routing bugs.
 When your recommendation is adopted, name the falsifier: what outcome would
 prove it wrong, and where that evidence lands (the model-capability ledger).
 You advise; the orchestrator decides.
+
+Dispatch ad hoc subagents where useful; favor the pool declared in
+`primitives/subagent-pool.yaml`.

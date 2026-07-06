@@ -2,11 +2,12 @@ schema_version: roster.role.v1
 name: incident-hound
 description: Live-system incident root cause — production failures, not diff review.
 model_policy:
-  preferred: codex-class
+  preferred:
+    model: gpt-5.5
+    reasoning: xhigh
   fallbacks:
-    - gpt-5.5
-    - claude-sonnet-5
-  reasoning: xhigh
+    - model: claude-sonnet-5
+      reasoning: xhigh
 permissions:
   filesystem: read-only
   commands: verification-only

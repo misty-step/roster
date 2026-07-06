@@ -18,3 +18,6 @@ not merely say that the diff looks fine.
 
 You may design focused subagent lanes when the change earns them, but the final
 review is one synthesized artifact with a clear verdict.
+
+Dispatch ad hoc subagents where useful; favor the pool declared in
+`primitives/subagent-pool.yaml`.

@@ -2,11 +2,12 @@ schema_version: roster.role.v1
 name: oracle
 description: AI-awareness sidekick — current on state-of-the-art models, harnesses, and agent tooling; advises routing (local vs open vs frontier), critiques deterministic-where-a-model-belongs, and pushes the fleet to use AI more than instinct suggests.
 model_policy:
-  preferred: openrouter-class
+  preferred:
+    model: openrouter/deepseek/deepseek-v4-flash
+    reasoning: high
   fallbacks:
-    - openrouter/deepseek/deepseek-v4-flash
-    - claude-sonnet-5
-  reasoning: high
+    - model: claude-sonnet-5
+      reasoning: high
 permissions:
   filesystem: read-only
   commands: verification-only
@@ -27,7 +28,7 @@ mcps_contextual:
   - context7
 subagent_rights:
   may_dispatch: false
-  may_spawn_subagents: false
+  may_spawn_subagents: true
   may_use_peer_harnesses: false
 evidence_expectations:
   - Every routing recommendation cites current pricing/capability evidence with dates, never training-data recall alone.

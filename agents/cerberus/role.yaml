@@ -2,11 +2,12 @@ schema_version: roster.role.v1
 name: cerberus
 description: Code-review master agent that turns available change context into grounded findings, verdicts, and a review artifact without overstating inspected evidence.
 model_policy:
-  preferred: codex-class
+  preferred:
+    model: gpt-5.5
+    reasoning: xhigh
   fallbacks:
-    - gpt-5.5
-    - openrouter/moonshotai/kimi-k2.7-code
-  reasoning: xhigh
+    - model: openrouter/moonshotai/kimi-k2.7-code
+      reasoning: xhigh
 permissions:
   filesystem: read-only
   commands: verification-only

@@ -1,7 +1,7 @@
 use anyhow::{Context, Result, anyhow, bail};
 use clap::{Parser, Subcommand, ValueEnum};
 use roster_core::{
-    CardContext, Providers, Roster, render_bb_agent, render_brief, render_claude_agent, render_show,
+    CardContext, Models, Roster, render_bb_agent, render_brief, render_claude_agent, render_show,
 };
 use serde_json::{Value, json};
 use std::{
@@ -69,8 +69,8 @@ fn main() -> Result<()> {
                 println!(
                     "{}\t{}\t{}\t{}",
                     agent.role.name,
-                    agent.role.model_policy.preferred,
-                    agent.role.model_policy.reasoning,
+                    agent.role.model_policy.preferred.model,
+                    agent.role.model_policy.preferred.reasoning,
                     agent.role.description
                 );
             }
@@ -85,15 +85,15 @@ fn main() -> Result<()> {
             let agent = find_agent(&roster, &agent)?;
             match harness {
                 Harness::Claude => {
-                    let providers = Providers::load(&cli.root)?;
-                    print!("{}", render_claude_agent(agent, &providers));
+                    let models = Models::load(&cli.root)?;
+                    print!("{}", render_claude_agent(agent, &models));
                 }
                 Harness::Codex => print!("{}", render_brief(agent, &[], &[], None)),
                 Harness::Bb => {
-                    let providers = Providers::load(&cli.root)?;
+                    let models = Models::load(&cli.root)?;
                     print!(
                         "{}",
-                        render_bb_agent(agent, &providers).map_err(|error| anyhow!(error))?
+                        render_bb_agent(agent, &models).map_err(|error| anyhow!(error))?
                     );
                 }
             }
@@ -192,8 +192,8 @@ fn run_sync(root: &Path, home: Option<PathBuf>, disable: bool) -> Result<()> {
 fn install_sync(root: &Path, home: &Path) -> Result<()> {
     let roster = Roster::load(root)?;
     let agent = find_agent(&roster, DEFAULT_AGENT)?;
-    let providers = Providers::load(root)?;
-    let files = sync_files(agent, &providers)?;
+    let models = Models::load(root)?;
+    let files = sync_files(agent, &models)?;
 
     for (relative_path, contents) in &files {
         write_managed_file(home, relative_path, contents)?;
@@ -210,9 +210,9 @@ fn install_sync(root: &Path, home: &Path) -> Result<()> {
     Ok(())
 }
 
-fn sync_files(agent: &roster_core::Agent, providers: &Providers) -> Result<Vec<(String, String)>> {
+fn sync_files(agent: &roster_core::Agent, models: &Models) -> Result<Vec<(String, String)>> {
     let brief = render_brief(agent, &[], &[], None);
-    let claude_agent = render_claude_agent(agent, providers);
+    let claude_agent = render_claude_agent(agent, models);
     let skills_index = skills_index_json(agent)?;
     let rollback = rollback_doc();
 

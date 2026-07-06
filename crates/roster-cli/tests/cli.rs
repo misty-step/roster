@@ -73,9 +73,13 @@ fn list_prints_seed_agents() {
         .arg("list")
         .assert()
         .success()
-        .stdout(predicate::str::contains("cerberus\tcodex-class\txhigh"))
-        .stdout(predicate::str::contains("orchestrator\tfable-class\tlow"))
-        .stdout(predicate::str::contains("sweep\topenrouter-class\tmedium"));
+        .stdout(predicate::str::contains("cerberus\tgpt-5.5\txhigh"))
+        .stdout(predicate::str::contains(
+            "orchestrator\tclaude-fable-5\thigh",
+        ))
+        .stdout(predicate::str::contains(
+            "sweep\topenrouter/deepseek/deepseek-v4-flash\tmedium",
+        ));
 }
 
 #[test]
@@ -85,7 +89,9 @@ fn show_prints_agent_detail() {
         .assert()
         .success()
         .stdout(predicate::str::contains("# orchestrator"))
-        .stdout(predicate::str::contains("Preferred model: fable-class"))
+        .stdout(predicate::str::contains(
+            "Preferred model: claude-fable-5 (reasoning: high)",
+        ))
         .stdout(predicate::str::contains("MCPs: powder"))
         .stdout(predicate::str::contains(
             "Contextual MCPs: qmd, todoist, bitterblossom, glass",
@@ -124,10 +130,10 @@ fn materialize_bb_prints_agent_binding() {
 
 #[test]
 fn materialize_claude_prints_native_subagent_frontmatter() {
-    // Expected models come from primitives/tiers.yaml's `tiers` table:
-    // orchestrator's tier is fable-class (claude: inherit), cerberus's is
-    // codex-class (claude: sonnet) -- resolved through the table, not
-    // hardcoded per agent.
+    // Expected models come from primitives/models.yaml's `models` table:
+    // orchestrator's preferred concrete id is claude-fable-5 (claude:
+    // inherit), cerberus's is gpt-5.5 (claude: sonnet) -- resolved through
+    // the table, not hardcoded per agent.
     for (agent, expected_tools, expected_model) in [
         (
             "orchestrator",
@@ -340,8 +346,8 @@ fn sync_installs_orchestrator_and_curated_primitives_without_touching_harness_ki
 
     let claude_agent = read(home.path().join(".claude/agents/orchestrator.md"));
     assert!(claude_agent.contains("<!-- roster-sync:orchestrator:v1 -->"));
-    // orchestrator's tier is fable-class; tiers.yaml resolves that to
-    // `inherit` for the claude harness, not the old hardcoded `sonnet`.
+    // orchestrator's preferred concrete id is claude-fable-5; models.yaml
+    // resolves that to `inherit` for the claude harness, not `sonnet`.
     assert!(claude_agent.contains("model: inherit"));
     assert!(claude_agent.contains("tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch"));
 
