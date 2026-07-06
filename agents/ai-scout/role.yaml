@@ -1,5 +1,5 @@
 schema_version: roster.role.v1
-name: oracle
+name: ai-scout
 description: AI-awareness sidekick — current on state-of-the-art models, harnesses, and agent tooling; advises routing (local vs open vs frontier), critiques deterministic-where-a-model-belongs, and pushes the fleet to use AI more than instinct suggests.
 model_policy:
   preferred:

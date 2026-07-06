@@ -31,6 +31,6 @@ Three questions, in order, when deciding classical vs model:
    is regex or string-matching aimed at natural language.
 
 Mechanism-adding diffs — a new crate, CLI subcommand, hook, state machine,
-regex-over-natural-language, or a mechanism-budget raise — summon the oracle
+regex-over-natural-language, or a mechanism-budget raise — summon the ai-scout
 lens in review (roster-929): artifact-only, answering one question — should
 any of this be a declaration or model judgment instead?

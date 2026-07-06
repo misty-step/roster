@@ -29,7 +29,7 @@ deterministic; both directions are findings.
 Mechanism trigger (operator ruling 2026-07-07, roster-929): when the diff
 adds mechanism — a new crate, CLI subcommand, hook, state machine,
 regex-over-natural-language, or a mechanism-budget raise — dispatch the
-roster **oracle** agent as a favored subagent lens. Oracle gets the diff and
+roster **ai-scout** agent as a favored subagent lens. Oracle gets the diff and
 the placement test from model-native-first.md only (never your reasoning
 trail) and answers one question: should any of this be a declaration or
 model judgment instead? Its verdict is a finding in your review, attributed.
