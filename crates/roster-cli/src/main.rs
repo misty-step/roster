@@ -1,3 +1,4 @@
+mod check;
 mod sync;
 
 use anyhow::{Context, Result, anyhow};
@@ -49,6 +50,9 @@ enum Command {
         #[arg(long = "all-agents")]
         all_agents: bool,
     },
+    /// Gate the primitives catalog: frontmatter shape, referenced-path
+    /// existence, skills-index/disk parity, conflict markers.
+    Check,
 }
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -121,6 +125,11 @@ fn main() -> Result<()> {
             catalog,
             all_agents,
         } => sync::run(&cli.root, home, disable, catalog, all_agents)?,
+        Command::Check => {
+            if !check::run(&cli.root)? {
+                std::process::exit(1);
+            }
+        }
     }
 
     Ok(())
