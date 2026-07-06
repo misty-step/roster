@@ -24,14 +24,10 @@ the site-scoped location is applied consistently regardless.
 
 ## Lucide Mark
 
-- Icon: `users`
-- Reason: provisional — Roster predates the fleet-wide icon-selection pass
-  (`aesthetic/prototypes/icon-logo-playground.html`, 2026-07-02), so no mark
-  has been ratified for it yet. `users` was chosen for this site only
-  (agents as first-class citizens, a roster of them) and does not ratify
-  anything on the repo's behalf; the repo owns its real mark contract
-  whenever it runs the same selection process the other 12 fleet products
-  went through.
+- Icon: `bot`
+- Reason: operator-ratified 2026-07-06. Roster's product is agent
+  identities as files; the bot glyph reads agentic at a glance, where the
+  prior `users` mark read like a generic team-management tool.
 - Rule: the mark is an inline Lucide SVG inside `.ae-app-mark`. No bespoke
   marks, logo images, emoji marks, or colored wordmarks.
 
