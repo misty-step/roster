@@ -18,7 +18,7 @@ permissions:
   mutations: styling-and-markup-scope
 skills:
   - name: design
-    path: /Users/phaedrus/Development/harness-kit/skills/design/SKILL.md
+    path: /Users/phaedrus/Development/roster/primitives/skills/design/SKILL.md
     reason: front door to visual-critique specialists (impeccable-impeccable, anthropic-frontend-design, leon-*, vercel-web-design-guidelines); not yet migrated to primitives/skills (roster-919 phase-1 addendum, see skills-index.yaml note)
   - name: artifact
     path: /Users/phaedrus/Development/roster/primitives/skills/artifact/SKILL.md
