@@ -1,9 +1,14 @@
 # Anti-Slop
 
 Concrete, checkable rules for stripping the "AI-generated" tells out of a
-surface. Use alongside `taste-layer.md` (direction) and `design-system.md`
-(tokens). Distilled from three public design skills — credit and further
-reading:
+surface. This is `/design`'s single ban-list — the slop tells, the VARIANCE/
+MOTION/DENSITY dials, and the pre-emit quick gate. Do not re-derive it per
+surface and do not paste the vendored skills' copies into `/design`'s
+SKILL.md — route here and let each vendored skill carry its own. `nutlope`'s
+58-gate slop-test is the superset oracle; `npx impeccable detect` is the
+deterministic, no-LLM check. Use alongside `taste-layer.md` (direction) and
+`design-system.md` (tokens). Distilled from three public design skills —
+credit and further reading:
 - **impeccable** (`impeccable.style`, installed as `impeccable-impeccable`) —
   desloppification; a deterministic 46-pattern detector with `npx impeccable
   detect` (exit code 2 on findings); respect the project's existing

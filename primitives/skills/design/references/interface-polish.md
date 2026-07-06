@@ -47,6 +47,19 @@ their prose or visual identity.
 - Color is semantic enough that status, selection, and hierarchy survive theme
   changes.
 
+## Accessibility
+
+Part of the pass, not a ceremony:
+
+- Keyboard reachability and focus order on every interactive change.
+- Visible focus states.
+- Contrast meets WCAG AA.
+- Labels and alt text on controls and images.
+- Reduced-motion respected.
+
+Run axe or an equivalent on web surfaces. A11y findings are design findings —
+fix them with the same minimal-change discipline as any other issue.
+
 ## Final Pass
 
 Ask:

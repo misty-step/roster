@@ -36,8 +36,13 @@ genuinely change the experience, render variants so they can be compared fast.
 Count is never the point; distinctness within constraints is. Six reskins are
 worse than three genuinely different directions.
 
-- **3–5** structurally distinct directions when each is expensive to build or the
-  call is coarse (the `/design redesign` direction menu sits here).
+SKILL.md's Design Labs Law sets the floor at 6 for any route that creates or
+redesigns a surface — this table only calibrates where in 6-20 to land, not
+whether to clear 6. The exception is a coarse decision menu that precedes a
+generative pass (e.g. picking a redesign direction from `taste-layer.md`
+before building it out), which may run 3-5 since each option there is
+expensive to build.
+
 - **≥6** is the lab-registry floor for real, rounds-based prototyping.
 - **up to ~12–20** when variants are cheap to render and the operator wants a wide
   sweep ("20 variants, one button each"). The lab-registry paged viewer (arrow-key

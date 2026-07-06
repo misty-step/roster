@@ -39,9 +39,11 @@ Directions must differ structurally, not only by palette:
 - **Brand-forward:** make product, object, or client unmistakable.
 - **Reference/catalog:** reliable information architecture and filtering.
 - **Minimal polish:** preserve shape, improve hierarchy, rhythm, and states.
+- **Inversion:** challenge the organizing metaphor itself.
 
 Name the sacrifice for each direction. A workbench sacrifices drama for speed;
-an editorial page sacrifices density for comprehension.
+an editorial page sacrifices density for comprehension; an inversion
+sacrifices familiarity for a fresh frame. Recommend one.
 
 ## References And Mood Boards
 
