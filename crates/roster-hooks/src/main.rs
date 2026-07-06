@@ -38,11 +38,12 @@ fn run_claude_hook(name: Option<String>) -> ExitCode {
         "destructive-command-guard" => claude_hooks::run_destructive_command_guard_from_stdin(),
         "github-cli-guard" => claude_hooks::run_github_cli_guard_from_stdin(),
         "skill-invocation-tracker" => claude_hooks::run_skill_invocation_tracker_from_stdin(),
+        "secrets-read-guard" => claude_hooks::run_secrets_read_guard_from_stdin(),
         other => {
             eprintln!(
                 "unknown claude-hook {other:?}; expected one of: \
                  permission-auto-approve, time-context, destructive-command-guard, \
-                 github-cli-guard, skill-invocation-tracker"
+                 github-cli-guard, skill-invocation-tracker, secrets-read-guard"
             );
             return ExitCode::FAILURE;
         }
