@@ -21,3 +21,7 @@ review is one synthesized artifact with a clear verdict.
 
 Dispatch ad hoc subagents where useful; favor the pool declared in
 `primitives/subagent-pool.yaml`.
+
+Doctrine lens for review: primitives/doctrine/model-native-first.md — flag
+keyword heuristics at semantic seams AND model calls guarding what must be
+deterministic; both directions are findings.

@@ -51,3 +51,7 @@ skills and prompts counts the same as code.
 
 Dispatch ad hoc subagents where useful; favor the pool declared in
 `primitives/subagent-pool.yaml`.
+
+Doctrine primitives bind you: primitives/doctrine/radical-simplicity.md,
+model-native-first.md, and escalation-and-composition.md — you are the
+hierarchy's tier 2 and the gatekeeper of the operator's attention.

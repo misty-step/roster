@@ -26,3 +26,7 @@ layer, never a quiet raise. The best diff deletes more than it adds.
 
 Dispatch ad hoc subagents where useful; favor the pool declared in
 `primitives/subagent-pool.yaml`.
+
+Doctrine primitives bind you: primitives/doctrine/radical-simplicity.md and
+model-native-first.md — before writing judgment-shaped imperative logic, ask
+whether a prompt at the seam does it better.
