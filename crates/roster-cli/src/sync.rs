@@ -7,7 +7,7 @@
 
 use anyhow::{Context, Result, anyhow, bail};
 use clap::ValueEnum;
-use roster_core::{Agent, Models, Roster, render_brief, render_claude_agent};
+use roster_core::{Agent, Models, Roster, render_brief, render_claude_agent, render_home_doctrine};
 use serde_json::{Value, json};
 use std::{
     collections::BTreeSet,
@@ -254,17 +254,46 @@ fn build_plan(
         }
     }
 
+    // Home doctrine — one composed file (shared AGENTS.md + the
+    // orchestrator's identity, skills, and MCP bindings) that every
+    // harness's doctrine link points at, so any default agent session on
+    // this machine boots as the declared roster orchestrator rather than a
+    // bare copy of shared AGENTS.md (operator ruling 2026-07-07).
+    let home_doctrine = render_home_doctrine(root, orchestrator)?;
+    plan.push(PlannedEntry::File {
+        relative_path: format!("{SYNC_DIR_REL}/home-doctrine.md"),
+        contents: managed_markdown(&home_doctrine),
+    });
+
     // Doctrine links — replace only a harness-kit symlink or a prior roster
-    // symlink; refuse anything else real and unmanaged.
-    let doctrine_target = root.join("primitives/shared/AGENTS.md");
+    // symlink; refuse anything else real and unmanaged. pi and opencode only
+    // get a link when their own native surface is already on the machine
+    // (same presence rule the skill farm uses below), so a bare sync never
+    // half-installs a harness that isn't there.
+    let doctrine_target = home.join(SYNC_DIR_REL).join("home-doctrine.md");
     plan.push(PlannedEntry::Symlink {
         relative_path: ".claude/CLAUDE.md".to_string(),
         target: doctrine_target.clone(),
     });
     plan.push(PlannedEntry::Symlink {
         relative_path: ".codex/AGENTS.md".to_string(),
-        target: doctrine_target,
+        target: doctrine_target.clone(),
     });
+    if pi_present(home) {
+        plan.push(PlannedEntry::Symlink {
+            relative_path: ".pi/agent/AGENTS.md".to_string(),
+            target: doctrine_target.clone(),
+        });
+    }
+    if opencode_present(home) {
+        // opencode's own docs: "You can also have global rules in a
+        // `~/.config/opencode/AGENTS.md` file. This gets applied across all
+        // opencode sessions."
+        plan.push(PlannedEntry::Symlink {
+            relative_path: ".config/opencode/AGENTS.md".to_string(),
+            target: doctrine_target,
+        });
+    }
 
     Ok(plan)
 }
@@ -327,9 +356,20 @@ fn curated_skill_dirs(agent: &Agent) -> Vec<(String, PathBuf)> {
 /// make every second sync run see "pi present" from its own prior side
 /// effect. `.pi/settings.json` and `.pi/skills` are pi's own native
 /// surfaces; either existing means pi genuinely runs on this machine.
+fn pi_present(home: &Path) -> bool {
+    home.join(".pi/settings.json").exists() || home.join(".pi/skills").exists()
+}
+
+/// `~/.config/opencode/opencode.json` is opencode's own native config file,
+/// never written by roster sync — its presence means opencode genuinely
+/// runs on this machine.
+fn opencode_present(home: &Path) -> bool {
+    home.join(".config/opencode/opencode.json").exists()
+}
+
 fn detect_skill_harness_dirs(home: &Path) -> Vec<String> {
     let mut dirs = vec![".claude/skills".to_string(), ".codex/skills".to_string()];
-    if home.join(".pi/settings.json").exists() || home.join(".pi/skills").exists() {
+    if pi_present(home) {
         dirs.push(".pi/skills".to_string());
     }
     dirs

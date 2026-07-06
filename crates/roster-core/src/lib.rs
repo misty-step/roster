@@ -281,6 +281,48 @@ tools: {tools}
     )
 }
 
+/// Composes the single doctrine file `roster sync` points every harness's
+/// global doctrine link at: the shared operating doctrine verbatim, then
+/// `agent`'s identity (instructions, skills, MCP bindings), so any default
+/// agent session on the machine boots as the declared roster orchestrator
+/// (operator ruling 2026-07-07) rather than a bare copy of shared AGENTS.md.
+pub fn render_home_doctrine(root: &Path, agent: &Agent) -> Result<String, RosterError> {
+    let role = &agent.role;
+    let doctrine_path = root.join("primitives/shared/AGENTS.md");
+    let doctrine = fs::read_to_string(&doctrine_path).map_err(|source| RosterError::Io {
+        path: doctrine_path.clone(),
+        source,
+    })?;
+
+    Ok(format!(
+        r#"{doctrine}
+
+# Session Identity: {name} (roster)
+
+{instructions}
+
+## Skills To Read
+
+{skills}
+
+## MCP Servers
+
+{mcp_servers}
+
+---
+This is the composed home doctrine for the roster `{name}` agent, the
+declared default orchestrator for every harness on this machine. See the
+rest of the roster with `roster list`, `roster show <agent>`, or the roster
+MCP; lane dispatch goes through `roster materialize` / `roster brief`.
+"#,
+        doctrine = doctrine.trim_end(),
+        name = role.name,
+        instructions = agent.instructions.trim(),
+        skills = render_skills(&role.skills, &[]),
+        mcp_servers = render_mcp_servers(&role.mcps, &role.mcps_contextual, &[]),
+    ))
+}
+
 fn format_model_entry(entry: &ModelEntry) -> String {
     format!("{} (reasoning: {})", entry.model, entry.reasoning)
 }

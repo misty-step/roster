@@ -387,6 +387,68 @@ fn sync_installs_orchestrator_and_curated_primitives_without_touching_harness_ki
 }
 
 #[test]
+fn home_doctrine_composes_shared_doctrine_identity_skills_and_mcps() {
+    let home = tempfile::tempdir().expect("temp home");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+
+    // Doctrine links point at the composed home doctrine, not the bare
+    // shared AGENTS.md — every default agent session should boot as the
+    // declared orchestrator, not a copy of the undifferentiated doctrine.
+    let home_doctrine_path = home.path().join(".roster/orchestrator/home-doctrine.md");
+    assert_eq!(
+        fs::read_link(home.path().join(".claude/CLAUDE.md")).unwrap(),
+        home_doctrine_path
+    );
+    assert_eq!(
+        fs::read_link(home.path().join(".codex/AGENTS.md")).unwrap(),
+        home_doctrine_path
+    );
+
+    let doctrine = read(home.path().join(".roster/orchestrator/home-doctrine.md"));
+    let shared_doctrine = read(workspace_root().join("primitives/shared/AGENTS.md"));
+
+    // (a) the full shared operating doctrine, verbatim.
+    assert!(doctrine.contains(shared_doctrine.trim()));
+    // (b) a clearly-marked identity section carrying the orchestrator's
+    // instructions.md verbatim.
+    assert!(doctrine.contains("# Session Identity: orchestrator (roster)"));
+    let orchestrator_instructions =
+        read(workspace_root().join("agents/orchestrator/instructions.md"));
+    assert!(doctrine.contains(orchestrator_instructions.trim()));
+    // (c) the Skills To Read block, same rendering as the claude materializer.
+    assert!(doctrine.contains("## Skills To Read"));
+    assert!(doctrine.contains("- orient:"));
+    // (d) MCP bindings as prose.
+    assert!(doctrine.contains("## MCP Servers"));
+    assert!(doctrine.contains("### Required"));
+    assert!(doctrine.contains("- powder"));
+    assert!(doctrine.contains("### Contextual"));
+    assert!(doctrine.contains("- qmd"));
+    // (e) a footer pointing at the rest of the roster and lane dispatch.
+    assert!(doctrine.contains("roster list"));
+    assert!(doctrine.contains("roster show"));
+    assert!(doctrine.contains("roster materialize"));
+    assert!(doctrine.contains("roster brief"));
+
+    // The identity section must come after the shared doctrine, and skills
+    // after identity, and MCPs after skills — composition order (a)-(e).
+    let doctrine_end = doctrine
+        .find(shared_doctrine.trim().lines().last().unwrap())
+        .unwrap();
+    let identity_pos = doctrine.find("# Session Identity").unwrap();
+    let skills_pos = doctrine.find("## Skills To Read").unwrap();
+    let mcp_pos = doctrine.find("## MCP Servers").unwrap();
+    assert!(doctrine_end < identity_pos);
+    assert!(identity_pos < skills_pos);
+    assert!(skills_pos < mcp_pos);
+}
+
+#[test]
 fn sync_disable_removes_only_roster_managed_files() {
     let home = tempfile::tempdir().expect("temp home");
     let codex_global = home.path().join(".codex/AGENTS.md");
@@ -523,7 +585,7 @@ fn sync_replaces_harness_kit_symlink_but_refuses_real_unmanaged_file() {
     );
     assert_eq!(
         fs::read_link(&claude_claude_md).unwrap(),
-        workspace_root().join("primitives/shared/AGENTS.md")
+        home.path().join(".roster/orchestrator/home-doctrine.md")
     );
     assert_eq!(
         fs::read_to_string(&codex_agents_md).unwrap(),
@@ -544,6 +606,8 @@ fn sync_is_idempotent_on_second_run() {
         .stdout
         .clone();
     let first_target = fs::read_link(home.path().join(".claude/skills/orient")).unwrap();
+    let first_doctrine = read(home.path().join(".roster/orchestrator/home-doctrine.md"));
+    let first_doctrine_link = fs::read_link(home.path().join(".claude/CLAUDE.md")).unwrap();
 
     let second_output = roster_cmd()
         .args(["sync", "--home"])
@@ -554,8 +618,12 @@ fn sync_is_idempotent_on_second_run() {
         .stdout
         .clone();
     let second_target = fs::read_link(home.path().join(".claude/skills/orient")).unwrap();
+    let second_doctrine = read(home.path().join(".roster/orchestrator/home-doctrine.md"));
+    let second_doctrine_link = fs::read_link(home.path().join(".claude/CLAUDE.md")).unwrap();
 
     assert_eq!(first_target, second_target);
+    assert_eq!(first_doctrine, second_doctrine);
+    assert_eq!(first_doctrine_link, second_doctrine_link);
     // The reported entry count must not grow between runs -- a growing
     // count on an unchanged catalog means some run is mistaking its own
     // prior side effect for new state to link (see the pi-skills
@@ -566,6 +634,11 @@ fn sync_is_idempotent_on_second_run() {
 #[test]
 fn sync_disable_removes_skill_farm_and_doctrine_symlinks() {
     let home = tempfile::tempdir().expect("temp home");
+    // Present pi and opencode so this run also plants their doctrine links,
+    // proving disable tears down every presence-gated link, not just the
+    // always-on claude/codex pair.
+    write_file(&home.path().join(".pi/settings.json"), "{}");
+    write_file(&home.path().join(".config/opencode/opencode.json"), "{}");
 
     roster_cmd()
         .args(["sync", "--home"])
@@ -574,6 +647,13 @@ fn sync_disable_removes_skill_farm_and_doctrine_symlinks() {
         .success();
     assert!(home.path().join(".claude/skills/orient").exists());
     assert!(home.path().join(".claude/CLAUDE.md").exists());
+    assert!(
+        home.path()
+            .join(".roster/orchestrator/home-doctrine.md")
+            .exists()
+    );
+    assert!(home.path().join(".pi/agent/AGENTS.md").exists());
+    assert!(home.path().join(".config/opencode/AGENTS.md").exists());
 
     roster_cmd()
         .args(["sync", "--home"])
@@ -584,6 +664,17 @@ fn sync_disable_removes_skill_farm_and_doctrine_symlinks() {
 
     assert!(!home.path().join(".claude/skills/orient").exists());
     assert!(!home.path().join(".claude/CLAUDE.md").exists());
+    assert!(
+        !home
+            .path()
+            .join(".roster/orchestrator/home-doctrine.md")
+            .exists()
+    );
+    assert!(!home.path().join(".pi/agent/AGENTS.md").exists());
+    assert!(!home.path().join(".config/opencode/AGENTS.md").exists());
+    // opencode's own config file is not roster-managed; disable must not
+    // touch it.
+    assert!(home.path().join(".config/opencode/opencode.json").exists());
 }
 
 #[test]
@@ -623,6 +714,61 @@ fn sync_links_pi_skills_only_when_pi_is_present() {
             .symlink_metadata()
             .is_ok()
     );
+    assert_eq!(
+        fs::read_link(home.path().join(".pi/agent/AGENTS.md")).unwrap(),
+        home.path().join(".roster/orchestrator/home-doctrine.md")
+    );
+}
+
+#[test]
+fn sync_does_not_link_pi_doctrine_when_pi_is_absent() {
+    let home = tempfile::tempdir().expect("temp home");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+
+    assert!(!home.path().join(".pi/agent/AGENTS.md").exists());
+}
+
+#[test]
+fn sync_links_opencode_doctrine_only_when_opencode_is_present() {
+    let home = tempfile::tempdir().expect("temp home");
+    // `~/.config/opencode/opencode.json` is opencode's own native config
+    // file, never written by roster sync — its presence means opencode
+    // genuinely runs on this machine.
+    write_file(&home.path().join(".config/opencode/opencode.json"), "{}");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+
+    assert_eq!(
+        fs::read_link(home.path().join(".config/opencode/AGENTS.md")).unwrap(),
+        home.path().join(".roster/orchestrator/home-doctrine.md")
+    );
+    // The real opencode config file is untouched.
+    assert_eq!(
+        fs::read_to_string(home.path().join(".config/opencode/opencode.json")).unwrap(),
+        "{}"
+    );
+}
+
+#[test]
+fn sync_does_not_link_opencode_doctrine_when_opencode_is_absent() {
+    let home = tempfile::tempdir().expect("temp home");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+
+    assert!(!home.path().join(".config/opencode/AGENTS.md").exists());
 }
 
 #[test]
