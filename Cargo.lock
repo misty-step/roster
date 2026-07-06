@@ -706,6 +706,7 @@ dependencies = [
  "predicates",
  "roster-core",
  "serde_json",
+ "serde_yaml",
  "tempfile",
  "ureq",
 ]

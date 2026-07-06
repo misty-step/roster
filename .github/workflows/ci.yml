@@ -19,6 +19,12 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: Test
         run: cargo test --workspace
+      - name: Supply-chain policy (cargo-deny)
+        run: |
+          cargo install cargo-deny --locked
+          cargo deny check
+      - name: Primitives catalog gate (roster check)
+        run: cargo run --locked -p roster-cli -- check
       - name: Coverage
         # Ratchet from roster-010 baseline (2026-07-04):
         # cargo llvm-cov --workspace --fail-under-file-lines 82

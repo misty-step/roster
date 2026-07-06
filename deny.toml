@@ -1,8 +1,7 @@
-# cargo-deny supply-chain policy — harness-kit-checks check-supply-chain
-# (offline: bans, licenses, sources) and check-supply-chain-advisories
-# (networked: RustSec advisories, .github/workflows/advisories.yml — not the
-# fast local gate, since it needs network access to the advisory database).
-# Doctrine: harnesses/shared/references/quality-gates.md.
+# cargo-deny supply-chain policy: bans, licenses, sources, and RustSec
+# advisories, all run in one `cargo deny check` step in
+# `.github/workflows/ci.yml` (roster-926 phase C2). Doctrine:
+# primitives/shared/references/quality-gates.md.
 # The allow-list encodes the licenses actually present today (ratchet floor);
 # tighten it, never loosen it to pass.
 
@@ -19,6 +18,10 @@ allow = [
     "Zlib",
     "MPL-2.0",
     "CC0-1.0",
+    # webpki-roots (via ureq -> rustls) ships its CA-bundle data under this
+    # permissive data license, not code; well precedented in the rustls
+    # ecosystem's own deny.toml allow-lists.
+    "CDLA-Permissive-2.0",
 ]
 
 [bans]
