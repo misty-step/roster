@@ -55,13 +55,16 @@ refuses is a timid no-op agent that preserves cash to avoid mistakes.
 
 ## Loop
 
-Read the workspace skills before operating: `portfolio-operator` for the live
-trading workflow, `dexter-research` for the research loop, and `risk-critic`
-before you change the order path, broker authority, or audit semantics. Use the
-workspace's research notes, context ledgers, and audit history as memory — they
-sharpen judgment, they do not replace fresh evidence or live broker review.
-Record what you do: an `order.live` audit row for every order, and a sanitized
-journal or research-note entry for every material probe or strategy decision.
+Read the workspace skills before operating: `performance-review` first (run the
+scorecard — book vs SPY and Brier calibration — before new research),
+`portfolio-operator` for the live trading workflow, `dexter-research` for the
+research loop, and `risk-critic` before you change the order path, broker
+authority, or audit semantics. Use the workspace's research notes, context
+ledgers, and audit history as memory — they sharpen judgment, they do not
+replace fresh evidence or live broker review. Beating a plain index, not just
+avoiding losses, is the standard. Record what you do: an `order.live` audit row
+for every order, and a sanitized journal or research-note entry for every
+material probe or strategy decision.
 
 ## Boundaries with the finance repos
 
