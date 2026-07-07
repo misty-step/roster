@@ -20,6 +20,54 @@
   gap: var(--ae-space-5);
 }
 
+/* the marketing shell's wordmark reads uppercase; the app-facing
+   .ae-name token elsewhere in the kit stays as-authored. */
+.msk-bar .ae-name {
+  text-transform: uppercase;
+}
+
+/* the hero screen: full viewport, no scroll, a background image behind
+   the copy. Whole-viewport on every hero layout (Split, Mural, ...). */
+.msk-hero-screen {
+  position: relative;
+}
+
+.msk-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  /* locked opacity, see DESIGN.md's hero-lock table (misty-step-936) */
+  opacity: 0.35;
+  z-index: 0;
+}
+
+.msk-hero-screen > .ae-bar,
+.msk-hero-screen > .ae-stage {
+  position: relative;
+  z-index: 1;
+}
+
+/* Split: copy sits directly on the page, left-aligned, no panel. */
+.msk-hero-split {
+  max-width: 52%;
+  display: grid;
+  gap: var(--ae-space-6);
+}
+
+.msk-hero-title {
+  font-weight: var(--ae-w-black);
+  font-size: clamp(1.9rem, 1.1rem + 3vw, 3.2rem);
+  line-height: 1.08;
+  letter-spacing: 0;
+  color: var(--ae-ink);
+  max-width: 22ch;
+}
+
+.msk-hero-split .ae-button {
+  width: fit-content;
+}
+
 .msk-nav a[aria-current='page'] {
   color: var(--ae-ink);
   text-decoration-color: currentColor;
@@ -99,7 +147,28 @@
 }
 
 .msk-footer {
-  align-items: baseline;
+  align-items: center;
+}
+
+/* mistystep.io site-footer.tsx parity: mode toggle left (see header),
+   credit + github glyph right. No bare URL, no email, no copyright. */
+.msk-foot-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ae-space-3);
+}
+
+.msk-foot-credit a {
+  color: var(--ae-ink-muted);
+  text-decoration: none;
+}
+
+.msk-foot-credit a:hover {
+  color: var(--ae-ink);
+}
+
+.msk-foot-gh {
+  display: inline-flex;
 }
 
 .msk-zoom {
@@ -148,5 +217,13 @@
 
   .msk-gallery {
     grid-template-columns: 1fr;
+  }
+
+  .msk-hero-split {
+    max-width: 100%;
+  }
+
+  .msk-hero-title {
+    font-size: clamp(1.6rem, 1.2rem + 5vw, 2.4rem);
   }
 }

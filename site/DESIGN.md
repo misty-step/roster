@@ -18,9 +18,19 @@ the site-scoped location is applied consistently regardless.
   say what gets declared, composed, and dispatched — never "AI that manages
   your agents for you."
 
-## Pitch One-Liner
+## Locked Homepage
 
-`Roster declares every agent Misty Step runs — role, model policy, permissions, skills, MCPs, evidence expectations — as plain files, then composes and dispatches that declaration onto any harness at run time.`
+- Lock date: operator lock-in 2026-07-07, `misty-step-936`.
+- Layout: Split.
+- H1 tagline, exact: `Collect primitives. Compose agents. Dispatch anywhere.`
+- Hero image: `site/assets/hero.jpg`, copied from the staged
+  `roster-hero.jpg` production image. Provenance: `gpt-image-1`, Misty Step
+  fresco language, 1920px JPEG.
+- Hero image opacity: `0.35`.
+- Homepage structure: hero only, one viewport, no scroll. Header has Lucide
+  bot mark, uppercase wordmark, and `features · get started · changelog ·
+  github`. Copy sits left, vertically centered, directly on the page with a
+  `Get started` CTA.
 
 ## Lucide Mark
 
@@ -50,18 +60,17 @@ binary and its committed `agents/cerberus/` declaration — not mockups:
 
 | File                                                    | Surface                                    | State                                              | Caption                                                                                          |
 | --------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `site/assets/screenshots/01-roster-list.png`              | `roster list` terminal                        | Real inventory: the 3 agents committed today (`cerberus`, `lead`, `sweep`) | The roster, from the CLI — role, model class, reasoning tier, one line each. |
+| `site/assets/screenshots/01-roster-list.png`              | `roster list` terminal                        | Launch capture of the committed roster inventory at the time | The roster, from the CLI — role, model class, reasoning tier, one line each. |
 | `site/assets/screenshots/02-declaration-convention.png`   | `ls agents/cerberus/` + `cat role.yaml` terminal | Real committed declaration                          | The `agents/<name>/` convention: one YAML file is the whole agent — model policy, permissions, skills, evidence bar. |
 | `site/assets/screenshots/03-dynamic-composition.png`      | `roster brief cerberus --add-skill qa` terminal | Real CLI run showing an override applied at dispatch time | The composition seam: a lane brief built from the declaration, with a skill added on top — no edit to the declaration itself. |
 
 ## Footer Links
 
-- Misty Step: `https://mistystep.io`
-- GitHub: `https://github.com/misty-step/roster`
-- Weave: `https://misty-step.github.io/weave/` — Roster is a Weave-family
-  product (listed on the hub's family grid); it succeeds harness-kit as the
-  factory's agent-declaration layer and materializes onto Bitterblossom's
-  runners among other planes.
+- Footer contract: mode toggle on the left. Right side reads
+  `a Misty Step project`, with `Misty Step` linked to
+  `https://mistystep.io`, followed by the inline GitHub glyph linked to
+  `https://github.com/misty-step/roster`.
+- No bare URL text, email, copyright line, or old Weave footer link.
 
 ## Release Notes Rule
 
