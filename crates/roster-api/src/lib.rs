@@ -19,6 +19,7 @@ use roster_core::{Models, Roster, SubagentPool};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{path::PathBuf, sync::Arc};
+use tower_http::catch_panic::CatchPanicLayer;
 
 #[derive(Clone)]
 struct AppState {
@@ -36,14 +37,31 @@ pub fn router(root: PathBuf) -> Router {
     let state = AppState {
         root: Arc::new(root),
     };
-    Router::new()
+    let router = Router::new()
         .route("/", get(agents_page))
         .route("/health", get(health))
         .route("/v1/agents", get(list_agents))
         .route("/v1/agents/{agent}", get(show_agent))
         .route("/v1/agents/{agent}/brief", get(brief_agent))
-        .route("/v1/agents/{agent}/materialize", get(materialize_agent))
+        .route("/v1/agents/{agent}/materialize", get(materialize_agent));
+    // Debug-only proof route: compiled out of `--release` builds (Fly
+    // deploys build release), so it never exists in production. Lets a
+    // local `cargo run`/`cargo test` (both debug builds) force a real panic
+    // to verify `install_panic_hook()` + `CatchPanicLayer` together --
+    // report to Canary AND return 500 instead of killing the worker task.
+    #[cfg(debug_assertions)]
+    let router = router.route("/debug/panic", get(debug_panic));
+    router
+        // Catches a panicking handler so it reports (the panic hook still
+        // fires on unwind regardless of who catches it) and returns 500
+        // instead of silently killing the worker task.
+        .layer(CatchPanicLayer::new())
         .with_state(state)
+}
+
+#[cfg(debug_assertions)]
+async fn debug_panic() -> StatusCode {
+    panic!("roster-api debug panic route fired");
 }
 
 /// The persistent roster UI (roster-928): reads the live checkout fresh on
@@ -159,7 +177,19 @@ fn root_str(state: &AppState) -> String {
 fn dispatch(name: &str, args: Value) -> (StatusCode, Json<Value>) {
     match roster_mcp::call_tool(name, &args) {
         Ok(value) => (StatusCode::OK, Json(value)),
-        Err(message) => (status_for(&message), Json(json!({ "error": message }))),
+        Err(message) => {
+            let status = status_for(&message);
+            if status.is_server_error() {
+                // `tracing::error!` here (rather than a direct
+                // `report_error` call) is captured automatically by
+                // `CanaryLayer` registered in `main` -- this is the Axum 5xx
+                // mapping the comprehensive-coverage pattern asks every
+                // standing service to wire. 4xx client mistakes (unknown
+                // agent, missing param) are not incidents and stay unreported.
+                tracing::error!(tool = name, %status, "roster-api tool call failed: {message}");
+            }
+            (status, Json(json!({ "error": message })))
+        }
     }
 }
 
@@ -204,6 +234,17 @@ mod tests {
         let (status, body) = call(router(workspace_root()), "/health").await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body["status"], "ok");
+    }
+
+    /// A panicking handler must not kill the whole service: `CatchPanicLayer`
+    /// converts the unwind into a 500 response. This only proves the HTTP
+    /// contract in-process; whether the panic *hook* also reported
+    /// `roster-api.panic` to Canary is proven separately at the hub (the
+    /// hook only installs from `main`, not from this library-level test).
+    #[tokio::test]
+    async fn debug_panic_route_returns_500_via_catch_panic_layer() {
+        let (status, _body) = call(router(workspace_root()), "/debug/panic").await;
+        assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
     }
 
     #[tokio::test]

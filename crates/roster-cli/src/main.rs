@@ -1,4 +1,3 @@
-mod canary;
 mod check;
 mod sync;
 
@@ -66,15 +65,26 @@ enum Harness {
 }
 
 fn main() -> Result<()> {
+    roster_canary::init("roster", "roster");
+    roster_canary::init_tracing();
+    roster_canary::install_panic_hook();
+
     let cli = Cli::parse();
-    canary::check_in();
+    roster_canary::check_in();
 
     let result = run(cli);
-    canary::flush();
     if let Err(error) = &result {
-        canary::report_error("roster.run.failed", &format!("{error:?}"));
-        canary::flush();
+        roster_canary::report_error("roster.run.failed", &format!("{error:?}"));
     }
+    // ONE unconditional flush before `main` returns, on both the success and
+    // error paths. `roster` is a short-lived CLI: `report_error`/`check_in`
+    // spawn the send off the hot path, so without a flush the process exits
+    // (and, on `Err`, prints the error and exits 1) before the send reaches
+    // the network -- the exact short-lived-CLI race where a handled error is
+    // reported in code but never lands at the hub. `flush` joins every
+    // in-flight send (check-in + error), each bounded by the reporter's
+    // per-attempt timeout, so the send completes before exit.
+    roster_canary::flush();
     result
 }
 
@@ -142,6 +152,15 @@ fn run(cli: Cli) -> Result<()> {
         } => sync::run(&cli.root, home, disable, catalog, all_agents)?,
         Command::Check => {
             if !check::run(&cli.root)? {
+                // `process::exit` never returns to `main`'s post-`run` report
+                // path, so this arm reports+flushes itself before exiting --
+                // otherwise a real `roster check` failure would go silently
+                // unreported to Canary.
+                roster_canary::report_error(
+                    "roster.check.failed",
+                    "roster check reported violations",
+                );
+                roster_canary::flush();
                 std::process::exit(1);
             }
         }

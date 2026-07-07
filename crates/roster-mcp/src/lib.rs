@@ -80,7 +80,15 @@ pub fn handle_json_rpc(request: &Value) -> Option<Value> {
             let name = params["name"].as_str().unwrap_or("");
             Ok(match call_tool(name, &params["arguments"]) {
                 Ok(value) => value,
-                Err(message) => tool_error(message),
+                Err(message) => {
+                    // `tracing::error!` here (rather than a direct
+                    // `report_error` call) is captured automatically by
+                    // `CanaryLayer` registered in `main` -- this is the MCP
+                    // tool error arm the comprehensive-coverage pattern asks
+                    // every standing service to wire.
+                    tracing::error!(tool = name, "roster-mcp tool call failed: {message}");
+                    tool_error(message)
+                }
             })
         }
         "ping" => Ok(json!({})),
