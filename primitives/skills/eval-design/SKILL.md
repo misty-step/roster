@@ -1,15 +1,12 @@
 ---
 name: eval-design
 description: |
-  Design and run a genuinely good LLM/agentic eval — one that earns the right
-  to change a decision. A task + a model/agent under test producing FRESH
-  output + a grader, with an interval on every rate, calibration on every
-  model-judge, and a noise-floor check on every comparison. Separates real
-  capability evals from instrumentation (linters, CI gates, historical KPIs).
-  Use when: "design an eval", "write an eval", "is this a good eval", "measure
-  whether model/agent/prompt X works", "build an eval corpus", "LLM-as-judge",
-  "calibrate a judge", "compare two models/harnesses", "eval methodology",
-  "our evals are weak". Trigger: /eval-design, /design-eval.
+  Design an LLM/agentic eval that can change a decision — a task + a
+  model/agent under test producing fresh output + a grader — and separate real
+  capability evals from instrumentation (linters, CI gates, KPIs). Use when
+  designing or critiquing an eval, building an eval corpus, designing or
+  calibrating an LLM-as-judge, or comparing models/harnesses on a measured
+  capability. Trigger: /eval-design.
 argument-hint: "[capability|decision] [--corpus|--judge|--compare]"
 ---
 
@@ -224,10 +221,9 @@ detect the effect you care about, or honestly reports it can't.
 
 ## Sources
 
-Anthropic, "Demystifying evals for AI agents" (2026-01-09); Anthropic, "Define
-success criteria and build evaluations" (docs, current); Hamel Husain, "Your AI
-Product Needs Evals" (2024-03-29); Evan Miller, "Adding Error Bars to Evals"
-(arXiv:2411.00640, 2024-11); Zheng et al., MT-Bench (arXiv:2306.05685, 2023-06);
-Liu et al., G-Eval (arXiv:2303.16634, 2023); UK AISI Inspect
-(inspect.aisi.org.uk); promptfoo model-graded docs (promptfoo.dev); Braintrust,
-"What is an LLM-as-a-judge?" (braintrust.dev); OpenAI Evals (github.com/openai/evals).
+The annotated primary-source canon lives in
+[`references/sources.md`](references/sources.md) — load it when you need to
+justify a methodology choice, go deeper than this distillation, or hand a lane
+the literature (Anthropic agentic-evals 2026-01, Hamel Husain, Miller's
+error-bars paper, the MT-Bench/G-Eval judge-bias catalog, Inspect as reference
+architecture).
