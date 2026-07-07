@@ -15,6 +15,10 @@ cargo install --locked --path crates/roster-hooks   # `roster-hooks` (Claude hoo
 roster sync --catalog full --all-agents             # the machine is now roster-managed
 ```
 
+# Third-party harness integrations roster does not own (run once, idempotent):
+herdr integration install claude   # SessionStart hook counterspell needs to bind panes
+```
+
 `roster sync` installs everything declared here: the full skill catalog
 (symlinked into every detected harness), every agent identity
 (`~/.claude/agents/`, `~/.codex/agents/`, `~/.pi/agents/`), and the composed

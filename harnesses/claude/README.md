@@ -23,3 +23,20 @@ write a sanitized receipt. Do not encode workflow semantics in the command.
 - Ask Claude for concrete findings or decisions, not a general chat.
 - Treat the output as evidence; the lead owns synthesis and verification.
 - Record failed, rejected, or partially accepted attempts like successful ones.
+
+## Merge additively — never wholesale-replace `~/.claude/settings.json`
+
+`settings.json` here declares ONLY roster's own hooks (roster-hooks) and env.
+The operator's live `~/.claude/settings.json` also carries third-party
+integrations roster does not own — most importantly **herdr's SessionStart
+hook** (`bash ~/.claude/hooks/herdr-agent-state.sh session`, written by
+`herdr integration install claude`), which counterspell depends on to bind a
+pane to its agent session. A wholesale copy of this template DROPS that hook
+and silently disables counterspell's drift remediation (it hard-gates on
+ambiguous panes when no pane reports a session id — root cause of the
+2026-07-07 non-activation incident).
+
+Install rule: MERGE roster's `hooks`/`env` into the existing file, preserving
+any SessionStart hook roster did not author. After any settings install or
+machine bootstrap, run `herdr integration install claude` to (re)assert the
+herdr wiring — it is idempotent and non-destructive.
