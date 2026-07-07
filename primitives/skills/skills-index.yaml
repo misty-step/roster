@@ -52,6 +52,8 @@ skills:
     path: primitives/skills/roster/SKILL.md
   - name: skill-eval
     path: primitives/skills/skill-eval/SKILL.md
+  - name: eval-design
+    path: primitives/skills/eval-design/SKILL.md
   - name: todoist
     path: primitives/skills/todoist/SKILL.md
   - name: vision

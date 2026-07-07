@@ -36,6 +36,9 @@ skills:
   - name: research
     path: /Users/phaedrus/Development/roster/primitives/skills/research/SKILL.md
     reason: outside evidence at decision points
+  - name: eval-design
+    path: /Users/phaedrus/Development/roster/primitives/skills/eval-design/SKILL.md
+    reason: design a real capability eval, not instrumentation, before measuring model/agent/prompt quality
   - name: powder
     path: /Users/phaedrus/Development/roster/primitives/skills/.external/misty-powder/SKILL.md
     reason: durable card ledger, claims, and status discipline
