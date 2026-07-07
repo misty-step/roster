@@ -148,7 +148,11 @@ fn loads_seed_agents_from_repo() {
     assert_eq!(simons.role.permissions.mutations, "with-explicit-scope");
     assert_eq!(simons.role.mcps, ["robinhood-trading"]);
     assert_eq!(simons.role.mcps_contextual, ["conviction"]);
-    assert!(simons.instructions.contains("Standing operator authorization"));
+    assert!(
+        simons
+            .instructions
+            .contains("never ask the operator for permission")
+    );
     assert!(simons.instructions.contains("No money movement"));
 
     let sweep = roster.agent("sweep").expect("sweep exists");
