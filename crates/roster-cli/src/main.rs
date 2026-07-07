@@ -1,3 +1,4 @@
+mod canary;
 mod check;
 mod sync;
 
@@ -66,7 +67,18 @@ enum Harness {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    canary::check_in();
 
+    let result = run(cli);
+    canary::flush();
+    if let Err(error) = &result {
+        canary::report_error("roster.run.failed", &format!("{error:?}"));
+        canary::flush();
+    }
+    result
+}
+
+fn run(cli: Cli) -> Result<()> {
     match cli.command {
         Command::List => {
             let roster = Roster::load(&cli.root)?;
