@@ -56,12 +56,12 @@
 }
 
 .msk-hero-title {
-  font-weight: var(--ae-w-black);
-  font-size: clamp(1.9rem, 1.1rem + 3vw, 3.2rem);
-  line-height: 1.08;
-  letter-spacing: 0;
+  font-weight: var(--ae-w-bold);
+  font-size: clamp(1.7rem, 2.8vw, 2.6rem);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
   color: var(--ae-ink);
-  max-width: 22ch;
+  max-width: 24ch;
 }
 
 .msk-hero-split .ae-button {
