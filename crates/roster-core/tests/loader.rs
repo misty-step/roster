@@ -37,6 +37,7 @@ fn loads_seed_agents_from_repo() {
             "designer",
             "incident-hound",
             "orchestrator",
+            "simons",
             "sweep",
             "verifier"
         ]
@@ -138,6 +139,17 @@ fn loads_seed_agents_from_repo() {
     assert!(!ai_scout.role.subagent_rights.may_dispatch);
     assert!(ai_scout.role.subagent_rights.may_spawn_subagents);
     assert!(ai_scout.instructions.contains("probe the cheap tier"));
+
+    let simons = roster.agent("simons").expect("simons exists");
+    assert_eq!(simons.role.model_policy.preferred.model, "claude-fable-5");
+    assert_eq!(simons.role.model_policy.preferred.reasoning, "high");
+    assert_eq!(simons.role.model_policy.fallbacks[0].model, "gpt-5.5");
+    assert_eq!(simons.role.permissions.filesystem, "workspace-write");
+    assert_eq!(simons.role.permissions.mutations, "with-explicit-scope");
+    assert_eq!(simons.role.mcps, ["robinhood-trading"]);
+    assert_eq!(simons.role.mcps_contextual, ["conviction"]);
+    assert!(simons.instructions.contains("Standing operator authorization"));
+    assert!(simons.instructions.contains("No money movement"));
 
     let sweep = roster.agent("sweep").expect("sweep exists");
     assert!(sweep.role.subagent_rights.may_spawn_subagents);
