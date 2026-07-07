@@ -4,60 +4,48 @@ Roster is the agent declaration repository for Misty Step Factory. It keeps
 agent identities, prompts, model policy, primitive references, and materializers
 in one plain-file tree.
 
-## Install
+## Install (one machine, push-button to verified-live)
 
 ```sh
-cargo install --locked --path crates/roster-cli   # installs `roster` to ~/.cargo/bin
-cargo install --locked --path crates/roster-mcp   # installs `roster-mcp` to ~/.cargo/bin
+git clone https://github.com/misty-step/roster && cd roster
+cargo install --locked --path crates/roster-cli     # `roster`
+cargo install --locked --path crates/roster-mcp     # `roster-mcp` (MCP face)
+cargo install --locked --path crates/roster-hooks   # `roster-hooks` (Claude hooks)
+roster sync --catalog full --all-agents             # the machine is now roster-managed
 ```
 
-Both binaries read the roster checkout via `--root <path>` (CLI, per
-invocation) or the `ROSTER_ROOT` env var (MCP server); either defaults to the
-current directory otherwise. See `SKILL.md` for the MCP tool contract and the
-skill-facing operating rules.
+`roster sync` installs everything declared here: the full skill catalog
+(symlinked into every detected harness), every agent identity
+(`~/.claude/agents/`, `~/.codex/agents/`, `~/.pi/agents/`), and the composed
+**home doctrine** — shared operating doctrine + the orchestrator identity +
+its skill/MCP bindings — as the global instructions file for Claude, Codex,
+pi/omp, and OpenCode. Result: any agent you launch in any harness boots as
+the declared orchestrator and dispatches other roster agents ad hoc.
+Hook wiring for Claude lives in `harnesses/claude/settings.json` (merge into
+`~/.claude/settings.json`). Everything sync writes is marker-tracked and
+reversible: `roster sync --disable`.
 
-P0 provides:
-
-- `agents/<name>/role.yaml` and `instructions.md` declarations.
-- `roster list`, `roster show <agent>`, `roster materialize <agent> --harness <target>`, and `roster brief <agent>`.
-- Reference-only primitive indexes for skills and MCP servers.
+Verified-live check:
 
 ```sh
-roster --root . list
-roster --root . show cerberus
-roster --root . materialize cerberus --harness codex
-roster --root . brief cerberus
+roster check                      # catalog gate: frontmatter, paths, index, markers
+roster list                       # all agents parse
+claude -p "state your session identity per your loaded instructions"
+# → "Session Identity: orchestrator (roster)"
 ```
 
-(Working from inside the checkout, `--root .` is the default and can be
-omitted. During development against uncommitted source, use
-`cargo run -p roster-cli --` in place of `roster`.)
+Both binaries read the roster checkout via `--root <path>` (CLI) or the
+`ROSTER_ROOT` env var (MCP server); default is the current directory. See
+`SKILL.md` for the MCP tool contract and agent-facing operating rules.
 
-P2 adds an opt-in workstation sync for the default orchestrator agent:
+Day-to-day verbs:
 
 ```sh
-roster --root . sync
+roster list                                  # who exists
+roster show cerberus                         # one declaration, prompt-native
+roster materialize cerberus --harness codex  # per-harness install/brief form
+roster brief cerberus --card <powder-id>     # dispatch brief with live card folded in
 ```
-
-`roster sync` installs roster-managed orchestrator artifacts under
-`.roster/orchestrator/` and harness-native agent files at
-`.codex/agents/orchestrator.md`, `.claude/agents/orchestrator.md`, and
-`.pi/agents/orchestrator.md` beneath the target home directory. The curated
-primitive subset is reference-only: skill bodies stay in harness-kit until the
-P3 primitives migration. Existing harness-kit bootstrap globals such as
-`.codex/AGENTS.md`, `.claude/CLAUDE.md`, and `.pi/settings.json` are not
-overwritten during the parallel run.
-
-Rollback is manifest-driven:
-
-```sh
-roster --root . sync --disable
-```
-
-For tests or staged installs, pass `--home <path>` to either command. Disable
-removes only files recorded in `.roster/orchestrator/manifest.json`, and
-harness-agent files outside `.roster/orchestrator/` are removed only when they
-still carry the roster sync marker.
 
 ## `role.yaml` field reference
 

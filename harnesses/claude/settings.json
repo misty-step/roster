@@ -55,7 +55,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "harness-kit-checks claude-hook permission-auto-approve",
+            "command": "roster-hooks claude-hook permission-auto-approve",
             "timeout": 5
           }
         ]
@@ -65,12 +65,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "harness-kit-checks claude-hook destructive-command-guard",
+            "command": "roster-hooks claude-hook destructive-command-guard",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "harness-kit-checks claude-hook github-cli-guard",
+            "command": "roster-hooks claude-hook secrets-read-guard",
             "timeout": 5
           }
         ]
@@ -82,7 +82,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "harness-kit-checks claude-hook time-context",
+            "command": "roster-hooks claude-hook time-context",
             "timeout": 5
           }
         ]
@@ -94,7 +94,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "harness-kit-checks claude-hook skill-invocation-tracker",
+            "command": "roster-hooks claude-hook skill-invocation-tracker",
             "timeout": 5
           }
         ]

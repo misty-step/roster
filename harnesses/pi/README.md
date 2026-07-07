@@ -12,7 +12,7 @@ roster:
 pi -p --provider openrouter --model moonshotai/kimi-k2.7-code --thinking xhigh --tools read,bash,edit,write,grep,find,ls "Role: investigator. Objective: inspect this oracle. Output: risks and proof."
 ```
 
-The command stays a thin launch surface. `harness-kit-checks dispatch-agent`
+The command stays a thin launch surface. `roster brief` / `roster materialize`
 appends the commission, applies the timeout, stores transcript evidence, and
 records the receipt.
 
@@ -31,7 +31,7 @@ open-model failure mode:
 Invoke variants through the same roster provider:
 
 ```sh
-cargo run --locked -p harness-kit-checks -- dispatch-agent --provider-target pi --model-override long_context --objective "long-context review" --input-ref "path/or/ticket" --prompt-file /tmp/prompt.md
+roster brief <agent> --card <powder-id> > /tmp/brief.md   # then: pi with the brief as the opening prompt
 ```
 
 For direct one-off use, keep the same Pi shape and swap only `--model`.
@@ -42,7 +42,7 @@ For direct one-off use, keep the same Pi shape and swap only `--model`.
   of assumptions.
 - Give scoped paths, expected output, and explicit boundaries because open-model
   lanes can drift when the prompt is loose.
-- Keep provider/model defaults in `.harness-kit/agents.yaml`; do not bake them
+- Keep provider/model defaults in `primitives/providers.yaml`; do not bake them
   into workflow skills.
 - Pi settings are symlinked by bootstrap, so a fresh `bash bootstrap.sh` exposes
   the current `harnesses/pi/settings.json` default.
