@@ -58,6 +58,9 @@ fn check_fails_on_broken_frontmatter_and_dead_reference() {
 
     Command::cargo_bin("roster")
         .expect("roster binary")
+        .env_remove("CANARY_ENDPOINT")
+        .env_remove("CANARY_API_KEY")
+        .env_remove("CANARY_INGEST_KEY")
         .args(["--root", root.to_str().expect("utf8 path"), "check"])
         .assert()
         .failure()
@@ -70,6 +73,9 @@ fn check_passes_on_the_real_repo() {
     Command::cargo_bin("roster")
         .expect("roster binary")
         .current_dir(workspace_root())
+        .env_remove("CANARY_ENDPOINT")
+        .env_remove("CANARY_API_KEY")
+        .env_remove("CANARY_INGEST_KEY")
         .arg("check")
         .assert()
         .success();

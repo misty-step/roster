@@ -213,11 +213,24 @@ pub fn init_tracing() {
         .try_init();
 }
 
+/// Tracing targets whose `ERROR`-level events must never auto-forward,
+/// because something else on the same code path already reports them.
+///
+/// `tower_http::catch_panic` is `tower_http`'s own `tracing::error!` inside
+/// `CatchPanicLayer` -- it fires for the *same* panic that
+/// [`install_panic_hook`]'s panic hook already reports as `<service>.panic`
+/// (a panic hook always runs on unwind, regardless of who catches it). Left
+/// unfiltered, [`CanaryLayer`] would auto-forward it too, doubling every
+/// caught-panic report. Deny only this exact target -- other `tower_http`
+/// targets (request tracing, etc.) still forward normally.
+const DENIED_TARGETS: &[&str] = &["tower_http::catch_panic"];
+
 /// A `tracing_subscriber` [`Layer`] that forwards every `ERROR`-level event
 /// to [`report_error`]. Register it once via [`init_tracing`] (or directly)
 /// and "app logging" becomes error capture: any `tracing::error!(...)`
 /// anywhere in the app or its libraries reaches Canary with zero per-site
-/// wiring.
+/// wiring. [`DENIED_TARGETS`] excludes the small set of targets that would
+/// otherwise duplicate a report made elsewhere on the same path.
 pub struct CanaryLayer;
 
 impl<S: Subscriber> Layer<S> for CanaryLayer {
@@ -225,9 +238,13 @@ impl<S: Subscriber> Layer<S> for CanaryLayer {
         if config().is_none() || *event.metadata().level() != Level::ERROR {
             return;
         }
+        let target = event.metadata().target();
+        if DENIED_TARGETS.contains(&target) {
+            return;
+        }
         let mut msg = String::new();
         event.record(&mut Visitor(&mut msg));
-        let class = format!("{}.{}", service(), event.metadata().target());
+        let class = format!("{}.{}", service(), target);
         report_error(&class, &redact(&msg));
     }
 }
@@ -557,6 +574,72 @@ mod tests {
             "message was: {}",
             body["message"]
         );
+    }
+
+    #[test]
+    fn canary_layer_denies_tower_http_catch_panic_target_only() {
+        use tracing_subscriber::layer::SubscriberExt;
+
+        let _guard = lock_env();
+        clear_canary_env();
+
+        // `tower_http::catch_panic` must never auto-forward, even though
+        // CanaryLayer is otherwise wired to forward every ERROR event: the
+        // panic hook already reports the same panic as `<service>.panic`,
+        // and double-forwarding would double every caught-panic report.
+        // Spawn a one-shot accept watcher rather than serving a real
+        // response -- if the denylist regresses and a connection actually
+        // arrives, that alone proves the bug; nothing needs to read the
+        // request body.
+        let denied_listener =
+            TcpListener::bind("127.0.0.1:0").expect("bind denied-target listener");
+        let denied_endpoint = format!(
+            "http://{}",
+            denied_listener.local_addr().expect("denied listener addr")
+        );
+        let (saw_connection_tx, saw_connection_rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            if denied_listener.accept().is_ok() {
+                let _ = saw_connection_tx.send(());
+            }
+        });
+        // SAFETY: serialized by ENV_GUARD.
+        unsafe {
+            std::env::set_var("CANARY_ENDPOINT", &denied_endpoint);
+            std::env::set_var("CANARY_API_KEY", "test-key");
+        }
+        let subscriber = tracing_subscriber::registry().with(CanaryLayer);
+        tracing::subscriber::with_default(subscriber, || {
+            tracing::error!(target: "tower_http::catch_panic", "Service panicked: kaboom");
+        });
+        flush();
+        assert!(
+            saw_connection_rx
+                .recv_timeout(Duration::from_millis(500))
+                .is_err(),
+            "tower_http::catch_panic must never auto-forward -- the panic hook already reports it"
+        );
+
+        // A *different* tower_http target must still forward normally,
+        // proving the deny list is scoped to catch_panic only.
+        let (endpoint, received) = serve_once();
+        // SAFETY: serialized by ENV_GUARD.
+        unsafe {
+            std::env::set_var("CANARY_ENDPOINT", &endpoint);
+        }
+        let subscriber = tracing_subscriber::registry().with(CanaryLayer);
+        tracing::subscriber::with_default(subscriber, || {
+            tracing::error!(target: "tower_http::trace", "unrelated tower_http error");
+        });
+        flush();
+        let request = received
+            .recv_timeout(Duration::from_secs(5))
+            .expect("non-denied tower_http target must still forward");
+        clear_canary_env();
+
+        assert!(request.starts_with("POST /api/v1/errors"));
+        let body = body_of(&request);
+        assert_eq!(body["error_class"], "roster.tower_http::trace");
     }
 
     #[test]
