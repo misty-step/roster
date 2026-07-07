@@ -171,7 +171,15 @@ substrate). Any command that calls `op` in such a context must carry that
 bootstrap line first (root cause of the 2026-07-04 authorize-modal storm: a
 codex MCP bootstrap ran bare `op read` on every codex launch); falling back to
 the interactive path, or re-fetching the token through it on each call, is the
-anti-pattern.
+anti-pattern. Since 2026-07-07, `~/.secrets` holds `op://` REFERENCES,
+not literal values (harness-kit-914): `source ~/.secrets` gives you a
+reference string — resolve at point of use (`op read "$VAR"`), never pass it
+as a credential. The tell that you forgot: an auth header or key that starts
+with `op://`, and 401s from a service that worked earlier. MCP server
+registrations must resolve refs in their bootstrap command (servers cache
+env at session start). When `op` itself is unavailable, the machine keychain
+is the sanctioned fallback (e.g. `security find-generic-password -a "$USER"
+-s powder-api-key -w`); reconcile back to 1Password when it heals.
 
 ### Think in HTML for plans
 For non-trivial execution plans and context packets, author the plan directly
