@@ -10,6 +10,7 @@ in one plain-file tree.
 git clone https://github.com/misty-step/roster && cd roster
 cargo install --locked --path crates/roster-cli     # `roster`
 cargo install --locked --path crates/roster-mcp     # `roster-mcp` (MCP face)
+cargo install --locked --path crates/roster-api     # `roster-api` (HTTP face)
 cargo install --locked --path crates/roster-hooks   # `roster-hooks` (Claude hooks)
 roster sync --catalog full --all-agents             # the machine is now roster-managed
 ```
@@ -279,3 +280,73 @@ critical design consideration: one declaration (`agents/sweep/role.yaml` +
 skill paths, required/contextual MCP servers, permissions, subagent rights,
 evidence contract, and — when `--card` is passed — the live Powder card
 context, ready for any harness to consume as prompt-native text.
+
+## HTTP API face
+
+`roster-api` serves the same four core verbs as the CLI and MCP server
+(`list`/`show`/`brief`/`materialize`) over HTTP, so any service that wants
+roster's registry without shelling out or speaking MCP's stdio JSON-RPC can
+reach it as plain JSON. It is a thin transport: every route dispatches
+through `roster_mcp::call_tool`, the same dispatcher the MCP server exercises
+— "same semantics as the CLI" holds because it's the same code path, not a
+second implementation kept in sync by hand.
+
+```sh
+roster-api --root . --bind 127.0.0.1 --port 4101
+```
+
+`--root` is fixed once at startup, unlike the CLI's `--root` flag or the MCP
+server's `ROSTER_ROOT` env var. Those are trusted local invocations; an HTTP
+server may be reached by callers who should not get to pick which directory
+on the host gets read, so root is a server-configuration concern here, not a
+per-request one. `--bind` defaults to loopback for the same reason: nothing
+else scopes access once a port is reachable off-host.
+
+Real transcript, run against a live `roster-api --root . --port 4101`:
+
+```
+$ curl -s http://127.0.0.1:4101/health
+{"status":"ok"}
+
+$ curl -s http://127.0.0.1:4101/v1/agents/orchestrator | python3 -c \
+    "import json,sys; print(json.load(sys.stdin)['content'][0]['text'][:120])"
+# orchestrator
+
+Master orchestrator — frames factory work, grooms and shapes the board, composes and dispatch
+
+$ curl -s "http://127.0.0.1:4101/v1/agents/sweep/materialize?harness=codex" | python3 -c \
+    "import json,sys; print(json.load(sys.stdin)['content'][0]['text'][:80])"
+# Roster Brief: sweep
+
+## Role
+
+Cheap read-only research and repository sweep lane f
+
+$ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:4101/v1/agents/nope-nobody
+404
+```
+
+Routes:
+
+| Method | Path                                | Verb           |
+|--------|--------------------------------------|----------------|
+| GET    | `/health`                            | liveness check |
+| GET    | `/v1/agents`                         | `list`         |
+| GET    | `/v1/agents/{agent}`                 | `show`         |
+| GET    | `/v1/agents/{agent}/brief`           | `brief`; optional `?add_skill=a,b&add_mcp=x,y` (comma-separated) |
+| GET    | `/v1/agents/{agent}/materialize`     | `materialize`; required `?harness=claude\|codex\|bb` |
+
+Every response body is the same JSON shape MCP tool calls return
+(`content`/`structuredContent`/`isError`); HTTP status maps validation
+failures to `404` (unknown agent/tool) or `400` (missing/invalid field), and
+anything else to `500`. `brief`'s CLI-only `--card` (live Powder context) has
+no HTTP or MCP equivalent yet — this face matches the MCP server's existing
+scope, not the CLI's full surface, so there's exactly one non-CLI-parity gap
+today and it's the same one MCP already has.
+
+**UI face waiver:** roster has no dedicated web UI and none is planned for
+this gap. The registry is file-native (`agents/<name>/role.yaml` +
+`instructions.md`, readable with any editor or `roster show`) and now has a
+JSON-serving API for anything that wants a UI; building a bespoke roster UI
+would duplicate that surface for no user this repo has today. Revisit if a
+concrete consumer needs one.

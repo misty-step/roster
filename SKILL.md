@@ -56,6 +56,25 @@ invocation, which takes precedence.
 - `materialize`: render one roster agent declaration for a specific harness —
   `claude`, `codex`, or `bb` (`agent`, `harness`, optional `root`).
 
+## HTTP API
+
+`roster-api` serves the same four verbs over HTTP by dispatching through
+`roster_mcp::call_tool` — one implementation, two transports. `root` is
+fixed at server startup (`roster-api --root <path>`), never per-request, and
+`--bind` defaults to loopback (`127.0.0.1`).
+
+```sh
+roster-api --root . --port 4101
+curl -s http://127.0.0.1:4101/v1/agents
+curl -s http://127.0.0.1:4101/v1/agents/cerberus
+curl -s "http://127.0.0.1:4101/v1/agents/sweep/brief?add_skill=extra-skill"
+curl -s "http://127.0.0.1:4101/v1/agents/cerberus/materialize?harness=codex"
+```
+
+Same scope as the MCP server (no `--card` equivalent for `brief`). See
+`README.md`'s "HTTP API face" section for the full route table, a live
+transcript, and the recorded UI-face waiver.
+
 ## CLI
 
 ```sh
