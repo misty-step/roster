@@ -25,11 +25,13 @@ fn loads_seed_agents_from_repo() {
     // blocks (roster-911 landed exactly where the roster-908 comment
     // predicted: `builder` before `cerberus`, `verifier` after `sweep`;
     // roster-919 landed `designer` between `cerberus` and `oracle`, and
-    // `incident-hound` between `designer` and `oracle`).
+    // `incident-hound` between `designer` and `oracle`; roster-925 landed
+    // `boss` between `ai-scout` and `builder`).
     assert_eq!(
         names,
         [
             "ai-scout",
+            "boss",
             "builder",
             "cerberus",
             "designer",
@@ -39,6 +41,20 @@ fn loads_seed_agents_from_repo() {
             "verifier"
         ]
     );
+
+    let boss = roster.agent("boss").expect("boss exists");
+    assert_eq!(boss.role.model_policy.preferred.model, "claude-fable-5");
+    assert_eq!(boss.role.model_policy.preferred.reasoning, "high");
+    assert_eq!(boss.role.model_policy.fallbacks[0].model, "gpt-5.5");
+    assert_eq!(boss.role.permissions.filesystem, "read-only");
+    assert_eq!(
+        boss.role.permissions.mutations,
+        "card-comments-and-answers-only"
+    );
+    assert_eq!(boss.role.mcps, ["powder"]);
+    assert!(boss.instructions.contains("Rule directly"));
+    assert!(boss.instructions.contains("Escalate to the operator"));
+    assert!(boss.instructions.contains("zero-context packet"));
 
     let builder = roster.agent("builder").expect("builder exists");
     assert_eq!(builder.role.model_policy.preferred.model, "gpt-5.5");
