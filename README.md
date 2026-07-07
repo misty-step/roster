@@ -344,9 +344,35 @@ no HTTP or MCP equivalent yet — this face matches the MCP server's existing
 scope, not the CLI's full surface, so there's exactly one non-CLI-parity gap
 today and it's the same one MCP already has.
 
-**UI face waiver:** roster has no dedicated web UI and none is planned for
-this gap. The registry is file-native (`agents/<name>/role.yaml` +
-`instructions.md`, readable with any editor or `roster show`) and now has a
-JSON-serving API for anything that wants a UI; building a bespoke roster UI
-would duplicate that surface for no user this repo has today. Revisit if a
-concrete consumer needs one.
+**UI face:** `GET /` (below) supersedes the "no UI planned" waiver this
+section originally recorded (roster-941) — the operator asked for a
+persistent, live-reading UI (roster-928), so it now exists.
+
+## Persistent roster UI
+
+`GET /` on `roster-api` serves a full HTML page — every declared agent's
+identity, model policy, permissions, skills, and the default subagent pool —
+read straight off the live checkout on every request. No regenerate step:
+edit a `role.yaml`, reload the page, see the change. This supersedes
+`scripts/generate-agents-page.py`'s regenerate-then-publish workflow (the
+"koan-minimal v1"); the page content and house styling are a faithful port
+of that same already-shipped design (`primitives/skills/artifact/scripts/
+artifact_create.py`'s house shelf template), so this was a serving-mechanism
+change, not a redesign.
+
+```sh
+roster-api --root . --port 4101
+open http://127.0.0.1:4101/
+```
+
+Read-only v1: identity changes still go through `role.yaml` +
+`instructions.md` in git, never this page (footer says so on every load).
+Verified live at desktop and 390px mobile widths with Playwright: zero
+console/page errors, no horizontal overflow at 390px, and the per-agent
+`<details>` drill-down works with touch/click at both widths.
+
+Reachable from the Sanctum portal as a supervised box app once vendored into
+`misty-step/bastion` per that repo's established pattern (see `bastion.toml`
+and the `vendor/{cairn,crucible,powder}` precedent) and given a fleet
+directory (`registry.toml`) entry — see `misty-step/bastion`'s own docs for
+that half of the deploy.

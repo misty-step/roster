@@ -105,6 +105,13 @@ impl Drop for Server {
 fn server_binds_serves_health_list_show_brief_and_materialize() {
     let server = Server::spawn();
 
+    let page = server.get("/");
+    assert_eq!(page.status(), 200);
+    let page = page.into_string().expect("agents page html");
+    assert!(page.contains("<meta name=\"viewport\""));
+    assert!(page.contains("orchestrator"));
+    assert!(page.contains("agents declared"));
+
     let health: Value = server.get("/health").into_json().expect("health json");
     assert_eq!(health["status"], "ok");
 

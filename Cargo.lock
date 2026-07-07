@@ -879,6 +879,7 @@ dependencies = [
  "anyhow",
  "axum",
  "clap",
+ "roster-core",
  "roster-mcp",
  "serde",
  "serde_json",

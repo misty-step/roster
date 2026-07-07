@@ -6,12 +6,16 @@
 //! CLI" holds by construction rather than by a second implementation to
 //! keep in sync.
 
+mod ui;
+
 use axum::{
     Json, Router,
     extract::{Path as AxumPath, Query, State},
     http::StatusCode,
+    response::Html,
     routing::get,
 };
+use roster_core::{Models, Roster, SubagentPool};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{path::PathBuf, sync::Arc};
@@ -33,12 +37,42 @@ pub fn router(root: PathBuf) -> Router {
         root: Arc::new(root),
     };
     Router::new()
+        .route("/", get(agents_page))
         .route("/health", get(health))
         .route("/v1/agents", get(list_agents))
         .route("/v1/agents/{agent}", get(show_agent))
         .route("/v1/agents/{agent}/brief", get(brief_agent))
         .route("/v1/agents/{agent}/materialize", get(materialize_agent))
         .with_state(state)
+}
+
+/// The persistent roster UI (roster-928): reads the live checkout fresh on
+/// every request -- `Roster::load`/`Models::load`/`SubagentPool::load` are
+/// no-cache, so a `role.yaml` edit on disk shows up on the next reload with
+/// no regenerate/republish step.
+async fn agents_page(State(state): State<AppState>) -> (StatusCode, Html<String>) {
+    let root = state.root.as_path();
+    let roster = match Roster::load(root) {
+        Ok(roster) => roster,
+        Err(error) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html(format!("<pre>failed to load roster: {error}</pre>")),
+            );
+        }
+    };
+    let models = Models::load(root).unwrap_or(Models {
+        schema_version: String::new(),
+        models: Default::default(),
+    });
+    let pool = SubagentPool::load(root).unwrap_or(SubagentPool {
+        schema_version: String::new(),
+        pool: Vec::new(),
+    });
+    (
+        StatusCode::OK,
+        Html(ui::render_agents_page(root, &roster, &models, &pool)),
+    )
 }
 
 async fn health() -> Json<Value> {
