@@ -334,7 +334,7 @@ Routes:
 | GET    | `/v1/agents`                         | `list`         |
 | GET    | `/v1/agents/{agent}`                 | `show`         |
 | GET    | `/v1/agents/{agent}/brief`           | `brief`; optional `?add_skill=a,b&add_mcp=x,y` (comma-separated) |
-| GET    | `/v1/agents/{agent}/materialize`     | `materialize`; required `?harness=claude\|codex\|bb` |
+| GET    | `/v1/agents/{agent}/materialize`     | `materialize`; required `?harness=claude\|codex\|bb\|omp` |
 
 Every response body is the same JSON shape MCP tool calls return
 (`content`/`structuredContent`/`isError`); HTTP status maps validation

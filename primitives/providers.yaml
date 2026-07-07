@@ -18,7 +18,13 @@ providers:
     permissions: dangerous bypass approvals and sandbox
     worktree: recommended
     smoke: codex exec --dangerously-bypass-approvals-and-sandbox --model gpt-5.5 --config model_reasoning_effort="medium"
-    notes: OpenAI Codex CLI; prefer non-interactive exec for isolated attempts.
+    # How a NAMED custom subagent gets selected within this harness (roster-915,
+    # evidence: ~/.factory-lanes/campaign/roster-910-report.md). Distinct from
+    # `dispatch` above, which is about invoking the harness itself, not a
+    # specific named agent inside it.
+    agent_dispatch: in_session_only
+    agent_model_override: per_agent_field
+    notes: OpenAI Codex CLI; prefer non-interactive exec for isolated attempts. No `codex exec --agent <name>`-style external flag exists; named-agent selection is in-session only.
   claude:
     tier: conditional
     kind: cli
@@ -30,6 +36,8 @@ providers:
     permissions: dangerous skip permissions plus bypass permission mode
     worktree: recommended
     smoke: claude -p --dangerously-skip-permissions --permission-mode bypassPermissions --model claude-opus-4-8 --effort xhigh
+    agent_dispatch: in_session_task
+    agent_model_override: per_agent_field
     notes: Claude Code CLI; conditional critic or Anthropic-specific lane, not the default roster bias.
   pi:
     tier: primary
@@ -50,6 +58,13 @@ providers:
     permissions: full read bash edit write grep find ls tool list
     worktree: recommended
     smoke: pi -p --no-extensions --provider openrouter --model moonshotai/kimi-k2.7-code --thinking xhigh --tools read,bash,edit,write,grep,find,ls
+    # Bare pi has no native named-agent registry at all (roster-910/roster-915
+    # recon: no `agent`/`agents` subcommand, no `--agent` flag). The richer
+    # `spawns:`/aliased-`model:` schema the roster-910 receipt found lives in
+    # `omp` (can1357/oh-my-pi), a fork of pi, not pi itself -- see
+    # `render_omp_agent` in roster-core and `roster materialize --harness omp`.
+    agent_dispatch: none
+    agent_model_override: n/a
     notes: >-
       Pi coding agent through OpenRouter. Smallest primary open-model peer lane;
       default to Kimi K2.7 Code and use variants for Kimi rollback, DeepSeek,
@@ -76,10 +91,13 @@ providers:
     permissions: goose configured tool permissions
     worktree: recommended
     smoke: goose run --no-session --quiet --provider openrouter --model moonshotai/kimi-k2.7-code --text
+    agent_dispatch: cli_flag
+    agent_model_override: recipe_settings_field
     notes: >-
       Goose on-machine agent through OpenRouter; primary open-model harness for
       MCP-heavy workflows that span code plus trackers, docs, browsers, chat, or
-      internal tools.
+      internal tools. Named-agent selection is its `--recipe <name>` flag on
+      `goose run`; the recipe's own `settings` block carries the model.
   opencode:
     tier: primary
     kind: cli
@@ -99,6 +117,11 @@ providers:
     permissions: opencode configured permissions
     worktree: recommended
     smoke: opencode run --model openrouter/moonshotai/kimi-k2.7-code --variant max --format json
+    # OpenCode is the one harness with BOTH paths: an external `--agent <name>`
+    # CLI flag on `opencode run` AND an in-session `task` tool for a primary
+    # agent to fan out to subagents.
+    agent_dispatch: both
+    agent_model_override: both
     notes: >-
       OpenCode CLI through OpenRouter; preferred open candidate for code-centric
       review runner experiments because of its session/service shape and JSON
@@ -127,6 +150,11 @@ providers:
     permissions: yolo force with sandbox disabled and trusted workspace
     worktree: recommended
     smoke: cursor-agent -p --yolo --sandbox disabled --trust --approve-mcps --model composer-2.5
+    # No dedicated "spawn agent" tool distinct from re-invoking the CLI: a
+    # cursor-agent subagent spawns further subagents by shelling back out to
+    # `cursor-agent` in headless mode.
+    agent_dispatch: in_session_task_or_reinvoke
+    agent_model_override: per_agent_field
     notes: Cursor CLI path; enable only when the binary is installed and tested.
   grok-build:
     tier: conditional

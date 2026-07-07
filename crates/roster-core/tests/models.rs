@@ -1,6 +1,6 @@
 use roster_core::{
     Agent, ModelEntry, ModelPolicy, Models, Permissions, Role, Roster, SubagentPool,
-    SubagentRights, render_bb_agent, render_claude_agent,
+    SubagentRights, render_bb_agent, render_claude_agent, render_omp_agent,
 };
 use std::path::PathBuf;
 
@@ -38,6 +38,51 @@ fn orchestrator_bb_render_resolves_claude_fable_5_to_kimi_not_bare_id() {
         "{rendered}"
     );
     assert!(!rendered.contains("model = \"claude-fable-5\""));
+}
+
+#[test]
+fn omp_render_produces_parseable_frontmatter_with_slow_alias_for_high_reasoning() {
+    let roster = Roster::load(workspace_root()).expect("roster loads");
+    let orchestrator = roster.agent("orchestrator").expect("orchestrator exists");
+    assert_eq!(orchestrator.role.model_policy.preferred.reasoning, "high");
+
+    let rendered = render_omp_agent(orchestrator);
+    let frontmatter = rendered
+        .split("---")
+        .nth(1)
+        .expect("frontmatter block present");
+    let parsed: serde_yaml::Value =
+        serde_yaml::from_str(frontmatter).expect("frontmatter is valid YAML");
+
+    assert_eq!(parsed["name"], "orchestrator");
+    assert_eq!(parsed["model"][0], "pi/slow");
+    assert!(
+        parsed["tools"]
+            .as_sequence()
+            .unwrap()
+            .contains(&"bash".into())
+    );
+    assert!(rendered.contains(orchestrator.instructions.trim()));
+    // Deliberately absent per roster-915's schema-waiver decision.
+    assert!(!rendered.contains("spawns:"));
+    assert!(!rendered.contains("output:"));
+}
+
+#[test]
+fn omp_render_produces_valid_agent_md_for_builder_too() {
+    let roster = Roster::load(workspace_root()).expect("roster loads");
+    let builder = roster.agent("builder").expect("builder exists");
+
+    let rendered = render_omp_agent(builder);
+    let frontmatter = rendered
+        .split("---")
+        .nth(1)
+        .expect("frontmatter block present");
+    let parsed: serde_yaml::Value =
+        serde_yaml::from_str(frontmatter).expect("frontmatter is valid YAML");
+
+    assert_eq!(parsed["name"], "builder");
+    assert!(parsed["model"].as_sequence().is_some());
 }
 
 #[test]

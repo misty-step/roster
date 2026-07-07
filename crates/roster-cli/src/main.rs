@@ -4,7 +4,8 @@ mod sync;
 use anyhow::{Context, Result, anyhow};
 use clap::{Parser, Subcommand, ValueEnum};
 use roster_core::{
-    CardContext, Models, Roster, render_bb_agent, render_brief, render_claude_agent, render_show,
+    CardContext, Models, Roster, render_bb_agent, render_brief, render_claude_agent,
+    render_omp_agent, render_show,
 };
 use serde_json::Value;
 use std::path::PathBuf;
@@ -60,6 +61,7 @@ enum Harness {
     Claude,
     Codex,
     Bb,
+    Omp,
 }
 
 fn main() -> Result<()> {
@@ -99,6 +101,7 @@ fn main() -> Result<()> {
                         render_bb_agent(agent, &models).map_err(|error| anyhow!(error))?
                     );
                 }
+                Harness::Omp => print!("{}", render_omp_agent(agent)),
             }
         }
         Command::Brief {

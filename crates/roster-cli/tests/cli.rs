@@ -129,6 +129,23 @@ fn materialize_bb_prints_agent_binding() {
 }
 
 #[test]
+fn materialize_omp_prints_valid_frontmatter_with_slow_alias() {
+    // Same pattern as materialize_claude below: assert against actual
+    // model_policy.reasoning-derived output, not a hand-copied fixture.
+    // cerberus's preferred reasoning is xhigh -> pi/slow.
+    roster_cmd()
+        .args(["materialize", "cerberus", "--harness", "omp"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("name: cerberus"))
+        .stdout(predicate::str::contains("model: [pi/slow]"))
+        .stdout(predicate::str::contains("tools: [read, grep, glob"))
+        .stdout(predicate::str::contains("Code-review master"))
+        .stdout(predicate::str::contains("spawns:").not())
+        .stdout(predicate::str::contains("output:").not());
+}
+
+#[test]
 fn materialize_claude_prints_native_subagent_frontmatter() {
     // Expected models come from primitives/models.yaml's `models` table:
     // orchestrator's preferred concrete id is claude-fable-5 (claude:

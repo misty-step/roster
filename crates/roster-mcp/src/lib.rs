@@ -1,7 +1,8 @@
 #![forbid(unsafe_code)]
 
 use roster_core::{
-    Models, Roster, render_bb_agent, render_brief, render_claude_agent, render_show,
+    Models, Roster, render_bb_agent, render_brief, render_claude_agent, render_omp_agent,
+    render_show,
 };
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
@@ -40,8 +41,8 @@ pub const TOOLS: &[ToolDef] = &[
     },
     ToolDef {
         name: "materialize",
-        description: "Render one roster agent declaration for a specific harness (claude, codex, or bb).",
-        input_schema: r#"{"type":"object","required":["agent","harness"],"properties":{"root":{"type":"string"},"agent":{"type":"string"},"harness":{"type":"string","enum":["claude","codex","bb"]}}}"#,
+        description: "Render one roster agent declaration for a specific harness (claude, codex, bb, or omp).",
+        input_schema: r#"{"type":"object","required":["agent","harness"],"properties":{"root":{"type":"string"},"agent":{"type":"string"},"harness":{"type":"string","enum":["claude","codex","bb","omp"]}}}"#,
     },
 ];
 
@@ -179,9 +180,10 @@ fn materialize_agent(args: &Value) -> Result<Value, String> {
         "claude" => render_claude_agent(agent, &load_models(args)?),
         "codex" => render_brief(agent, &[], &[], None),
         "bb" => render_bb_agent(agent, &load_models(args)?)?,
+        "omp" => render_omp_agent(agent),
         other => {
             return Err(format!(
-                "unknown harness {other:?}; expected claude, codex, or bb"
+                "unknown harness {other:?}; expected claude, codex, bb, or omp"
             ));
         }
     };
@@ -345,6 +347,15 @@ mod tests {
         assert!(text(&claude).contains("name: orchestrator"));
         assert!(text(&claude).contains("tools:"));
         assert_eq!(claude["structuredContent"]["agent"], "orchestrator");
+
+        let omp = call_tool(
+            "materialize",
+            &json!({"root": root, "agent": "cerberus", "harness": "omp"}),
+        )
+        .unwrap();
+        assert!(text(&omp).contains("name: cerberus"));
+        assert!(text(&omp).contains("model: [pi/slow]"));
+        assert_eq!(omp["structuredContent"]["harness"], "omp");
 
         let bad_harness = call_tool(
             "materialize",

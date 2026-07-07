@@ -429,6 +429,71 @@ side_effect_policy = "kill"
     ))
 }
 
+/// omp (`can1357/oh-my-pi`, a fork of pi) agent target (roster-915):
+/// Markdown/YAML frontmatter, a schema superset of Claude Code's per the
+/// roster-910 dispatch-mechanics receipt. Two fields the receipt found on
+/// omp's own bundled agents are intentionally NOT emitted here: `spawns:`
+/// (the agent-to-agent call graph) and `output:` (a JSON-Schema
+/// structured-yield contract). See `docs/roster-915-schema-decision.md` for
+/// why roster doesn't adopt an equivalent field of its own yet -- in short,
+/// roster has no dispatch runtime to enforce either against, so declaring
+/// them here would be unenforced decoration. `model:` is a list of omp's
+/// confirmed alias vocabulary (`pi/slow` for high/xhigh reasoning, `pi/smol`
+/// otherwise), resolved at omp's session level via `--slow`/`--smol`, not a
+/// concrete model id -- so unlike `render_claude_agent`/`render_bb_agent`
+/// this needs no `Models` lookup.
+pub fn render_omp_agent(agent: &Agent) -> String {
+    let role = &agent.role;
+    let alias = omp_model_alias(&role.model_policy.preferred.reasoning);
+    let tools = omp_tools(role);
+
+    format!(
+        r#"---
+name: {name}
+description: {description}
+model: [{alias}]
+tools: {tools}
+---
+
+# {name}
+
+{instructions}
+"#,
+        name = role.name,
+        description = role.description,
+        alias = alias,
+        tools = tools,
+        instructions = agent.instructions.trim(),
+    )
+}
+
+fn omp_model_alias(reasoning: &str) -> &'static str {
+    // Only the two alias values the roster-910 receipt actually observed on
+    // live bundled omp agents (reviewer.md: pi/slow, explore.md: pi/smol) --
+    // omp's docs mention a third `--plan` session flag, but no bundled agent
+    // sample confirmed a `pi/plan` model value, so it's not invented here.
+    match reasoning {
+        "high" | "xhigh" => "pi/slow",
+        _ => "pi/smol",
+    }
+}
+
+fn omp_tools(role: &Role) -> String {
+    // Conservative subset of the tool vocabulary the receipt actually saw
+    // (reviewer.md: read, grep, glob, bash, lsp, web_search, ast_grep,
+    // yield). `lsp`/`ast_grep`/`yield` aren't included: `yield` pairs with
+    // the `output:` schema this renderer doesn't emit, and there's no
+    // evidenced per-role criterion for lsp/ast_grep beyond the two samples.
+    let mut tools = vec!["read", "grep", "glob"];
+    if role.permissions.commands != "none" && role.permissions.commands != "disabled-by-default" {
+        tools.push("bash");
+    }
+    if role.permissions.network == "allowed" {
+        tools.push("web_search");
+    }
+    format!("[{}]", tools.join(", "))
+}
+
 pub fn render_brief(
     agent: &Agent,
     add_skills: &[String],

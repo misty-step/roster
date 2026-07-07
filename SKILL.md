@@ -30,7 +30,8 @@ invocation, which takes precedence.
   MCP selection, permissions, subagent rights, evidence contract, and — with
   `--card`/`card` — the live Powder card context folded in.
 - Use `materialize` to render one declaration into a harness-native shape
-  (`claude`, `codex`, or `bb`). This is read-only rendering, not installation.
+  (`claude`, `codex`, `bb`, or `omp`). This is read-only rendering, not
+  installation.
 - Never hand-edit a materialized output (a rendered `.claude/agents/*.md`,
   `.codex/agents/*.md`, or bb TOML). Fix the source `role.yaml`/
   `instructions.md` and re-render.
@@ -54,7 +55,7 @@ invocation, which takes precedence.
 - `brief`: render a prompt-native dispatch brief for one roster agent
   (`agent`, optional `root`, `add_skills`, `add_mcps`).
 - `materialize`: render one roster agent declaration for a specific harness —
-  `claude`, `codex`, or `bb` (`agent`, `harness`, optional `root`).
+  `claude`, `codex`, `bb`, or `omp` (`agent`, `harness`, optional `root`).
 
 ## HTTP API
 
@@ -74,6 +75,23 @@ curl -s "http://127.0.0.1:4101/v1/agents/cerberus/materialize?harness=codex"
 Same scope as the MCP server (no `--card` equivalent for `brief`). See
 `README.md`'s "HTTP API face" section for the full route table, a live
 transcript, and the recorded UI-face waiver.
+
+## `providers.yaml`'s `agent_dispatch` column
+
+`primitives/providers.yaml` is the peer-harness-CLI invocation table (how to
+run codex/claude/pi/etc as a coding agent for a task) — a different question
+from how that same harness lets a running session pick a *named custom
+subagent*. `agent_dispatch` (`in_session_task` | `in_session_only` |
+`cli_flag` | `both` | `in_session_task_or_reinvoke` | `none`) and
+`agent_model_override` (`per_agent_field` | `recipe_settings_field` | `both` |
+`n/a`) answer that second question per provider, evidenced in
+`~/.factory-lanes/campaign/roster-910-report.md`'s per-harness dispatch
+research. Bare `pi` carries `none`/`n/a` — no native named-agent registry
+exists; the richer schema (`spawns:`, aliased `model:`) lives in **omp**
+(`can1357/oh-my-pi`, a fork of pi), which is why roster materializes an omp
+target directly (`roster materialize <agent> --harness omp`) rather than
+adding an omp row to this file — omp isn't a confirmed peer-CLI dispatch
+target yet, only a materialize target.
 
 ## CLI
 
