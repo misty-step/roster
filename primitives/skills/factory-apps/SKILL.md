@@ -2,12 +2,13 @@
 name: factory-apps
 description: |
   Route Misty Step factory application capabilities. Use when choosing,
-  auditing, integrating, or operating Canary, Powder, Landmark, Aesthetic, or
-  Bitterblossom: production observability, incidents, health checks, error
-  logging, backlog/work-card state, release intelligence, UI/UX system
-  adoption, or supervised/unsupervised agent dispatch. Trigger: /factory-apps,
-  /factory-stack.
-argument-hint: "[canary|powder|landmark|aesthetic|bitterblossom|audit]"
+  auditing, integrating, or operating Canary, Powder, Landmark, Aesthetic,
+  Bitterblossom, or mint: production observability, incidents, health
+  checks, error logging, backlog/work-card state, release intelligence,
+  UI/UX system adoption, supervised/unsupervised agent dispatch, or routing
+  a credentialed outbound API call through the agent credential broker.
+  Trigger: /factory-apps, /factory-stack.
+argument-hint: "[canary|powder|landmark|aesthetic|bitterblossom|mint|audit]"
 ---
 
 # /factory-apps
@@ -26,6 +27,7 @@ MCP policy in `.harness-kit/factory-mcps.yaml`.
 | release intelligence, versions, changelogs, release notes, release kit, fleet adoption | Landmark | `misty-landmark` and `landmark describe --json` / dry-run CLI/action paths | `docs/agent-integration.md`, `docs/fleet-integration-playbook.md` |
 | UI/UX, Misty Step design law, tokens, static design registry, rendered design gate | Aesthetic | `misty-aesthetic`, `@misty-step/aesthetic` package, static API, law gate | `docs/ADOPTING.md`, `DESIGN.md` |
 | ad-hoc supervised dispatch, event-triggered agents, reflex loops, durable runs | Bitterblossom | `misty-bitterblossom`, `bb` CLI, read-only MCP from `factory-ops` profile | product plane config |
+| outbound API call needing a credential (API key, token, secret) | mint | `primitives/skills/misty-mint/SKILL.md` — egress proxy contract (`X-Mint-Capability` header + `__mint.<service>.<name>__` placeholders) | `mint policy check`/`mint audit tail`/`mint alias list` CLI (operator-only) |
 
 ## Operating Rule
 
@@ -40,6 +42,11 @@ MCP policy in `.harness-kit/factory-mcps.yaml`.
 - Dispatch architecture starts with Bitterblossom only when the work is Mode B:
   triggered, scheduled, durable, reflexive, or event-driven. Ad-hoc operator
   work remains Harness Kit / Mode A.
+- Any outbound call needing a credential starts with mint. An agent never
+  holds credential bytes: it carries a capability token plus placeholders
+  and lets mint resolve the secret at the proxy boundary. mint is not yet in
+  `.external/` (its own repo has no vendorable `SKILL.md` today) — read
+  `primitives/skills/misty-mint/SKILL.md` directly.
 
 ## Current Audit
 
