@@ -36,17 +36,15 @@ adding surface for automation, optimization, or refactor pressure, see
 `primitives/shared/references/delete-first.md` (Ponytail:
 `primitives/skills/.external/dietrich-ponytail/SKILL.md`).
 
-For non-trivial execution, start from the HTML plan artifact when one exists;
-otherwise author a small one directly from
-`primitives/skills/shape/templates/html-plan.html`, open it, and use the rendered page to
-check clarity, sequence, risk, and proof before coding. The plan must stand
-alone for the executor: hero as the work contract, support sections for
-alternatives/tradeoffs, acceptance, verification, communication cadence, stop
-conditions, and useful adversarial review. Include the quality system from
-`primitives/shared/references/quality-system.md`: standards, proof methods,
-critic topology, and stop rules. The point is visual planning, not a Markdown
-conversion. Skip only for trivial mechanical fixes, no-browser environments, or
-explicit operator waiver.
+For non-trivial execution, work from the shape HTML plan when one exists — read
+the published page; never auto-open a browser (operator ruling 2026-07-04). If
+none exists, `/shape` authors it before code the same way (publish to the
+Sanctum shelf, attach to the card). The plan stands alone for the executor:
+hero as the work contract, support for alternatives/tradeoffs, acceptance,
+verification, cadence, stop conditions, and adversarial review. Layer the
+quality system onto it (`primitives/shared/references/quality-system.md`):
+standards, proof methods, critic topology, stop rules. Skip only for trivial
+mechanical fixes or an explicit operator waiver.
 
 **Verification system first** (shared AGENTS.md, Layer 1): locate the
 repo's live-verification harness — the one command that exercises a change
@@ -120,8 +118,8 @@ normal English.
 
 ## Land it
 
-- **Semantic conventional commits**, push (the `/yeet` discipline: classify,
-  split by concern, why-shaped bodies).
+- **Semantic conventional commits**, push: classify, split by concern,
+  why-shaped bodies.
 - **Review by diverse providers — never only yourself.** `/code-review` fans
   out fresh-context reviewers across model families; fix blockers, re-review
   until clean. Iterate until CI is green *and rigorous* — if the gate
@@ -133,20 +131,17 @@ normal English.
   If the answer is "we wouldn't," add the logging/alerting now, not after
   the incident. Dependency upgrades ride as one curated, risk-assessed
   commit — never a pile of unexamined bumps.
-- **Default stop: merge-ready.** Squash-merge to master (the `/ship`
-  trailer canon, `meta/CONTRACTS.md`) only when the operator asked for
-  shipped, not just delivered. Then monitor if the repo has a post-ship
-  signal, and ta-da.
+- **Default stop: merge-ready.** Squash-merge to the default branch
+  (backlog-closure trailers per `docs/CONTRACTS.md`, injected with
+  `git interpret-trailers`) only when the operator asked for shipped, not just
+  delivered. Then monitor if the repo has a post-ship signal, and ta-da.
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
-`/deliver` adds:
+See `primitives/shared/AGENTS.md` (Completion Evidence, Closeout) for the
+shared core. `/deliver` adds:
 
 - Deviation ledger (or "none").
-- Final `git status --short` + branch/remote state — a clean tree is part of
-  done; every leftover path gets committed, ignored, moved out, or named as a
-  blocker.
 - Offer `/compound` before the evidence goes stale if the work produced a
   reusable repo-technical lesson.
 

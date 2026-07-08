@@ -91,32 +91,20 @@ an architecture choice needs the full treatment.
   premises take the metadata block from
   `references/voice-transcript-metadata.md`; never store raw audio paths.
   This is grader-enforced (see Verification).
-- **HTML plan authored.** For non-trivial or contestable shapes, write the
-  plan directly as a `.html` artifact from `templates/html-plan.html`,
-  publish it to the Sanctum shelf (artifact skill; slug = the Powder card
-  id), and attach the URL to the card (link or comment) so the plan is
-  durably ticket-coupled. Never auto-open it in a browser (operator ruling
-  2026-07-04: auto-opened planning artifacts are a distraction) — inspect
-  the rendered hierarchy yourself via the published page; the operator
-  opens it from Powder on his clock.
-  The hero is the complete work contract: target outcome,
-  chosen design, why it wins, proof surface, and stop conditions. Order the
-  body by decision volatility: lead with what the operator is most likely to
-  tweak — data model, public interfaces, UX flows — and bury the mechanical
-  work at the bottom. The plan doubles as an unknown detector; put the
-  contestable decisions where the reviewer's attention lands first. Below it,
-  include the support needed for a stranger to execute without chat context:
-  current state, change shape, repo anchors, alternatives and tradeoffs,
-  acceptance, verification, communication cadence, risks, and adversarial
-  review focus. Use layout as thinking: comparison tables, phase lanes, risk
-  grids, diagrams, callouts, and links to repo anchors. Generate diagram images
-  only for complex or contested plans where a labeled architecture / sequence /
-  system map carries information HTML, mermaid, or ASCII cannot; keep mermaid
-  for precise call-graphs (`primitives/shared/references/image-generation.md`).
-  Prefer the Misty Step aesthetic kit when the artifact is visual and local
-  review can load it; keep any local CSS as thin plan-specific glue. This is not Markdown exported to
-  HTML; the HTML is the planning medium. Skip only for trivial shapes,
-  no-browser environments, or explicit operator waiver.
+- **HTML plan authored.** Non-trivial or contestable shapes get an HTML plan
+  per shared AGENTS.md "Think in HTML for plans" — published to the Sanctum
+  shelf (artifact skill; slug = the Powder card id), attached to the card,
+  never auto-opened; you inspect the rendered page yourself. Shape's delta:
+  start from `templates/html-plan.html`; the hero is the complete work contract
+  (target outcome, chosen design, why it wins, proof surface, stop conditions);
+  order the body by decision volatility — lead with what the operator is most
+  likely to tweak (data model, public interfaces, UX flows), so the plan
+  doubles as an unknown detector — then the stranger-execution support (current
+  state, repo anchors, alternatives, acceptance, verification, cadence, risks,
+  review focus). Generate diagram images only where a labeled
+  architecture/sequence/system map carries what HTML, mermaid, or ASCII cannot
+  (`primitives/shared/references/image-generation.md`). Skip only for trivial
+  shapes, no-browser environments, or operator waiver.
 
 Interrogate before you design, and lock product direction before technical
 design. For any substantial or contestable shape the default is a
@@ -203,7 +191,7 @@ those cited premises actually support the packet's claims is semantic
 soundness judgment, not a linter's job — that's critic/reviewer work at the
 milestone gate.
 
-HTML plan artifact:
+HTML plan artifact — fill the template, publish, attach, verify reachable:
 
 ```sh
 cp primitives/skills/shape/templates/html-plan.html /tmp/<card-id>-plan.html
@@ -214,10 +202,6 @@ python3 ~/Development/roster/primitives/skills/artifact/scripts/artifact_create.
 curl -s -o /dev/null -w '%{http_code}' <printed-url>   # expect 200
 ```
 
-Fill it as HTML, publish, and revise after reading the rendered page. Inspect
-that the hero states the chosen design and proof path, the alternatives table
-names tradeoffs, the verification section names exact commands/artifacts, and
-the review section gives a useful artifact-only critic prompt. Do not auto-open
-a browser; the shelf URL attached to the card is the deliverable. Keep source
-links, commands, and oracles exact; use the rendered view to make the plan
-clearer, not less precise.
+Revise after reading the rendered page; keep source links, commands, and
+oracles exact — use the rendered view to make the plan clearer, not less
+precise.

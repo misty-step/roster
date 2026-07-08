@@ -31,12 +31,11 @@ Read the smallest useful surface for the scope:
 - current user ask and visible thread context
 - `git status --short --branch --untracked-files=all` when in a repo
 - active branch, upstream, dirty/unpushed state, and recent commits
-- open `backlog.d/*.md` titles when backlog priority is in scope
+- the board of record when work priority is in scope: Powder queues via the
+  powder MCP/CLI (`list_ready`, plus `in_progress`, `verification`, and
+  `blocked`/prerequisite-bearing cards); a file-based repo uses `backlog.d/*.md`
 - root `VISION.md` when the next move depends on product direction,
   positioning, project identity, or long-term sequencing
-- live tracker queues across delivery states when an external tracker is in
-  scope: at minimum `ready_for_dev`, `verification`, `in_progress`, and
-  `blocked`/prerequisite-bearing items
 - current plan, goal, PR, issue, or acceptance oracle when present
 - recent closeout signal: shipped commit, archived backlog, PR status, or
   blocker note
