@@ -1,10 +1,11 @@
 ---
-roster_review_due: 2026-06-26
+roster_review_due: 2026-08-05
 ---
 
 # Open-Model Roster Notes
 
-Last researched: 2026-06-19.
+Last researched: 2026-07-08 (OpenRouter catalog re-pulled; harness notes from
+2026-06-19 substrate report unless dated otherwise).
 
 Use this when choosing open-model defaults and variants for Harness Kit roster
 lanes. Treat this as a one-day operating snapshot. Re-check OpenRouter and run
@@ -24,7 +25,12 @@ OpenRouter snapshot unless a later live probe is cited.
 
 Claude, Antigravity, Cursor, and Grok remain useful conditional tools. They are
 not the default composition bias for Harness Kit peer lanes when a
-smoke-tested open-model lane can answer the same question.
+smoke-tested open-model lane can answer the same question. Conditional does
+not mean static: Grok Build's default moved to grok-4.5 on 2026-07-08
+(Opus-class at `$2/$6`, with `--best-of-n` and `--check` self-verification) —
+when a proprietary lane's price/capability crosses into open-model territory,
+re-run the comparison instead of citing the old verdict (facts:
+`primitives/skills/roster/references/model-provider-harness-index.md`).
 
 ## Local Smoke Evidence
 
@@ -43,22 +49,22 @@ Sentinel objective: `open-model-roster-smoke`, expected output
 ### Kimi K2.7 Code
 
 `moonshotai/kimi-k2.7-code` is the current open-model dispatch-floor default.
-OpenRouter listed it on 2026-06-14 with:
+OpenRouter listed it on 2026-07-08 with:
 
 - 262,144 context tokens.
-- 262,144 max completion tokens.
+- **16,384 max completion tokens — down from 262,144 in the 2026-06-14
+  snapshot.** Verify before promoting it for long-output lanes (big diffs,
+  generated docs); this drift alone may justify re-evaluating the default.
 - text+image input to text output.
-- prompt `$0.75/M`, completion `$3.50/M`, cache read `$0.16/M` in the API
-  catalog; the model page summarized `$0.95/M` input and `$4/M` output.
-- supported parameters including tools, tool choice, structured outputs,
-  reasoning, and response format.
+- prompt `$0.74/M`, completion `$3.50/M`, cache read `$0.15/M`.
+- supported parameters including tools, tool choice, parallel tool calls,
+  structured outputs, reasoning, and reasoning effort.
 
-Treat the price mismatch between the API catalog and model page as a live
-provider drift signal. Quote prices from the catalog/page at dispatch time; do
-not hard-code them into gates.
+Quote prices from the catalog/page at dispatch time; do not hard-code them
+into gates.
 
 Sources: `curl -fsSL https://openrouter.ai/api/v1/models` filtered to
-`moonshotai/kimi-k2.7-code` on 2026-06-14, and
+`moonshotai/kimi-k2.7-code` on 2026-07-08, and
 https://openrouter.ai/moonshotai/kimi-k2.7-code.
 
 ### Kimi rollback and reasoning variants
@@ -91,8 +97,16 @@ over stale M2.x defaults unless a smoke shows a regression.
 ### Qwen
 
 `qwen/qwen3-coder-next` is `qwen_coder`: a coding-family comparator with 262K
-context and tool parameters in the 2026-06-14 OpenRouter catalog. Use it when
-we need a non-Kimi, non-DeepSeek coding lane.
+context and tool parameters (confirmed in the 2026-07-08 catalog at
+`$0.11/$0.80`). Use it when we need a non-Kimi, non-DeepSeek coding lane.
+
+### GLM
+
+`z-ai/glm-5.2` (2026-06-16) is a new cheap-1M-context candidate: 1,048,576
+context, 128,000 max completion, `$0.42/M` in / `$1.32/M` out on 2026-07-08,
+with tools, parallel tool calls, structured outputs, and reasoning effort. A
+strong bench-diversity family; needs a local smoke receipt before any default
+promotion.
 
 ## Harness Notes
 
