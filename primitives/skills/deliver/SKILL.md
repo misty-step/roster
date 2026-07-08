@@ -65,8 +65,10 @@ sync all three — docs, tests, and code must agree at the end, not just the
 start. Work on a feature branch; never commit to the default branch.
 
 Lenses, when judgment is contested: Ousterhout (deep modules, small
-interfaces), Carmack (shippability — what can be cut), Kent C. Dodds (test
-what users do, not implementation), Uncle Bob (leave it cleaner than found).
+interfaces — the invocable vocabulary lives in the vendored
+`primitives/skills/.external/mattpocock-codebase-design/SKILL.md`), Carmack
+(shippability — what can be cut), Kent C. Dodds (test what users do, not
+implementation), Uncle Bob (leave it cleaner than found).
 
 ## Deviations
 
