@@ -1,5 +1,6 @@
 ---
 model_reference_review_due: 2026-08-05
+openai_reference_review_due: 2026-07-09
 last_researched: 2026-07-08
 substrate_reference_review_due: 2026-06-26
 substrate_reference_last_researched: 2026-06-19
@@ -478,15 +479,22 @@ tracks `grok-4.5` as of 2026-07-08.
 
 - Active local id: `gpt-5.5`.
 - Local dispatch surface: Codex CLI `codex exec --model gpt-5.5`.
+- Local Codex CLI config runs `gpt-5.5` at `model_reasoning_effort = "xhigh"`
+  (codex-cli 0.142.5, `~/.codex/config.toml` readback 2026-07-08) — the
+  `*-codex` OpenRouter slugs are catalog listings for other harnesses, not
+  what the local surface runs. `gpt-5.3-codex` (2026-02-24) is a dated
+  catalog row kept only for price comparison; do not compose new lanes on it.
 - OpenRouter facts (2026-07-08): 1,050,000 context, `$5.00/M` in,
   `$30.00/M` out, cache read `$0.50/M`; `gpt-5.5-pro` at `$30/$180`.
-- Codex model family: `gpt-5.3-codex` is the newest codex slug on OpenRouter
-  (`$1.75/$14`, 400K context, 2026-07-08).
 - GPT-5.6 (Sol/Terra/Luna) previewed 2026-07 at `$5/$30`, `$2.50/$15`,
-  `$1/$6` — trusted-partner/Codex access only, NOT generally callable as of
-  2026-07-08; treat as unavailable until it lands on a callable surface.
+  `$1/$6` — trusted-partner/Codex access only as of 2026-07-08, with GA
+  expected 2026-07-09 (operator, 2026-07-08). This section's facts expire
+  at that release: `openai_reference_review_due` below fires the
+  `roster check` WARN the day after, forcing a post-GA refresh (exact ids,
+  prices, Codex CLI default, OpenRouter availability) before anyone quotes
+  the 5.5-era rows as current.
 - Sources: OpenRouter catalog readback 2026-07-08;
-  openai.com/index/previewing-gpt-5-6-sol.
+  openai.com/index/previewing-gpt-5-6-sol; local `~/.codex/config.toml`.
 
 ### Google Gemini 3.5 Flash Through Antigravity
 
