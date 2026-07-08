@@ -1,6 +1,6 @@
 ---
-model_reference_review_due: 2026-06-15
-last_researched: 2026-06-14
+model_reference_review_due: 2026-08-05
+last_researched: 2026-07-08
 substrate_reference_review_due: 2026-06-26
 substrate_reference_last_researched: 2026-06-19
 speech_reference_review_due: 2026-06-27
@@ -17,7 +17,7 @@ this factual sheet.
 
 ## Freshness Contract
 
-- Review due: 2026-06-15.
+- Review due: 2026-08-05.
 - Treat model facts as stale after the review due date.
 - Verify exact model ids, availability, prices, context windows, and benchmark
   claims from live provider docs or catalogs before changing defaults.
@@ -53,10 +53,10 @@ Source: `.harness-kit/agents.yaml`, probed with
 | `pi` | Pi coding agent via OpenRouter | `openrouter/moonshotai/kimi-k2.7-code` | `pi -p --no-extensions --provider openrouter --model moonshotai/kimi-k2.7-code --thinking xhigh` | available |
 | `goose` | Goose CLI via OpenRouter | `openrouter/moonshotai/kimi-k2.7-code` | `goose run --provider openrouter --model moonshotai/kimi-k2.7-code --text` | available |
 | `opencode` | OpenCode CLI via OpenRouter | `openrouter/moonshotai/kimi-k2.7-code` | `opencode run --model openrouter/moonshotai/kimi-k2.7-code --variant max --format json` | available |
-| `claude` | Claude Code CLI | `claude-opus-4-8` | `claude -p --model claude-opus-4-8 --effort xhigh` | available |
+| `claude` | Claude Code CLI | `claude-opus-4-8` (also `claude-fable-5`, `claude-sonnet-5`) | `claude -p --model claude-opus-4-8 --effort xhigh` | available; fable-5 verified live as a session model 2026-07-08 |
 | `agy` | Antigravity CLI | `gemini-3.5-flash` | `agy --dangerously-skip-permissions --print` | available |
 | `cursor-agent` | Cursor Agent CLI | `composer-2.5` | `cursor-agent -p --model composer-2.5` | available |
-| `grok-build` | xAI Grok CLI | `grok-4.3` | `grok --model grok-4.3 --effort max --reasoning-effort xhigh -p` | available |
+| `grok-build` | xAI Grok Build CLI (v0.2.91) | `grok-4.5` (CLI default; `grok-4.3` retained as cheaper 1M-ctx fallback) | `grok --model grok-4.5 --reasoning-effort high -p` (4.5 effort tiers: low/medium/high) | available; grok-4.5 sentinel dispatch passed 2026-07-08 |
 | `oracle` | Oracle browser consult | `gpt-5.5-pro-browser` | `npx -y @steipete/oracle --engine browser --model gpt-5.5-pro -p` | available via `npx`; dry-run smoke passed 2026-06-16 |
 | `manual` | Human/imported evidence | none | manual summary | manual |
 
@@ -229,7 +229,7 @@ Receipt fields make projection auditable:
 
 Pi, Goose, and OpenCode can attempt OpenRouter model ids through their
 configured dispatch surfaces. The rows below are OpenRouter catalog facts
-captured with `curl -fsSL https://openrouter.ai/api/v1/models` on 2026-06-14.
+captured with `curl -fsSL https://openrouter.ai/api/v1/models` on 2026-07-08.
 A row here does not mean the model has been smoke-tested through every harness,
 and it is not a recommendation. Record a delegation receipt before treating a
 non-roster model as locally proven. OpenRouter rows describe OpenRouter
@@ -240,29 +240,50 @@ this table is the scannable catalog snapshot.
 
 | OpenRouter id | Created | Context | Max completion | Input | Output | Cache read | Modalities | Supported parameters excerpt |
 |---|---:|---:|---:|---:|---:|---:|---|---|
-| `moonshotai/kimi-k2.7-code` | 2026-06-12 | 262,144 | 262,144 | `$0.75/M` | `$3.50/M` | `$0.16/M` | text+image -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning`, `response_format` |
-| `~moonshotai/kimi-latest` | 2026-04-27 | 262,144 | 262,142 | `$0.68/M` | `$3.41/M` | `$0.34/M` | text+image -> text | `tools`, `tool_choice`, `parallel_tool_calls`, `structured_outputs`, `reasoning`, `reasoning_effort` |
-| `moonshotai/kimi-k2.6` | 2026-04-20 | 262,144 | 262,142 | `$0.68/M` | `$3.41/M` | `$0.34/M` | text+image -> text | `tools`, `tool_choice`, `parallel_tool_calls`, `structured_outputs`, `reasoning`, `reasoning_effort` |
-| `moonshotai/kimi-k2.6:free` | 2026-04-20 | 262,144 | unknown | `$0/M` | `$0/M` | unknown | text+image -> text | `tools`, `tool_choice`, `reasoning` |
-| `moonshotai/kimi-k2.5` | 2026-01-27 | 262,144 | unknown | `$0.375/M` | `$2.025/M` | unknown | text+image -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
-| `deepseek/deepseek-v4-pro` | 2026-04-24 | 1,048,576 | 384,000 | `$0.435/M` | `$0.87/M` | `$0.003625/M` | text -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
-| `deepseek/deepseek-v4-flash` | 2026-04-24 | 1,048,576 | 65,536 | `$0.09/M` | `$0.18/M` | `$0.02/M` | text -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
-| `minimax/minimax-m3` | 2026-05-31 | 1,048,576 | 512,000 | `$0.30/M` | `$1.20/M` | `$0.06/M` | text+image+video -> text | `tools`, `tool_choice`, `reasoning` |
-| `minimax/minimax-m2.7` | 2026-03-18 | 204,800 | 131,072 | `$0.25/M` | `$1.00/M` | `$0.05/M` | text -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
-| `qwen/qwen3-coder-next` | 2026-02-04 | 262,144 | 262,144 | `$0.11/M` | `$0.80/M` | `$0.07/M` | text -> text | `tools`, `tool_choice`, `structured_outputs` |
+| `x-ai/grok-4.5` | 2026-07-08 | 500,000 | unknown | `$2.00/M` | `$6.00/M` | `$0.50/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning`, `response_format` |
+| `anthropic/claude-sonnet-5` | 2026-06-30 | 1,000,000 | 128,000 | `$2.00/M` | `$10.00/M` | `$0.20/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `z-ai/glm-5.2` | 2026-06-16 | 1,048,576 | 128,000 | `$0.42/M` | `$1.32/M` | `$0.078/M` | text -> text | `tools`, `tool_choice`, `parallel_tool_calls`, `structured_outputs`, `reasoning`, `reasoning_effort` |
+| `moonshotai/kimi-k2.7-code` | 2026-06-12 | 262,144 | 16,384 | `$0.74/M` | `$3.50/M` | `$0.15/M` | text+image -> text | `tools`, `tool_choice`, `parallel_tool_calls`, `structured_outputs`, `reasoning`, `reasoning_effort` |
+| `anthropic/claude-fable-5` | 2026-06-09 | 1,000,000 | 128,000 | `$10.00/M` | `$50.00/M` | `$1.00/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
 | `qwen/qwen3.7-plus` | 2026-06-03 | 1,000,000 | 65,536 | `$0.32/M` | `$1.28/M` | `$0.064/M` | text+image -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
-| `qwen/qwen3.7-max` | 2026-05-21 | 1,000,000 | 65,536 | `$1.25/M` | `$3.75/M` | `$0.25/M` | text -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
-| `qwen/qwen3.6-flash` | 2026-04-27 | 1,000,000 | 65,536 | `$0.1875/M` | `$1.125/M` | unknown | text+image+video -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
-| `qwen/qwen3.5-397b-a17b` | 2026-02-16 | 262,144 | 65,536 | `$0.39/M` | `$2.34/M` | unknown | text+image+video -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
-| `z-ai/glm-5.1` | 2026-04-07 | 202,752 | unknown | `$0.98/M` | `$3.08/M` | `$0.182/M` | text -> text | `tools`, `tool_choice`, `parallel_tool_calls`, `structured_outputs`, `reasoning`, `reasoning_effort` |
-| `z-ai/glm-5v-turbo` | 2026-04-01 | 202,752 | 131,072 | `$1.20/M` | `$4.00/M` | `$0.24/M` | image+text+video -> text | `tools`, `tool_choice`, `reasoning` |
-| `x-ai/grok-4.3` | 2026-04-30 | 1,000,000 | unknown | `$1.25/M` | `$2.50/M` | `$0.20/M` | text+image -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
-| `x-ai/grok-4.20` | 2026-03-31 | 2,000,000 | unknown | `$1.25/M` | `$2.50/M` | `$0.20/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
-| `x-ai/grok-build-0.1` | 2026-05-20 | 256,000 | unknown | `$1.00/M` | `$2.00/M` | `$0.20/M` | text+image -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
-| `openai/gpt-5.5` | 2026-04-24 | 1,050,000 | 128,000 | `$5.00/M` | `$30.00/M` | `$0.50/M` | file+image+text -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `minimax/minimax-m3` | 2026-05-31 | 1,048,576 | 512,000 | `$0.30/M` | `$1.20/M` | `$0.06/M` | text+image+video -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
 | `anthropic/claude-opus-4.8` | 2026-05-27 | 1,000,000 | 128,000 | `$5.00/M` | `$25.00/M` | `$0.50/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `qwen/qwen3.7-max` | 2026-05-21 | 1,000,000 | 65,536 | `$1.25/M` | `$3.75/M` | `$0.25/M` | text -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `x-ai/grok-build-0.1` | 2026-05-20 | 256,000 | unknown | `$1.00/M` | `$2.00/M` | `$0.20/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `x-ai/grok-4.3` | 2026-04-30 | 1,000,000 | unknown | `$1.25/M` | `$2.50/M` | `$0.20/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `openai/gpt-5.5` | 2026-04-24 | 1,050,000 | 128,000 | `$5.00/M` | `$30.00/M` | `$0.50/M` | file+image+text -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `deepseek/deepseek-v4-pro` | 2026-04-24 | 1,048,576 | 384,000 | `$0.435/M` | `$0.87/M` | `$0.003625/M` | text -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `deepseek/deepseek-v4-flash` | 2026-04-24 | 1,048,576 | 65,536 | `$0.09/M` | `$0.18/M` | `$0.018/M` | text -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `moonshotai/kimi-k2.6` | 2026-04-20 | 262,144 | 262,144 | `$0.65/M` | `$3.41/M` | `$0.14/M` | text+image -> text | `tools`, `tool_choice`, `parallel_tool_calls`, `structured_outputs`, `reasoning` |
+| `z-ai/glm-5.1` | 2026-04-07 | 202,752 | 128,000 | `$0.966/M` | `$3.036/M` | `$0.1794/M` | text -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `x-ai/grok-4.20` | 2026-03-31 | 2,000,000 | unknown | `$1.25/M` | `$2.50/M` | `$0.20/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `minimax/minimax-m2.7` | 2026-03-18 | 204,800 | 196,608 | `$0.18/M` | `$0.72/M` | unknown | text -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `openai/gpt-5.3-codex` | 2026-02-24 | 400,000 | 128,000 | `$1.75/M` | `$14.00/M` | `$0.175/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
+| `qwen/qwen3-coder-next` | 2026-02-04 | 262,144 | 262,144 | `$0.11/M` | `$0.80/M` | `$0.07/M` | text -> text | `tools`, `tool_choice`, `structured_outputs` |
+
+Notable drift since the 2026-06-14 snapshot: `moonshotai/kimi-k2.7-code` max
+completion now lists 16,384 (was 262,144) — verify before long-output lanes;
+`minimax/minimax-m2.7` repriced down ($0.18/$0.72); `z-ai/glm-5.2` supersedes
+5.1 at 1M context for a third the price; OpenRouter `~x-ai/grok-latest`
+tracks `grok-4.5` as of 2026-07-08.
 
 ## Verified Model Facts
+
+### Anthropic Claude 5 family (Fable 5 / Mythos 5, Sonnet 5)
+
+- `claude-fable-5`: released 2026-06-09; OpenRouter lists 1M context,
+  input `$10.00/M`, output `$50.00/M`, cache read `$1.00/M` (2026-07-08).
+  Fable 5 and Mythos 5 are the same underlying model; Fable is the GA lane
+  with additional dual-use safety measures, Mythos is approved-organization
+  access only. Mythos-class sits above Opus in capability.
+- `claude-sonnet-5`: released 2026-06-30; OpenRouter lists 1M context,
+  `$2.00/M` in, `$10.00/M` out (2026-07-08); reported intro pricing —
+  standard `$3/$15` after 2026-08-31 per pricing coverage (verify at that
+  date).
+- Local availability: `claude-fable-5` verified live as this machine's
+  Claude Code session model on 2026-07-08.
+- Sources: https://www.anthropic.com/news/claude-fable-5-mythos-5,
+  platform.claude.com pricing docs, OpenRouter catalog readback 2026-07-08.
 
 ### Anthropic Claude Opus 4.8
 
@@ -286,8 +307,10 @@ this table is the scannable catalog snapshot.
 - OpenRouter created date: 2026-06-12.
 - OpenRouter context length: 262,144 tokens.
 - OpenRouter max completion tokens: 262,144.
-- OpenRouter API catalog pricing on 2026-06-14: input `$0.75/M`, output
-  `$3.50/M`, cache read `$0.16/M`.
+- OpenRouter API catalog pricing on 2026-07-08: input `$0.74/M`, output
+  `$3.50/M`, cache read `$0.15/M`. Catalog max completion dropped to 16,384
+  on 2026-07-08 (was 262,144 on 2026-06-14) — verify before long-output
+  lanes.
 - OpenRouter model page excerpt on 2026-06-14 summarized `$0.95/M` input and
   `$4/M` output. Treat API/page price disagreement as live provider drift and
   verify before quoting spend.
@@ -378,6 +401,18 @@ this table is the scannable catalog snapshot.
 - Source: `curl -fsSL https://openrouter.ai/api/v1/models` filtered to
   `qwen/qwen3-coder-next` on 2026-06-14.
 
+### Z.ai GLM 5.2
+
+- Candidate id: `openrouter/z-ai/glm-5.2` — supersedes 5.1 as the current
+  GLM lane candidate.
+- OpenRouter id: `z-ai/glm-5.2`; created 2026-06-16; context 1,048,576;
+  max completion 128,000; pricing on 2026-07-08: input `$0.42/M`, output
+  `$1.32/M`, cache read `$0.078/M`; text -> text; supports `tools`,
+  `tool_choice`, `parallel_tool_calls`, `structured_outputs`, `reasoning`,
+  `reasoning_effort`.
+- Source: `curl -fsSL https://openrouter.ai/api/v1/models` filtered to
+  `z-ai/glm-5.2` on 2026-07-08.
+
 ### Z.ai GLM 5.1
 
 - Candidate id: `openrouter/z-ai/glm-5.1`.
@@ -393,31 +428,78 @@ this table is the scannable catalog snapshot.
 - Source: `curl -fsSL https://openrouter.ai/api/v1/models` filtered to
   `z-ai/glm-5.1` on 2026-06-14.
 
+### xAI Grok 4.5
+
+- Released 2026-07-08 (public API 2026-07-09 per launch coverage); not
+  available in the EU until mid-July per the same coverage.
+- Active local id: `grok-4.5` — the Grok Build CLI's default model
+  (`grok models` readback, 2026-07-08).
+- OpenRouter id: `x-ai/grok-4.5`; created 2026-07-08; context 500,000
+  (xAI direct and OpenRouter agree); pricing input `$2.00/M`, output
+  `$6.00/M`, cache read `$0.50/M`; xAI lists a long-context (>200K) tier at
+  `$4/$12`. Aliases: `grok-4.5-latest`, `grok-build-latest` (xAI), and
+  OpenRouter `~x-ai/grok-latest` tracks it as of 2026-07-08.
+- Effort tiers: low/medium/high (default high) — the 4.3-era
+  `--effort max --reasoning-effort xhigh` flags do not apply.
+- Positioning per launch coverage (provider claim, not local proof):
+  Opus-class quality, faster/cheaper/more token-efficient; trained with
+  Cursor; #1 on the Harvey Legal Agent Benchmark at release.
+- Local sentinel dispatch through Grok Build passed 2026-07-08
+  (`grok --model grok-4.5 --always-approve -p` returned the expected
+  sentinel).
+- Sources: xAI `api.x.ai/v1/language-models` readback,
+  `curl -fsSL https://openrouter.ai/api/v1/models`, `grok models`,
+  and launch coverage — all 2026-07-08.
+
+### xAI Grok Build CLI (harness facts)
+
+- Local version 0.2.91 (`grok --version`, 2026-07-08); default model
+  `grok-4.5`.
+- Harness affordances verified from `--help`: `--best-of-n <N>` (parallel
+  attempts, best-of selection, headless), `--check` (appended
+  self-verification loop, headless), `--agents <JSON>` inline subagent
+  definitions plus `--agent <name|file>`, `--json-schema` constrained
+  structured output, `--worktree`, plan/permission modes, cross-session
+  memory (`grok memory`, `--experimental-memory`).
+- Assessment input, not policy: with 4.5 as default this is now a credible
+  coding/agentic lane, not just a chat surface — verify per task with a
+  sentinel dispatch before relying on it for substantive lanes.
+
 ### xAI Grok 4.3
 
-- Active local id: `grok-4.3`.
-- xAI docs page title includes Grok 4.3 under the Grok 4 model family.
-- xAI docs describe external tool/system connection support for Grok 4.
-- Source: https://docs.x.ai/developers/models/grok-4.
-- Local CLI probe status on 2026-06-07: available.
+- Local id: `grok-4.3` — retained as a cheaper 1M-context fallback
+  (OpenRouter `$1.25/M` in, `$2.50/M` out on 2026-07-08).
+- `grok-4.20` / `grok-4.20-multi-agent`: OpenRouter lists 2M context; xAI
+  direct lists 1M — treat the discrepancy as unresolved provider drift.
+- Source: https://docs.x.ai/developers/models/grok-4 and the OpenRouter
+  catalog readback on 2026-07-08.
 
 ### OpenAI GPT-5.5 Through Codex
 
 - Active local id: `gpt-5.5`.
 - Local dispatch surface: Codex CLI `codex exec --model gpt-5.5`.
-- Source for local availability: `.harness-kit/agents.yaml` plus
-  `probe-agent-roster` on 2026-06-07.
-- Public model-card/pricing/context facts were not verified in this refresh.
-  Do not infer pricing, context, or benchmark facts from the local model id.
+- OpenRouter facts (2026-07-08): 1,050,000 context, `$5.00/M` in,
+  `$30.00/M` out, cache read `$0.50/M`; `gpt-5.5-pro` at `$30/$180`.
+- Codex model family: `gpt-5.3-codex` is the newest codex slug on OpenRouter
+  (`$1.75/$14`, 400K context, 2026-07-08).
+- GPT-5.6 (Sol/Terra/Luna) previewed 2026-07 at `$5/$30`, `$2.50/$15`,
+  `$1/$6` — trusted-partner/Codex access only, NOT generally callable as of
+  2026-07-08; treat as unavailable until it lands on a callable surface.
+- Sources: OpenRouter catalog readback 2026-07-08;
+  openai.com/index/previewing-gpt-5-6-sol.
 
 ### Google Gemini 3.5 Flash Through Antigravity
 
 - Active local id: `gemini-3.5-flash`.
 - Local dispatch surface: Antigravity CLI `agy --print`.
-- Source for local availability: `.harness-kit/agents.yaml` plus
-  `probe-agent-roster` on 2026-06-07.
-- Public model-card/pricing/context facts were not verified in this refresh.
-  Do not infer pricing, context, or benchmark facts from the local model id.
+- Reported facts (2026-07 coverage): GA since I/O 2026; `$1.50/M` in,
+  `$9.00/M` out; 1M context; native Search grounding.
+- Gemini 3.5 Pro: NOT GA as of 2026-07-08 — surfaced via
+  Antigravity/LMArena testing only, no official model card or pricing;
+  the strongest callable Google lanes today are 3.5 Flash and
+  `gemini-3.1-pro-preview` (`$2/$12`, 1M, per the same coverage).
+- Sources: 2026-07 coverage (tokenmix.ai, VentureBeat); verify against
+  ai.google.dev model docs before changing a default.
 
 ### Cursor Composer 2.5
 

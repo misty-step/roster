@@ -286,6 +286,13 @@ stacks; work with that grain, not against it.
 - Receipts (Powder runs/comments/links on the card, or a sprite-lane report)
   are worth writing when a lane's evidence feeds a ship decision or should
   outlive the session; a quick second opinion doesn't need one.
+- **Favorites are perishable.** Which model or harness is best for a lane is
+  a researched, dated fact, not a remembered one — a single release can
+  reorder the bench overnight. The ledger is the roster skill's
+  model-provider-harness index; `roster check` warns when it is past
+  review-due. A WARN, a new frontier drop, or an AI-feature/product model
+  boundary the index can't settle each trigger a refresh before you dispatch
+  or design on remembered facts.
 
 Provider output is evidence, not authority. The lead owns the result.
 
