@@ -43,8 +43,8 @@ needs no cold start, and the orchestrator is trained on it.
 
 ## The CLIs
 
-Verified installed and probed 2026-06-14. Each row is the headless form;
-add the prompt as the argument or via stdin.
+Verified installed and probed 2026-06-14 (grok re-probed 2026-07-08). Each
+row is the headless form; add the prompt as the argument or via stdin.
 
 | CLI | Stack | Headless invocation |
 |---|---|---|
@@ -54,13 +54,18 @@ add the prompt as the argument or via stdin.
 | `opencode` | OpenCode over OpenRouter | `opencode run --model openrouter/<id> --format json "<task>"` |
 | `claude` | Claude Code (Opus/Fable) | `claude -p "<task>"` (`--model`, `--effort`) |
 | `cursor-agent` | Cursor (composer) | `cursor-agent -p "<task>"` |
-| `grok` | xAI Grok | `grok -p "<task>"` (`--model`, `--effort`) |
+| `grok` | xAI Grok Build (grok-4.5 default) | `grok -p "<task>"` (`--model`, `--reasoning-effort`, `--best-of-n`, `--check`, `--json-schema`) |
 | `agy` | Antigravity (Gemini) | `agy --print "<task>"` |
 | `hermes` | Hermes agent | `hermes -z "<task>"` (`-m <model>`) |
 | `oracle` | Oracle browser consult | `npx -y @steipete/oracle --engine browser --model gpt-5.5-pro -p "<task>" --file <paths>` |
 Current model ids, pricing, context windows, and freshness dates:
-`references/model-provider-harness-index.md`. Open-model facts rot in days —
-check the review-due date before quoting them.
+`primitives/skills/roster/references/model-provider-harness-index.md`.
+Model and harness facts rot in days, and the ranking of favorites is itself
+perishable — a drop like Grok 4.5 (2026-07-08: Opus-class at $2/$6) can
+reorder the bench overnight. `roster check` warns when the index is past its
+review-due date; a WARN, a new frontier release, or a composition decision
+the index can't settle each trigger a refresh (/research or
+/harness-engineering models) before dispatching on remembered facts.
 
 ## Adversarial bench
 

@@ -330,3 +330,27 @@ sources:
     skills_path: optional-skills/creative
     alias_prefix: "nous-"
     include: [creative-ideation]
+
+  # mattpocock/skills — Matt Pocock's skills collection. Three vendored:
+  # `writing-great-skills` (the skill-prose predictability doctrine our
+  # skill-authoring-standard builds on), `grilling` (relentless
+  # one-question-at-a-time decision-extraction interview — the upstream of
+  # the house interrogate-first posture; neither /shape nor /council covers
+  # the solo adversarial interview), and `codebase-design` (invocable
+  # deep-module vocabulary: deletion test, seam discipline, design-it-twice —
+  # the skill form of the collapse-toward-declaration doctrine).
+  #
+  # FIT NOTE (2026-07-08 scan): the rest of the repo is either
+  # tracker-coupled workflow (to-spec/to-tickets/triage/wayfinder duplicate
+  # the Powder + /groom + /deliver spine), covered by first-party skills
+  # (tdd, diagnosing-bugs, code-review, research), or TS-toolchain/personal.
+  # Re-scan on registry review rather than vendoring wider.
+  #
+  # LICENSE: MIT.
+  - repo: mattpocock/skills
+    ref: main
+    pin: d574778f94cf620fcc8ce741584093bc650a61d3
+    layout: multi-root
+    skills_path: skills
+    alias_prefix: "mattpocock-"
+    include: [writing-great-skills, grilling, codebase-design]

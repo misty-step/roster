@@ -15,6 +15,7 @@ use std::{
 pub fn run(root: &Path) -> Result<bool> {
     let tracked = tracked_files(root)?;
     let mut findings = Vec::new();
+    let mut warnings = Vec::new();
 
     for path in &tracked {
         let Ok(content) = fs::read_to_string(root.join(path)) else {
@@ -23,6 +24,7 @@ pub fn run(root: &Path) -> Result<bool> {
         if content.lines().any(|line| line.starts_with("<<<<<<<")) {
             findings.push(format!("{}: conflict marker", path.display()));
         }
+        check_review_due(path, &content, &mut warnings);
         if let Some((is_external, _)) = skill_md_name(path) {
             check_frontmatter(path, &content, is_external, &mut findings);
         }
@@ -36,6 +38,9 @@ pub fn run(root: &Path) -> Result<bool> {
     }
     check_index_drift(root, &tracked, &mut findings)?;
 
+    for warning in &warnings {
+        println!("WARN {warning}");
+    }
     for finding in &findings {
         println!("FAIL {finding}");
     }
@@ -46,6 +51,41 @@ pub fn run(root: &Path) -> Result<bool> {
         );
     }
     Ok(findings.is_empty())
+}
+
+/// Non-fatal freshness tripwire: any frontmatter `*review_due: YYYY-MM-DD`
+/// date in the past emits a WARN so the agent running the gate knows the
+/// file's researched facts are stale and owes a refresh (/research or
+/// /harness-engineering models). Warnings never fail the gate — a date
+/// passing must not redden unrelated CI.
+fn check_review_due(path: &Path, content: &str, warnings: &mut Vec<String>) {
+    if path.extension().and_then(|ext| ext.to_str()) != Some("md") {
+        return;
+    }
+    let Some(rest) = content.strip_prefix("---\n") else {
+        return;
+    };
+    let Some((frontmatter, _)) = rest.split_once("\n---") else {
+        return;
+    };
+    let today = chrono::Local::now().date_naive();
+    for line in frontmatter.lines() {
+        let Some((key, value)) = line.split_once(':') else {
+            continue;
+        };
+        let (key, value) = (key.trim(), value.trim());
+        if !key.ends_with("review_due") {
+            continue;
+        }
+        if let Ok(due) = chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d")
+            && due < today
+        {
+            warnings.push(format!(
+                "{}: {key} {value} is past due — researched facts are stale; refresh via /research or /harness-engineering models",
+                path.display()
+            ));
+        }
+    }
 }
 
 fn tracked_files(root: &Path) -> Result<Vec<PathBuf>> {

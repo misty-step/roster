@@ -69,6 +69,49 @@ fn check_fails_on_broken_frontmatter_and_dead_reference() {
 }
 
 #[test]
+fn check_warns_but_passes_on_past_due_review_date() {
+    let tmp = TempDir::new().expect("tempdir");
+    let root = tmp.path();
+
+    write(
+        root,
+        "primitives/skills/skills-index.yaml",
+        "schema_version: roster.skills_index.v1\nskills:\n  - name: stale-index\n    path: primitives/skills/stale-index/SKILL.md\n",
+    );
+    write(
+        root,
+        "primitives/skills/stale-index/SKILL.md",
+        "---\nname: stale-index\ndescription: skill with a dated reference file\nargument-hint: \"[x]\"\n---\nbody\n",
+    );
+    write(
+        root,
+        "primitives/skills/stale-index/references/facts.md",
+        "---\nmodel_reference_review_due: 2020-01-01\nlast_researched: 2019-12-01\n---\n\n# Facts\n",
+    );
+
+    git(root, &["init", "-q"]);
+    git(
+        root,
+        &["config", "user.email", "roster-check-test@example.com"],
+    );
+    git(root, &["config", "user.name", "roster-check-test"]);
+    git(root, &["add", "-A"]);
+    git(root, &["commit", "-q", "-m", "fixture"]);
+
+    Command::cargo_bin("roster")
+        .expect("roster binary")
+        .env_remove("CANARY_ENDPOINT")
+        .env_remove("CANARY_API_KEY")
+        .env_remove("CANARY_INGEST_KEY")
+        .args(["--root", root.to_str().expect("utf8 path"), "check"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "WARN primitives/skills/stale-index/references/facts.md: model_reference_review_due 2020-01-01 is past due",
+        ));
+}
+
+#[test]
 fn check_passes_on_the_real_repo() {
     Command::cargo_bin("roster")
         .expect("roster binary")
