@@ -84,13 +84,11 @@ See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
   QA verifies the running app against reality.
 - **Shape first, tools second.** Tool-first thinking is how this skill once
   decayed into browser-only framing.
-- **Generic QA is a stopgap.** The durable fix is a repo-local verification
-  harness: one command that seeds/auths/drives the real surface and writes
-  an evidence packet (screenshots, transcripts, verdict). If you'll QA this
-  surface more than once, build the harness *now* — verification system
-  first (shared AGENTS.md, Layer 1) — don't just file the gap. Build it by
-  interviewing the operator: the manual checks they run before merging are
-  the spec. Ad-hoc QA evaporates; a harness compounds.
+- **Generic QA is a stopgap.** If you'll QA this surface more than once, build
+  the repo-local harness *now* — one command that seeds/auths/drives the real
+  surface and writes an evidence packet — not just a gap file. Its spec is the
+  manual checks the operator runs before merging. Ad-hoc QA evaporates; a
+  harness compounds.
 - **QAing a behavior-preserving refactor with no characterization tests?**
   "Tests pass" proves nothing when there are no tests pinning the current
   behavior. Reach for the live-diff pattern in

@@ -123,11 +123,6 @@ heavy/long runs to `/sprites`. Lanes:
   committed-in-repo choice, not polish.
 - **Coverage is not accuracy.** Documenting every symbol while one flow is
   described wrong still fails. Run both oracles; they catch different errors.
-- **Too much context degrades agents** — which is exactly why these docs target
-  humans and `/orient` keeps agents on live source. Do not repurpose this output
-  as the agent's primary context feed.
-- **A verifier inheriting the author's context rationalizes the author.**
-  Critics get the artifact only (see Delegation Judgment above).
 - **Restating code is not documentation.** A page that paraphrases functions
   adds drift surface and no understanding. Capture intent, flow, and *why*.
 - **Diagrams that do not parse are worse than none.** The render oracle fails the

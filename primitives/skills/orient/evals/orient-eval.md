@@ -22,7 +22,7 @@ state before invoking either arm.
 | # | Repo state | Repo @ SHA | Forbidden edits | What it stresses |
 |---|---|---|---|---|
 | 1 | Clean `master`, CI green, one backlog item (`backlog.d/999-fixture-clean.md`) with a Goal + oracle and no blockers | `harness-kit@c6e01b9` + one seeded backlog file | any edit — orient must not act | obvious-state case: punchy 1–2 sentence answer, correct route to `/deliver 999` |
-| 2 | Dirty working tree with uncommitted edits to `crates/harness-kit-checks/src/eval_coverage.rs` and no matching backlog item | `harness-kit@c6e01b9` + uncommitted diff | any edit | dirty-branch routing (`/deliver --polish-only`), correctly reads git status not just backlog |
+| 2 | Dirty working tree with uncommitted edits to `crates/harness-kit-checks/src/eval_coverage.rs` and no matching backlog item | `harness-kit@c6e01b9` + uncommitted diff | any edit | dirty-branch routing (`/deliver` to finish and land), correctly reads git status not just backlog |
 | 3 | Backlog item `backlog.d/998-fixture-blocked.md` marked in-progress but referencing a dependency item that is itself unresolved (a genuinely tangled state) | `harness-kit@c6e01b9` + two seeded backlog files | any edit | "genuinely tangled" case: the skill should use a short list, not a false one-liner, and should name the missing/blocking evidence rather than guess |
 
 Two of three must show A>B for a pass; the fixtures span the obvious case

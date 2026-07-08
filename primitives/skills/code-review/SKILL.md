@@ -41,21 +41,19 @@ never ships on its own review — that is the one hard rule.
    the delivery logged deviations, hand reviewers the deviation *sites* —
    where the plan bent is where plausible-but-wrong concentrates — but never
    the author's justifications for them.
-   Add `primitives/shared/references/works-critique.md` when the diff touches
-   public API, CLI, UI, performance, compatibility, migration, or operator
-   workflow. Add `primitives/shared/references/delete-first.md` when the diff
-   adds abstraction, automation, dependencies, modes, or optimization; pair it
-   with the synced Ponytail skill
-   (`primitives/skills/.external/dietrich-ponytail/SKILL.md`) when the main risk is bloat,
-   boilerplate, or speculative engineering.
-   Add the synced Thermo-Nuclear skill
-   (`primitives/skills/.external/cursor-thermo-nuclear-code-quality-review/SKILL.md`)
-   whenever the diff changes meaningful implementation structure, grows large
-   files, adds wrappers, or risks spaghetti branching; this is the default
-   harsh maintainability lens, not a last resort.
-   Add `primitives/shared/references/verification-system-first.md` when the
-   diff's proof story is missing, weak, eval/benchmark-shaped, or depends on
-   QA/manual judgment.
+   Hand a reviewer the matching lens:
+   - `primitives/shared/references/works-critique.md` — public API, CLI, UI,
+     performance, compatibility, migration, or operator-workflow change.
+   - the synced Thermo-Nuclear skill
+     (`primitives/skills/.external/cursor-thermo-nuclear-code-quality-review/SKILL.md`)
+     — any meaningful structural change, large files, new wrappers, or spaghetti
+     branching risk; the default harsh maintainability lens, not a last resort.
+   - `primitives/shared/references/delete-first.md` — added abstraction,
+     automation, dependencies, modes, or optimization; pair with the Ponytail
+     skill (`primitives/skills/.external/dietrich-ponytail/SKILL.md`) when the
+     main risk is bloat or speculative engineering.
+   - `primitives/shared/references/verification-system-first.md` — the proof
+     story is missing, weak, eval/benchmark-shaped, or leans on manual judgment.
 5. **Aim reviewers at production embarrassment, not nitpicks.** Tell each
    one what to ignore (style, naming, speculative "consider…") as
    explicitly as what to find.

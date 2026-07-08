@@ -1,35 +1,31 @@
 ---
 name: groom
 description: |
-  Always-on backlog grooming. Tidy, brainstorm, interrogate, investigate,
-  research, and simplify in a single loop. Tidy is not a mode — it happens
-  every time. Strategic-layer work is a mega-sweep: swarm investigation,
-  external research, critique, synthesis, and backlog shaping across product,
-  codebase, docs, infrastructure, ops, architecture, system design, value prop,
-  and agent readiness.
-  Use when: "groom", "what should we build", "rethink this", "biggest
-  opportunity", "backlog", "prioritize", "backlog session",
-  "audit skills", "skill quality audit".
+  Backlog grooming as one always-on loop: tidy the board, then sweep —
+  investigate, research, critique, and shape ambitious work. Tidy every run.
+  Use when: "groom", "backlog", "what should we build", "prioritize",
+  "rethink this", "biggest opportunity", "moonshot", "audit skills",
+  "skill quality audit".
   Trigger: /groom, /groom audit, /backlog, /rethink, /moonshot, /scaffold.
 argument-hint: "[audit|--emphasis explore|rethink|moonshot|scaffold] [context]"
 ---
 
 # /groom
 
-Keep `backlog.d/` true and make the project more ambitious. Normal strategic
-`/groom` is a mega-sweep, not triage: boil the ocean on purpose, then distill
-it into a world-class plan and backlog diff. A groom that only lists, lightly
-prioritizes, or emits a tiny handful of issues is incomplete unless the user
-explicitly scoped the run down.
+Keep the board of record true and make the project more ambitious. Normal
+strategic `/groom` is a mega-sweep, not triage: boil the ocean on purpose, then
+distill it into a world-class plan and backlog diff. A groom that only lists,
+lightly prioritizes, or emits a tiny handful of issues is incomplete unless the
+user explicitly scoped the run down.
 
-The backlog diff is the artifact. Prose exists to justify it. Groom is a
-conversation at the seams where the operator's judgment is the scarce input.
-At intake, interrogate the operator on ambition, vision deltas, and hidden
-priors so the sweep aims true — the `grill-me`-style posture in
+The backlog diff is the artifact; prose exists to justify it. Groom is a
+conversation at the seams where the operator's judgment is the scarce input. At
+intake, interrogate the operator on ambition, vision deltas, and hidden priors
+so the sweep aims true — the `grill-me`-style posture in
 `primitives/shared/references/interrogate-first.md` is the default here, not a
-fallback gated on whether they arrived with a backlog item. The investigation
-sweep itself stays autonomous — explore the codebase for what it can answer;
-reserve interrogation for the operator's judgment, not for facts you can read.
+fallback gated on arriving with a backlog item. The investigation sweep stays
+autonomous: explore the codebase for what it can answer, and reserve
+interrogation for the operator's judgment, not facts you can read.
 
 julius-caveman for interim synthesis only; findings, code, commits, and final
 artifacts stay normal English.
@@ -57,29 +53,29 @@ first-class groom emission rather than waiting on a separate `/vision` pass.
   relationships or sequencing are too complex for prose alone:
   `primitives/shared/references/image-generation.md`.
 
-## Tidy (mandatory, mechanical)
+## Tidy (mandatory)
 
-Tooling owns closure; consume it, don't hand-roll it:
+Keep the board of record true — Powder cards, not stale files (shared AGENTS.md:
+Work Ledger; misty-powder skill, powder MCP/CLI). Consume the card store; don't
+hand-roll closure:
 
-```sh
-default="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')"
-cargo run --locked -p harness-kit-checks -- backlog ids-from-range "origin/${default:-main}..${default:-main}"
-cargo run --locked -p harness-kit-checks -- backlog archive "$id"   # idempotent
-```
-
-- Archive every ticket closed by `Closes-backlog:`/`Ships-backlog:` trailers
-  or marked done/shipped in frontmatter. Commit as
-  `chore(backlog): archive shipped tickets swept by /groom`.
-- Flag stale `in-progress` (merged/deleted branch, or 30+ days untouched).
-- Surface duplicates with a proposed consolidation — never merge silently.
-- **Backlog size is telemetry, not policy.** If the active queue looks too
+- **Close shipped work.** A card whose work merged moves to done/shipped via
+  `update_status`/`complete_card`, carrying the shipping evidence — never on a
+  hunch (Powder audits actor, time, and change).
+- **Flag stale claims.** An `in_progress` card on a merged or deleted branch,
+  or one untouched 30+ days, gets surfaced for the operator — not silently
+  flipped.
+- **Surface duplicates** with a proposed consolidation; never merge silently.
+- **Backlog size is telemetry, not policy.** When the active queue looks too
   broad, report the evidence: count, age, duplicates, stale owners, orphaned
-  themes, and unfocused small items. Consolidate only when tickets genuinely
-  share one outcome. Never veto an evidenced emission because of an arbitrary
-  item count.
+  themes, unfocused small items. Consolidate only when tickets genuinely share
+  one outcome; never veto an evidenced emission on an arbitrary item count.
 
-Trailer canon lives in `meta/CONTRACTS.md`. Emit trailers only via
-`git interpret-trailers`; hand-formatted variants are invisible to tooling.
+Where a consumer repo runs on `backlog.d/` files with no Powder registration,
+that tree is the fallback board: archive tickets closed by
+`Closes-backlog:`/`Ships-backlog:` trailers into `_done/`, commit
+`chore(backlog): archive shipped tickets swept by /groom`, and emit trailers
+only via `git interpret-trailers` (canon: `docs/CONTRACTS.md`).
 
 ## Delegation
 
@@ -124,10 +120,10 @@ standard into epics, deletions, sequencing, and first pickups.
 - **Epic-scoped by default.** Strategic emissions are epics — a product
   outcome with an ordered child sequence — never pre-shredded tasks. Small
   items exist as children of an epic or as genuine isolated fixes.
-- **Ambition is not slop.** Every epic's premise survives the same vetting
-  as any finding: open the file, run the command. A perspective that comes
-  back with "all fine here" is making a claim — vet it like one. The floor
-  raises scope, not tolerance for unevidenced claims.
+- **Ambition is not slop.** Every epic's premise earns the same vetting as any
+  finding; a perspective that returns "all fine here" is making a claim, not
+  clearing the bar. The floor raises scope, not tolerance for unevidenced
+  claims.
 
 ## Judgment (the actual grooming)
 
@@ -169,22 +165,18 @@ decorrelate judgment, not to fill a roster.
 
 ## Ticket Format
 
-`backlog.d/<nnn>-<kebab-slug>.md` with Goal + Oracle always, plus a
-Verification System for M+/ready work — full template, epic shape, and
-promotion rules: `references/ticket-format.md`.
+Every card (or `backlog.d/<nnn>-<slug>.md` file where that's the board) carries
+Goal + Oracle always, plus a Verification System for M+/ready work — full
+template, epic shape, and promotion rules: `references/ticket-format.md`.
 
 ## Audit Mode
 
-`/groom audit` is a read-only harness-health report, not a grooming run:
-
-```sh
-cargo run --locked -p harness-kit-checks -- telemetry --repo .
-```
-
-It summarizes skill/prompt usage from hook logs (and staleness vs last
-edit). Read it with judgment: low usage with high value-when-used is fine —
-say so; low usage with no story is a deletion candidate. Present findings
-ordered by severity; do not auto-fix.
+`/groom audit` is a read-only harness-health report, not a grooming run: read
+the harness's skill/prompt usage signal (hook logs where present) and staleness
+vs last edit. Judge it — low usage with high value-when-used is fine, say so;
+low usage with no story is a deletion candidate. Order findings by severity; do
+not auto-fix. In a harness-kit repo the telemetry summary comes from
+`cargo run --locked -p harness-kit-checks -- telemetry --repo .`.
 
 ## Refuse
 
@@ -198,22 +190,12 @@ ordered by severity; do not auto-fix.
 
 ## Gotchas
 
-- **Menu, not grooming.** Themes without a defended recommendation are a
-  report. Pick one action per theme and argue it.
-- **Mundane harvest.** A strategic session that only finds small, safe work is
-  not done. Widen the swarm, add external research, invert the premise, and
-  inspect neglected surfaces before concluding the repo has no ambitious,
-  evidence-backed moves.
-- **Stock-lens grooming.** Running the same investigator roster in every
-  repo is process, not thought. The revealing perspectives are the ones
-  composed for this codebase, this session.
-- **Over-decomposing.** An agent-hour of work is one ticket, not three; a
-  coherent multi-ticket ambition is one epic, not ten orphan tasks.
+- **Stock-lens grooming.** Running the same investigator roster in every repo
+  is process, not thought. The revealing perspectives are composed for this
+  codebase, this session.
 - **Backlog as graveyard.** Age is a stale signal, not an automatic verdict.
   Inspect branch, owner, and live relevance before flipping, archiving, or
   proposing deletion.
-- **Accepting the ticket's framing.** Five-whys the top items before
-  re-ranking them.
 
 ## Completion Gate
 
@@ -231,8 +213,6 @@ shared core; this phase adds:
 5. **Residual** — open questions, blocked dependencies, unverified areas,
    and what would make the sweep stronger.
 
-`/groom audit` scores skill quality separately (see Audit Mode above);
-backlog mechanics are enforced by `harness-kit-checks backlog` subcommands.
 Apply non-destructive backlog edits when the user asked for grooming;
 deletions, abandonments, and silent merges stay proposals unless explicitly
 approved. A groom run ends with a clean tree: archives committed, emissions

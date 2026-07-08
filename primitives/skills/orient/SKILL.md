@@ -36,10 +36,11 @@ only thing in flight and nothing blocks it — next is `/deliver 058`."*
 Read the smallest set that explains the workspace; skip whatever the prompt
 already settled. Beyond the obvious (`git status`, branch, recent commits):
 
-- scoped then repo `AGENTS.md`; `project.md` for focus (`README.md` only if still unclear)
-- `backlog.d/*.md` for active work; `backlog.d/_done/*` and `Closes-backlog:` trailers for closure
-- `.harness-kit/agents.yaml` / roster probe — only when the next move is a delegation
-- `.harness-kit/agent-readiness.yaml` — only to name the profile state, never to score the repo
+- scoped then repo `AGENTS.md`; `VISION.md`/`project.md` for focus (`README.md` only if still unclear)
+- active work from the board of record: Powder queues (`list_ready`,
+  `in_progress`, `verification`, `blocked`) via the powder MCP/CLI; a repo
+  running on files uses `backlog.d/*.md`, `_done/`, and `Closes-backlog:` trailers
+- roster probe (`roster list` / roster MCP) — only when the next move is a delegation
 
 ## Routing
 
@@ -49,15 +50,15 @@ rather than guess from vibes.
 | Signal | Next |
 |---|---|
 | Shaped ticket, clean branch | `/deliver <ticket>` |
-| Dirty branch, intended changes | `/deliver --polish-only` |
-| Dirty worktree, unclear ownership | Classify paths, then `/yeet` or ask one scope question |
+| Dirty branch, intended changes | `/deliver` (finish and land) |
+| Dirty worktree, unclear ownership | Classify paths, then commit by concern or ask one scope question |
 | Unshaped idea, unclear acceptance | `/shape` |
 | Empty or stale backlog | `/groom` |
 | Open prioritized backlog, no active branch | `/groom` summary, then one pickup |
 | Failure, broken gate, unclear root cause | `/diagnose` |
 | Item already in verification | `/qa` or closeout before new delivery |
 | Running surface needs proof | `/qa` |
-| Finished work needing closeout | `/ship`, `/yeet`, or `/reflect` |
+| Finished work needing closeout | `/deliver` (Land it), then `/compound` if a reusable lesson |
 | Human external blocker | Say the agent is blocked; do not invent process work |
 | Readiness or profile question | `/qa` or the repo's readiness surface |
 | "What happened / why does it matter" | `/orient --deep` or `/shape` |

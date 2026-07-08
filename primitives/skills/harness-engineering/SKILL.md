@@ -1,17 +1,13 @@
 ---
 name: harness-engineering
 description: |
-  Harness engineering for Harness Kit primitives: skills, shared doctrine,
-  provider roster, harness configs, gates, evals, bootstrap, and sync logic.
-  Use for "improve the harness", "harness engineering", "bootstrap is wrong",
-  "AGENTS.md is stale", "skill health", "skill usage", "undertriggering skill",
-  "description tax", "eval skill", "sync primitives", "roster defaults",
-  "preferred stack", "stack defaults", "hosting defaults", "CI defaults",
-  "observability defaults", "release defaults", "design system defaults",
-  "storage defaults", "agent substrate defaults", "one core many faces",
-  "API CLI MCP SDK skill template", "factory product template",
-  "generate repo-local skill", "bespoke skill subset", "domain agent skill".
-  Trigger: /harness-engineering, /harness, /skill.
+  Engineer Harness Kit primitives: skills, shared doctrine, provider roster,
+  harness configs, gates, evals, bootstrap, sync. Use for "improve the harness",
+  "harness engineering", "bootstrap is wrong", "AGENTS.md is stale", "skill
+  health", "undertriggering skill", "description tax", "eval skill", "sync primitives",
+  "stack/infrastructure defaults", "one core many faces", "API/CLI/MCP/SDK skill
+  template", "factory product template", "generate repo-local skill", "domain
+  agent skill". Trigger: /harness-engineering, /harness, /skill.
 argument-hint: "[create|eval|lint|convert|sync|engineer|audit|models] [target]"
 ---
 
@@ -27,12 +23,12 @@ Engineer the harness. Keep it thin.
 | eval skill | `references/mode-eval.md` |
 | lint skill | `references/mode-lint.md` |
 | apply skill-design lessons | `references/skill-design-principles.md` |
-| clean skill catalog | `references/mode-audit.md` + `harness-kit-checks telemetry` |
+| clean skill catalog | `references/mode-audit.md` |
 | convert agent/skill | `references/mode-convert.md` |
 | sync externals | `references/mode-sync.md` |
 | engineer doctrine/gates/hooks | `references/mode-engineer.md` |
 | measure skill usage/health/staleness | `references/mode-audit.md` |
-| current model/provider/harness facts | the roster skill's `references/model-provider-harness-index.md` |
+| current model/provider/harness facts | `primitives/skills/roster/references/model-provider-harness-index.md` |
 | open-model defaults | `references/open-model-roster.md` |
 | preferred stack / infrastructure defaults | `references/preferred-stack.md` |
 | factory app capability routing | `../factory-apps/SKILL.md` |
@@ -157,7 +153,7 @@ valid.
 - Oracle / acceptance artifact hash: sha256 digest for any fixture, generated artifact, transcript, or contract used as the oracle, or state that no artifact-backed oracle exists.
 - Contract-change acknowledgment: reason when the change alters an acceptance contract, generated source, or assertion surface, or state that no contract changed.
 - Repo-fit check: source/generator/projection agree; no stale generated docs, wrong skill root, stale command, or copied bridge remains.
-- Structural gate: `check --repo .` result, or the specific sub-gate exercised.
+- Structural gate: `cargo run --locked -p roster-cli -- check` result, or the specific sub-gate exercised.
 - Residual risk: skipped harness, external dependency, or none with reason.
 ```
 
@@ -206,7 +202,7 @@ valid.
 
 ## Verification
 
-Run `cargo run --locked -p harness-kit-checks -- check --repo .` after
+Run `cargo run --locked -p roster-cli -- check` (plus fmt/clippy/test) after
 changing harness primitives, gates, roster, bootstrap, or sync logic. For
 bootstrap changes, also re-run bootstrap and confirm installed skills/configs
 match the source tree and retired prompt/example links are pruned.

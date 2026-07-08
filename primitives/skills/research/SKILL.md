@@ -8,6 +8,7 @@ description: |
   "introspect", "check readwise", "saved articles", "reading list",
   "what are people saying", "X search", "trending", "which model",
   "compare models", "best model for", "model selection".
+  Trigger: /research.
 argument-hint: "[query|web-search|web-deep|web-news|web-docs|delegate|introspect|readwise|xai|exemplars] [args]"
 ---
 
@@ -41,33 +42,28 @@ default fanout for substantive research; narrow to one source only for explicit
 single-source requests or simple fact/version lookups.
 
 Model selection/comparison is research, not memory: model facts rot in
-weeks. Start from the installed roster skill's
-`references/model-provider-harness-index.md` for current local facts, then
-verify against live sources — availability on the target platform, pricing,
-context, tool-calling support — and return a ranked recommendation with
-dates on every claim.
+weeks. Start from
+`primitives/skills/roster/references/model-provider-harness-index.md` for
+current local facts, then verify against live sources — availability on the
+target platform, pricing, context, tool-calling support — and return a ranked
+recommendation with dates on every claim.
 
 ## Contract
 
-- Read the live repo first for repo facts.
-- Use current external sources for drift-prone facts.
-- Keep provider CLIs and web tools thin: launch, bound, record.
-- Prefer acquisition surfaces in this order when available: MCP tool first,
-  local CLI wrapper second, direct REST/API call third, built-in WebSearch last.
-- Treat web search, extraction, X/social search, provider lanes, and
-  local grep as evidence inputs, not substitutes for lead synthesis.
-- Do not let synthesis stand in for retrieval. A grounded answer may summarize
-  sources, but the source URLs/artifacts remain the proof.
-- Separate source evidence from conclusions; cite URLs, files, commands,
-  receipts, or artifacts for claims.
-- Label skipped, failed, stale, in-flight, and partial sources.
-- Report residual uncertainty instead of smoothing over missing evidence.
+- Read the live repo first for repo facts; use current external sources for
+  drift-prone facts.
+- Prefer acquisition surfaces in this order when available: MCP tool, local CLI
+  wrapper, direct REST/API, built-in WebSearch last.
+- Retrieval and synthesis are distinct jobs: source URLs/files/receipts are the
+  proof, your synthesis is the conclusion. Cite the source for every claim; a
+  summary never stands in for it.
+- Label skipped, failed, stale, in-flight, and partial sources; report residual
+  uncertainty rather than smoothing over gaps.
 
 ## Delegation Judgment
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster).
-
-Local lane guidance: Use lanes with distinct sources, methods, or model families; web search and provider CLIs are evidence inputs, not substitutes for lead synthesis.
+Delegate per the shared Roster contract (shared AGENTS.md: Roster). A lane earns
+its spend only by carrying distinct sources, methods, or model families.
 
 ## Completion Gate
 

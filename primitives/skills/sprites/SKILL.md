@@ -62,7 +62,7 @@ boundaries, and expected output shape (template:
 contract; exact publish commands live in
 `references/glass-status-beats.md`. Big outcome-shaped tickets beat atomic
 tasks — the agent on the sprite owns its own decomposition. Put the oracle in
-the card; the sprite has no access to your local context.
+the card.
 
 ## Gotchas
 

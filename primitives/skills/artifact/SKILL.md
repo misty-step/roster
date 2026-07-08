@@ -14,7 +14,6 @@ argument-hint: "[--title <t> --slug <s> --body-file <f>|--html-file <f>] [--loca
 
 The operator reads reports as HTML pages over Tailscale, not as chat walls. This
 skill is the single source of truth for how those pages look and what they can do.
-Hermes-independent (replaced `~/.hermes/scripts/hermes_artifact_*`).
 
 ## The contract every artifact honors
 
@@ -66,7 +65,7 @@ Sanctum. Bit us live 2026-07-03.
 ## Do it
 
 ```bash
-S=~/Development/harness-kit/skills/artifact/scripts
+S=~/Development/roster/primitives/skills/artifact/scripts
 # quick: markdown in, styled page out
 python3 $S/artifact_create.py --title "Weekly Ops" --slug weekly-ops \
   --tag "Field Memo" --summary "..." --body-file report.md

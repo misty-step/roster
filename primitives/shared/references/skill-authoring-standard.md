@@ -62,3 +62,21 @@ claim — state the delta explicitly and say why, next to the pointer.
 One signal→skill routing table exists, in `/orient`. `/next` and any other
 skill that routes consumes it by pointer and adds only its own framing.
 Never fork the table.
+
+## Fable 5 deltas
+
+From Anthropic Fable 5 prompting guidance (2026-07); apply alongside the no-op
+test, one rule each:
+
+- Deletion is the top rewrite move. Skills built for prior models over-prescribe
+  and degrade Fable output; strip step-by-step enumerations and micromanaged
+  procedure before adding anything.
+- Prefer one intent-level instruction over an enumerated checklist: goal,
+  boundaries, verification hook, and trust the model to structure the work.
+- Never instruct the model to echo or transcribe its internal reasoning as
+  response text — it trips the reasoning-extraction refusal. Hunt
+  "show your thinking"-shaped lines and cut them.
+- A skill that over-fires earns a `Do not use when: …` clause beside its
+  `Use when:`.
+- Completion-reporting skills point at the shared Completion Evidence core for
+  grounded-progress ("report only work a tool result backs") — never restate it.

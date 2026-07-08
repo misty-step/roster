@@ -2,12 +2,11 @@
 name: human-writing
 description: |
   Edit, audit, or rewrite prose so it sounds like a specific human wrote it,
-  not a generic AI draft. Removes AI tells, filler, formulaic structure,
-  fake polish, vague claims, and detector-bait phrasing while preserving truth,
-  voice, and audience fit. Use when: "humanize this", "make this sound less
-  AI", "remove AI slop", "de-slop this", "edit this prose", "make this
-  sound natural", "fix the writing voice", "rewrite this copy". Trigger:
-  /human-writing, /deslop.
+  not a generic AI draft — cutting AI tells, filler, and detector-bait while
+  preserving truth, voice, and audience fit. Use when: "humanize this", "make
+  this sound less AI", "remove AI slop", "de-slop this", "edit this prose",
+  "make this sound natural", "fix the writing voice", "rewrite this copy".
+  Trigger: /human-writing, /deslop.
 argument-hint: "[text|file|draft] [--audit|--rewrite|--in-place] [--voice terse|warm|technical|plain|blunt]"
 ---
 

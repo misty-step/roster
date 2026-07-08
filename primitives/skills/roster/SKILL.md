@@ -110,11 +110,6 @@ not the full bench.
 
 - Peer CLIs run cold: no conversation history, no local skills unless the
   harness loads them itself. Inline everything the lane needs.
-- Match the bench to the stakes (see **Adversarial bench**). A routine
-  second opinion is one well-aimed cross-family critic; fanning wide there
-  is theater. The real waste is a wide bench of the *same* family — variants
-  don't decorrelate — not a wide bench of distinct ones, which a P0 or
-  security/data-loss surface earns.
 - Auth rots independently per CLI. A lane failing instantly with an auth
   error means re-login locally, not a provider verdict.
 

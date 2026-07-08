@@ -1,15 +1,12 @@
 ---
 name: council
 description: |
-  Convene a council/thinktank: fan one question out to several DISTINCT
-  high-quality OpenRouter model families (via opencode/pi), each carrying a
-  different generative persona/perspective, then synthesize the divergent
-  thinking as chair. Generative deliberation — brainstorm, explore the option
-  space, weigh tradeoffs, decorrelated ideation, lock a contested direction.
-  Distinct from /roster's adversarial critique bench (that finds bugs in an
-  artifact; this generates and reframes). Use when: "convene a council",
-  "thinktank", "council of models", "brainstorm with different models", "get
-  diverse perspectives", "panel of AIs", "what would different experts think",
+  Convene a council of DISTINCT OpenRouter model families (via opencode/pi),
+  each in a generative persona, to think divergently about one question, then
+  synthesize as chair. The generative sibling of /roster's adversarial bench:
+  councils generate and reframe, roster critiques. Use when: "convene a
+  council", "thinktank", "brainstorm with different models", "get diverse
+  perspectives", "panel of AIs", "what would different experts think",
   "divergence pass", "ideate broadly", "stress-test this direction with other
   models". Trigger: /council, /thinktank.
 argument-hint: "[question|task]"
@@ -49,9 +46,10 @@ Two axes, both must vary — decorrelation comes from family × lens:
    frontier closed model on its own CLI (`codex`, `grok`, `agy`) for extra
    family spread.
    - **Slugs rot in days — never hardcode them.** Pull current top models live:
-     `roster`'s `references/model-provider-harness-index.md`, or the **OpenRouter
-     MCP** (`models-list`, `benchmarks`, `model-endpoints` for current quality +
-     pricing). `pi --provider openrouter --list-models <family>` lists live slugs.
+     `primitives/skills/roster/references/model-provider-harness-index.md`, or the
+     **OpenRouter MCP** (`models-list`, `benchmarks`, `model-endpoints` for
+     current quality + pricing). `pi --provider openrouter --list-models
+     <family>` lists live slugs.
 2. **Distinct generative personas.** One per member, pulling in different
    directions (builder vs simplifier vs user-advocate vs contrarian …). Library:
    `references/personas.md`. Compose a bespoke lens for the real question rather
@@ -75,12 +73,11 @@ shared history). Default `cli` is `opencode` (`opencode run --model
 openrouter/<slug>`); `pi` is the lighter no-tools alternative. See `/roster` for
 the exact headless forms.
 
-Timeout judgment is part of composition. The script default is 1200s per lane
-because strong reasoning models often need real wall time for cold, tool-using
-architecture questions. Use shorter caps only for smoke checks, slug probes, or
-cheap quick-divergence runs. For load-bearing design calls, keep the default or
-raise `--timeout` to 1800s; if a lane hits the cap, report it as caller-capped
-and rerun or exclude it before drawing model-quality conclusions.
+Timeout is a composition choice: the script default is 1200s because cold,
+tool-using reasoning lanes need real wall time. Shorten only for smoke checks or
+slug probes; raise `--timeout` to 1800s for load-bearing design calls. A lane
+that hits the cap was caller-capped — rerun or exclude it before reading it as a
+model-quality verdict.
 
 ## Synthesize as chair (the other half of the judgment)
 
@@ -108,9 +105,6 @@ Reading the lanes is the work — don't just paste them.
 - **Brainstorm ≠ converge in one shot.** Use the council to widen; then you (or
   a focused follow-up) narrow. Don't ask the bench to also pick the winner —
   that's the chair's job.
-- **Timeouts are caller evidence.** A reasoning lane that hits `--timeout` was
-  capped by the chair. Use short caps only intentionally, and don't blame the
-  model for a cap chosen too low for the task.
 - **Cost is real.** Bound the bench to the stakes; `--timeout` is still the
   runaway guard. The OpenRouter MCP `credits-get` shows remaining balance.
 
