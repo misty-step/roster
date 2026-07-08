@@ -26,6 +26,8 @@ skills:
     path: primitives/skills/shape/SKILL.md
   - name: harness-engineering
     path: primitives/skills/harness-engineering/SKILL.md
+  - name: mcp-design
+    path: primitives/skills/mcp-design/SKILL.md
   - name: research
     path: primitives/skills/research/SKILL.md
   - name: orient
