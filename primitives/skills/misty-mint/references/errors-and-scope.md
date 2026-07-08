@@ -4,7 +4,7 @@
 
 | Status | Meaning | What it means for you |
 |---|---|---|
-| `401` | Missing/invalid `X-Mint-Capability` | Your capability token is missing, expired, or wrong. Do not retry with a guessed token. |
+| `401` | No tailnet identity resolved for your connection | mint could not `tailscale whois` your real peer address — you are off-tailnet, coming through a laundering hop (`tailscale serve`/443, some proxy), or the node is unknown. Fix your network path; no header you send can change this. (Loopback dev `mint serve` only: a missing/invalid `X-Mint-Capability` token also 401s.) |
 | `403` | No matching policy rule (deny-by-default), or the matched rule has `approval_required: true` | mint made **zero** upstream calls either way. Ask the operator for a policy rule (or for the human-tap approval mint doesn't implement yet) — don't retry. |
 | `429` | Over budget (`max_calls` exceeded) | Session/rule call budget is exhausted. Stop calling this service until budget resets or is raised. |
 | `503` | Circuit breaker open for that host | The upstream host has been failing repeatedly; mint is short-circuiting. Back off. |
@@ -21,9 +21,13 @@ See mint's own `VISION.md` before assuming a capability beyond what ships today.
 - Only the egress HTTP proxy mode exists — no typed-action broker, no
   secretless protocol proxy (both declared in VISION.md, neither built).
 - Backing stores today: the macOS keychain (local) and env-var custody for
-  the deployed broker (`MINT_SECRET_*`, provisioned as Fly secrets). 1Password/
-  OpenBao are still future work.
-- Only shared-secret capability auth today — tailnet-WhoIs auth is future.
+  the deployed broker (`MINT_SECRET_*`, root-only env file on the droplet).
+  1Password/OpenBao are still future work.
+- Deployed auth is tailnet-whois (mint-924): your identity is your machine's
+  tailnet peer address. Shared-secret capability auth survives only for
+  loopback dev `mint serve`. There is NO auth path yet for non-tailnet
+  callers (DO App Platform apps, GitHub Actions CI) — that is mint-911's
+  OIDC work, not something to improvise around.
 - Only flat two-segment aliases (`secret://<service>/<name>`) — no
   hierarchical names.
 - `approval_required` policy rules currently **deny** the call outright. There

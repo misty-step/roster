@@ -4,12 +4,12 @@ description: |
   Use when an agent needs to make an outbound HTTP call to a vendor API
   (OpenAI, GitHub, Stripe, or any third-party service) and would otherwise
   need an API key, token, or other secret. mint is the fleet's agent
-  credential broker: route the call through mint's egress proxy carrying a
-  capability token and credential placeholders — never request, embed, or
+  credential broker: route the call through mint's egress proxy with a credential
+  placeholder — your tailnet identity IS the auth; never request, embed, or
   expect real credential bytes in agent context. Trigger phrases: "mint",
   "credential broker", "egress proxy", "call the API through mint", "I need
-  an API key", "capability token", "X-Mint-Capability", "secret
-  placeholder", "__mint.", "proxy call".
+  an API key", "OpenRouter key", "secret placeholder", "__mint.",
+  "proxy call".
 argument-hint: "[proxy|serve|policy-check|audit-tail|alias-list]"
 ---
 
@@ -31,38 +31,45 @@ result. Honest scope of what is and isn't built:
 
 ## Call mint (the agent path)
 
-Send the exact request you would have sent to the vendor to mint's proxy route,
-with the vendor scheme/host/path folded into the URL and a capability header
-added:
+You hold NOTHING — no token, no key, no auth header for mint itself
+(mint-924: identity is your machine's tailnet peer address, resolved
+server-side via `tailscale whois`; anything you put in a header cannot
+change who mint thinks you are). Send the exact request you would have sent
+to the vendor to mint's proxy route, with the vendor scheme/host/path folded
+into the URL and a placeholder where the credential would sit:
 
 ```
 {METHOD} {MINT_BASE_URL}/proxy/{scheme}/{host}/{*rest}
-X-Mint-Capability: <capability-token>
 <any forwarded header that would carry a real credential>: ...__mint.<service>.<name>__...
 ```
 
-Concrete — calling `https://api.openai.com/v1/responses` through the
-`openai.default` alias:
+Concrete — calling OpenRouter through the `openrouter.default` alias:
 
 ```sh
-curl -H "X-Mint-Capability: $MINT_CAPABILITY_TOKEN" \
-     -H "Authorization: Bearer __mint.openai.default__" \
-     -X POST "${MINT_BASE_URL}/proxy/https/api.openai.com/v1/responses" \
-     -d '{"model": "...", "input": "..."}'
+curl -H "Authorization: Bearer __mint.openrouter.default__" \
+     -X POST "${MINT_BASE_URL:-http://mint-5.tail5f5eb4.ts.net:4949}/proxy/https/openrouter.ai/api/v1/chat/completions" \
+     -d '{"model": "...", "messages": [...]}'
 ```
 
-- **`X-Mint-Capability`** carries a token scoped to mint itself (`aud: mint`,
-  short TTL, budgeted) — **not** a vendor credential. Missing or invalid → `401`.
-- **`__mint.<service>.<name>__`** goes anywhere a real credential value would sit
-  inside a *forwarded header*. mint swaps in the real secret after the request
-  leaves the sandbox — the agent never holds the value. It is the resolvable
-  form of the operator-facing alias `secret://<service>/<name>`.
-- **`MINT_BASE_URL`** — resolve from the environment at call time, never
-  hardcode. As of 2026-07-07 mint is the private Fly app `misty-mint` (org
-  misty-step): from another org Fly app, `http://misty-mint.internal:4949` over
-  6PN; from a laptop, `fly proxy 4949:4949 --app misty-mint` then
-  `http://127.0.0.1:4949`; local `mint serve` defaults to `http://127.0.0.1:4949`.
-  A stable tailnet URL is pending — keep resolving from the environment.
+- **`MINT_BASE_URL`** — prefer the environment; the deployed default is
+  `http://mint-5.tail5f5eb4.ts.net:4949` (dedicated tailnet droplet since
+  2026-07-08, do-migration-105; plain HTTP is correct — WireGuard is the
+  transport encryption, and the node name regains `mint` once stale Fly-era
+  registrations are cleaned). Local `mint serve` uses `http://127.0.0.1:4949`.
+  You must be a tailnet peer: calls from off-tailnet (or through `tailscale
+  serve`/443, which launders the peer address) are refused by design.
+- **`__mint.<service>.<name>__`** goes anywhere a real credential value would
+  sit inside a *forwarded header*. mint swaps in the real secret after the
+  request leaves your sandbox — you never hold the value. It is the
+  resolvable form of the operator-facing alias `secret://<service>/<name>`.
+- **Live aliases** (policy-gated per caller identity; deploy/policy.yaml in
+  the mint repo is the source of truth): `openrouter.default`
+  (openrouter.ai), `powder.default` (Powder on the bastion box),
+  `canary.default` (canary-obs). Fleet `tag:server` boxes and the operator's
+  own devices (`phrazzld@github`) hold rules today.
+- **`X-Mint-Capability`** is dev/loopback-only since mint-924 (local `mint
+  serve` smoke) — it is not the deployed agent path and mint refuses it from
+  anywhere but 127.0.0.1.
 - If there's no placeholder for the service you need, ask the operator to
   declare the alias and a matching policy rule — never fall back to an inline
   key "just this once."
@@ -76,10 +83,11 @@ blind: `references/errors-and-scope.md`. Operator CLI and the read-only MCP face
 - Never accept, request, or echo a real credential value. If one reaches your
   context from any source, that is a mint-bypass bug — stop and flag it, don't
   route around mint to "fix" the call.
-- Never hardcode `MINT_BASE_URL`. Resolve it from the environment at call time.
-- The capability token is sensitive despite being scoped and short-lived. Handle
-  it as a secret reference — never log it or paste it into code, commits, or
-  reports.
+- Prefer `MINT_BASE_URL` from the environment; the tailnet default above is
+  the documented fallback, not something to bake into committed code.
+- The dev-only capability token (loopback `mint serve`) is still sensitive.
+  Handle it as a secret reference — never log it or paste it into code,
+  commits, or reports.
 
 ## Verification
 
