@@ -17,11 +17,10 @@ incident?", "where do I claim backlog work?", and "where do I generate release
 intelligence?", graded against the router plus at least one live or fixture
 surface per app.
 
-Until then, the falsifier is drift in the generated Harness Kit catalog/docs
-and this audit matrix. Run:
+Until then, the falsifier is drift in the primitives catalog and this audit
+matrix. The roster gate validates frontmatter, referenced-path existence,
+skills-index/disk parity, and conflict markers:
 
 ```bash
-cargo run --locked -p harness-kit-checks -- generate-index --repo .
-cargo run --locked -p harness-kit-checks -- build-docs-site --repo .
-cargo run --locked -p harness-kit-checks -- check --repo .
+cargo run --locked -p roster-cli -- check
 ```

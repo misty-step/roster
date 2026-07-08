@@ -31,21 +31,21 @@ MCP policy in `.harness-kit/factory-mcps.yaml`.
 
 ## Operating Rule
 
-- Production debugging starts with Canary state. Query service health,
-  incidents, checks, and recent errors before making a repo-local hypothesis.
-- Backlog or issue state lives in Powder. Do not keep durable card state in
-  chat, TODO prose, or an ad-hoc markdown list when Powder is available.
-- Release questions start with Landmark. Do not hand-write release
-  intelligence from memory when the release app can describe the repo.
-- UI and artifact design starts with Aesthetic. Use its tokens, recipes,
-  registry, and law gate before adding one-off CSS vocabulary.
-- Dispatch architecture starts with Bitterblossom only when the work is Mode B:
-  triggered, scheduled, durable, reflexive, or event-driven. Ad-hoc operator
-  work remains Harness Kit / Mode A.
-- Any outbound call needing a credential starts with mint. An agent never
-  holds credential bytes: it carries a capability token plus placeholders
-  and lets mint resolve the secret at the proxy boundary. mint is not yet in
-  `.external/` (its own repo has no vendorable `SKILL.md` today) — read
+Use the owned app first (per the router); the non-obvious constraints:
+
+- **Canary** — query health, incidents, checks, and recent errors before
+  forming any repo-local hypothesis about production.
+- **Powder** — durable card state lives here, never in chat, TODO prose, or an
+  ad-hoc markdown list.
+- **Landmark** — ask it to describe the repo rather than hand-writing release
+  intelligence from memory.
+- **Aesthetic** — use its tokens, recipes, registry, and law gate before adding
+  one-off CSS vocabulary.
+- **Bitterblossom** — only when the work is Mode B (triggered, scheduled,
+  durable, reflexive, event-driven). Ad-hoc operator work stays Mode A.
+- **mint** — an agent never holds credential bytes; it carries a capability
+  token plus placeholders and lets mint resolve the secret at the proxy
+  boundary. Not in `.external/` yet (no vendorable `SKILL.md`) — read
   `primitives/skills/misty-mint/SKILL.md` directly.
 
 ## Current Audit
