@@ -9,6 +9,7 @@ description: >
   an image/diagram/figure", "vibe design", "wireframe to visual", "make a
   contact sheet", "art for this doc/poster/status". Reach for it during DESIGN
   work, not just illustration. Trigger: /image-gen.
+argument-hint: "[mockup|diagram|contact-sheet|figure] <subject and intent>"
 ---
 
 # image-gen
