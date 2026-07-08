@@ -99,10 +99,6 @@ includes the evidence map.
   to handle. Seed the hard edge.
 - Screenshots taken after manual poking are not a demo harness. Capture the
   reproduction command or route.
-- Marketing copy often overclaims silently. Build the evidence map before
-  polishing words.
-- A landing page should not explain the repo's internal process. It should
-  make the product, proof, and next action obvious.
 - Demo videos rot. Pin the commit, command, fixture, viewport, and generated
   artifacts.
 - Portfolio assets are sales assets. They must answer "why hire this operator?"

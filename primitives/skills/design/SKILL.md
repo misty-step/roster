@@ -1,17 +1,14 @@
 ---
 name: design
 description: |
-  Artifact-backed interface design: critique, polish, redesign, generate, and a
-  repo-owned design contract. One front door over a bench of design specialists —
-  routes to exactly one primary per role; you pick the aesthetic.
-  Requires screenshot, URL, rendered artifact, or explicit file plus intent.
-  Use when: "make this look better", "improve the design", "polish the UI",
-  "critique this screen", "design pass", "art direction", "make it premium",
-  "make it brutalist/minimalist", "deslop this", "scaffold design", "DESIGN.md",
-  "design system", "prototype this", "show me a few options", "mock up
-  variations", "is this accessible", docs layout, report polish, generated
-  diagrams/images, dashboards, charts, or any product-facing visual artifact.
-  Trigger: /design, /prototype.
+  Artifact-backed interface design over a bench of specialists — critique,
+  polish, redesign, generate, and a repo-owned design contract; routes one
+  primary per role, you pick the aesthetic. Needs a screenshot, URL, rendered
+  artifact, or file plus intent. Use when: "improve the design", "polish the
+  UI", "critique this screen", "make it premium/brutalist/minimalist", "deslop
+  this", "scaffold DESIGN.md", "prototype this", "show me options", "is this
+  accessible", or any product-facing visual artifact — docs layout, dashboards,
+  charts, diagrams. Trigger: /design, /prototype.
 argument-hint: "[audit|polish|redesign|scaffold|prototype|<preset>|<verb>] <artifact-or-surface>"
 ---
 
@@ -21,21 +18,15 @@ Critique and improve a rendered artifact against its intent — and route the
 specifics to the right specialist. `/design` is one front door over a bench of
 design skills: it owns the contract and the taste call and dispatches each job
 to exactly one primary per role. It is a **menu, not a pipeline** — every route
-below stands alone; none waits on another's output.
+below stands alone and none waits on another's output; chaining routes into a
+phase sequence is the workflow engine VISION.md forbids.
 
 ## The core contract (every route)
 
-These six are the method *within* a single design pass — how one route executes,
-not a sequence across routes. Pick the route that fits the job and run this once.
-
-1. Name the artifact: screenshot, URL, rendered file, route, or the source file
-   that produces the surface.
-2. Name the intent in one sentence: audience, job, desired feel.
-3. Inspect the rendered result when possible.
-4. State the design read: surface kind, audience, desired feel, constraints.
-5. Set the dials (below) for the surface.
-6. Return ranked, specific moves — or implement a bounded change — then verify
-   the render.
+The method *within* a single design pass, not a sequence across routes: name the
+artifact and its intent in one sentence, state the design read (surface kind,
+audience, desired feel, constraints), set the dials below, then return ranked
+specific moves or implement a bounded change — and verify the render.
 
 Refuse to make a final design judgment from code alone when a rendered surface
 can be inspected. If rendering is impossible, mark the design unverified.
@@ -55,6 +46,12 @@ not a restyle of one template:
 For greenfield generation, `nutlope-hallmark`'s genres (editorial / modern-
 minimal / atmospheric / playful) are a parallel preset axis — pick one there.
 
+Every generate/redesign route loads `anthropic-frontend-design` as its
+aesthetic-direction base: Anthropic's guidance for a distinctive point of view —
+opinionated palette, deliberate type pairing, one justified aesthetic risk,
+choices that never read as templated defaults. It sets the thesis; the preset
+and the structural skills below execute it.
+
 **Variance / Motion / Density** — set per `references/anti-slop.md` before
 building. A dashboard and a landing page sit at opposite ends; state the target.
 
@@ -68,7 +65,7 @@ not chain them into a sequence.
 | Critique / audit a rendered surface | `audit` | inspect + `impeccable audit` (shape: `references/critique-shape.md`) |
 | Final meticulous polish pass | `polish` | `jakub-make-interfaces-feel-better` (exact values) + `impeccable polish` |
 | Redesign an existing site, keep the stack | `redesign` | `impeccable audit`+`critique`; fold `leon-redesign-skill`'s a11y/SEO omissions checklist; direction menu in `references/taste-layer.md` |
-| Generate a page / identity from scratch | — | `nutlope-hallmark` (+ `leon-gpt-tasteskill` for GSAP/AIDA generation) |
+| Generate a page / identity from scratch | — | `anthropic-frontend-design` (aesthetic thesis) → `nutlope-hallmark` (structural anti-slop) (+ `leon-gpt-tasteskill` for GSAP/AIDA generation) |
 | Build UI to match a design image | — | `leon-images-taste-skill` (image-gen runtime is live — `primitives/shared/references/image-generation.md`) |
 | Generate an image / diagram / contact sheet of options | — | image-gen direct — NB2 Lite ~$0.03/img, legible in-image text; `primitives/shared/references/image-generation.md` |
 | Motion — author it | `animate` | `emil-emil-design-eng` |
@@ -144,6 +141,8 @@ cross-model critics or `/sprites` only when they answer a distinct question.
 
 ## References
 
+- `anthropic-frontend-design` (vendored) — aesthetic-direction base for every
+  generate/redesign route: distinctive point of view, typography, anti-template.
 - `references/scaffold.md` — repo-owned `DESIGN.md` in the `@google/design.md`
   format (`lint` + DTCG export) and `design-contract.md` provenance.
 - `references/design-system.md` — token and component-system judgment.
@@ -189,16 +188,10 @@ phase keeps design-specific fields.
 
 ## Gotchas
 
-- Design critique without an inspected artifact is speculation.
-- The routes are a flat menu: never sequence them into a phase pipeline. No
-  route depends on another route's output — that drift is the workflow engine
-  VISION.md forbids.
 - Aesthetic preference is not blocking unless it hurts comprehension, trust,
   conversion, accessibility, or domain fit.
 - Generic "modernize" moves are slop when they ignore audience, density, or the
   existing system.
-- Never hide UI defects behind feature explanations. Point to the visible
-  artifact and the concrete change.
 - Meta-copy in UI is a design defect: real product policy, privacy, draft-state,
   or compliance copy is fine when the user is meant to see it; leaking the
   agent's caution is not.

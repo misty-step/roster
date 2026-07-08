@@ -1,10 +1,9 @@
 ---
 name: vision
 description: |
-  Create or update root VISION.md as a first-class project north-star artifact.
-  Conversational project interrogation, repo/workspace research, competitive or
-  exemplar scan, lifespan clarification, philosophy distillation, and wiring
-  repo-local harness primitives to read it. Use when: "vision", "vision.md",
+  Create or update root VISION.md as a first-class project north-star artifact:
+  conversational interrogation, repo research, philosophy distillation, and
+  wiring repo-local primitives to read it. Use when: "vision", "vision.md",
   "project vision", "north star", "what is this project", "clarify product
   direction", "write/update VISION.md", "project philosophy", "why does this
   repo exist". Trigger: /vision, /north-star.
@@ -72,10 +71,10 @@ test -f VISION.md
 rg -n "VISION\\.md" AGENTS.md .agents .codex .claude .pi .antigravitycli skills 2>/dev/null
 ```
 
-Then run the repo's named gate. In Harness Kit itself, that is:
+Then run the repo's named gate. In roster itself, that is:
 
 ```sh
-cargo run --locked -p harness-kit-checks -- check --repo .
+cargo run --locked -q -p roster-cli -- check
 ```
 
 ## Gotchas
