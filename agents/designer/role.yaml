@@ -26,6 +26,9 @@ skills:
   - name: qa
     path: /Users/phaedrus/Development/roster/primitives/skills/qa/SKILL.md
     reason: visual regression pass after a polish commit
+  - name: image-gen
+    path: /Users/phaedrus/Development/roster/primitives/skills/image-gen/SKILL.md
+    reason: mockups, redesign concepts, and contact sheets at the front of the design funnel — operator-ratified default 2026-07-08
 mcps: []
 subagent_rights:
   may_dispatch: false
