@@ -60,3 +60,5 @@ skills:
     path: primitives/skills/vision/SKILL.md
   - name: mint
     path: primitives/skills/misty-mint/SKILL.md
+  - name: image-gen
+    path: primitives/skills/image-gen/SKILL.md
