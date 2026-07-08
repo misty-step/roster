@@ -52,9 +52,13 @@ skills:
     path: primitives/skills/roster/SKILL.md
   - name: skill-eval
     path: primitives/skills/skill-eval/SKILL.md
+  - name: eval-design
+    path: primitives/skills/eval-design/SKILL.md
   - name: todoist
     path: primitives/skills/todoist/SKILL.md
   - name: vision
     path: primitives/skills/vision/SKILL.md
+  - name: mint
+    path: primitives/skills/misty-mint/SKILL.md
   - name: image-gen
     path: primitives/skills/image-gen/SKILL.md
