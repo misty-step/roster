@@ -37,14 +37,13 @@ grader run on *different model families* than each other.
   failing instantly is usually a dead slug or auth lapse, not a verdict.
 - Grader lane: a family distinct from *every* worker lane.
 
-## The clean A/B knob (lane_harness)
+## The clean A/B knob (enforced skill visibility)
 
-When the harness should *enforce* skill visibility rather than trust the prompt,
-use a `lane_harness.v1` manifest
-(`crates/harness-kit-checks/src/lane_harness.rs`): arm A sets
-`allowed_local_skills: ["<skill>"]`, arm B sets `allowed_local_skills: []`. Same
-`provider_target`, same `oracle`, same `evidence_expectations`. "Skill on vs off"
-becomes a manifest diff, not an honor-system instruction the worker can ignore.
+The prompt-level "invoke the skill / don't mention it" split is honor-system —
+a worker can ignore it. When the harness can *enforce* skill visibility, prefer
+that: arm A allows only `<skill>`, arm B allows none, with the same provider
+target, oracle, and evidence expectations, so "skill on vs off" is a config diff
+rather than an instruction the worker can defy.
 
 ## Evidence packet
 
@@ -59,5 +58,5 @@ becomes a manifest diff, not an honor-system instruction the worker can ignore.
 ```
 
 Sanitize: final artifacts + scored receipts only. No secrets, no raw provider
-logs, no customer data (`backlog.d/112` non-goals). Decision label is one of
-`keep` / `adapt` / `cut` / `needs-more-tasks` / `graduate-to-Daedalus`.
+logs, no customer data. Decision label is one of `keep` / `adapt` / `cut` /
+`needs-more-tasks` / `graduate-to-Daedalus`.

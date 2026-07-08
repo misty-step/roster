@@ -1,13 +1,12 @@
 ---
 name: skill-eval
 description: |
-  Prove a skill beats no-skill with a falsifiable A/B eval, or retire it.
-  Design, generate, run, and maintain a skill-specific eval: name the one
-  claim the skill must earn, run it skill-on vs raw same-model, grade blind
-  with objective checks first, return a keep/adapt/cut verdict.
+  Prove a harness skill beats no-skill with a falsifiable A/B eval, or retire
+  it: name the one claim the skill must earn, run it skill-on vs raw same-model,
+  grade blind, return a keep/adapt/cut verdict. For designing an eval for a
+  product or model, use /eval-design instead.
   Use when: "eval this skill", "does this skill help", "prove the skill beats
-  no skill", "write an eval for", "benchmark a skill", "is this skill worth
-  it", "skill A/B", "skill regression test", "generate skill evals".
+  no skill", "write an eval for a skill", "skill A/B", "skill regression test".
   Trigger: /skill-eval, /eval-skill, /prove-skill.
 argument-hint: "[skill-name] [--generate|--run|--smoke]"
 ---
@@ -44,7 +43,7 @@ pass bar a no-op revision fails, a run log. The protocol contract is
      same repo access, no skill.
    - **C (optional)** — a credible alternative primitive (external skill,
      Ponytail for simplicity pressure). Add only when one exists; A-vs-B is the
-     floor (backlog 112's three-condition shape).
+     floor.
    Drive it per `references/run-recipe.md` (native-subagent smoke = free;
    `council.sh` + decorrelated families = the serious run).
 4. **Grade blind, objective first.** The grader sees the artifacts and the
@@ -89,9 +88,8 @@ A full pass is ~15–18 runs (paid, slow). Do not gate every edit on it.
   stronger bare model erodes every skill's edge; the skill that beat raw on the
   old model may be railroading on the new one. The eval is how you find the
   skills to retire.
-- **Continuous** → telemetry (`harness-kit-checks telemetry`): did it trigger
-  when it should, did loaded sessions cost more than they returned. Context, not
-  proof (backlog 112).
+- **Continuous** → usage telemetry: did it trigger when it should, did loaded
+  sessions cost more than they returned. Context, not proof.
 - **Calibration (the human anchor)** → every eval carries ≥1 fixture the operator
   graded blind; the agent grader is trusted only while its verdict matches that
   anchor. Re-anchor when the rubric changes, the worker model upgrades, or
@@ -130,7 +128,6 @@ A full pass is ~15–18 runs (paid, slow). Do not gate every edit on it.
 | eval protocol contract | `primitives/skills/harness-engineering/references/mode-eval.md` |
 | canonical worked eval | `primitives/skills/design/evals/routing-eval.md` |
 | first instance | `primitives/skills/shape/evals/shape-eval.md` |
-| parent backlog spec | `backlog.d/112-harness-eval-bench.md` |
 
 ## Verification
 
@@ -140,9 +137,8 @@ sanitized artifacts + scored receipts only, never raw transcripts with secrets.
 A run is real only when it produced both arms and a grader verdict that *could*
 have gone the other way.
 
-`cargo run --locked -p harness-kit-checks -- check-eval-coverage --repo .`
-(folded into the repo gate) enforces that every first-party skill has either
-an eval spec or a live, unexpired `primitives/skills/<skill>/evals/WAIVER.md` — see
-`primitives/skills/harness-engineering/references/skill-design-principles.md`'s "New
-Skill: Eval Scaffold Is Not Optional" for the exact new-skill scaffolding
-steps this gate enforces.
+Every first-party skill carries either an eval spec or a live, unexpired
+`primitives/skills/<skill>/evals/WAIVER.md` — a waiver is a time-boxed deferral,
+not a permanent opt-out. The exact new-skill scaffolding steps live in
+`primitives/skills/harness-engineering/references/skill-design-principles.md`
+("New Skill: Eval Scaffold Is Not Optional").

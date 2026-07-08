@@ -117,13 +117,10 @@ Post-fix question: "If we revert in 6 months, does the problem return?" Rank
 
 ## Red Flags — Stop and Rebuild the Loop
 
-- "Quick fix for now, investigate later"
-- "Just try changing X and see"
-- Multiple simultaneous changes
-- Proposing solutions before tracing data flow
-- "One more fix attempt" (when 2+ already tried) — see the architecture check
-  in `references/systematic-debugging.md`
-- Each fix reveals a new problem in a different place
+- Multiple simultaneous changes, or a fix proposed before data flow is traced.
+- "One more fix attempt" when 2+ already failed — run the architecture check in
+  `references/systematic-debugging.md` instead.
+- Each fix reveals a new problem elsewhere — the loop is aimed at the wrong seam.
 
 ## Completion Gate
 

@@ -17,16 +17,15 @@ explicitly asks for product change.
 
 ## Goal Articulation
 
-Start by setting an explicit active goal when the harness supports goal
-tracking. Do not write "refactor until happy." Write a goal with:
+Set an explicit active goal — not "refactor until happy," a goal with:
 
 - **Outcome:** the architectural property that will be true.
 - **Scope:** subsystem, files, routes, or public surface in bounds.
 - **Fitness tests:** live command, route, consumer build, or browser path that
-  must keep passing after each significant step.
-- **Verification system:** when the fitness test is not already a credible
-  proof loop, load `primitives/shared/references/verification-system-first.md`
-  and define claim, falsifier, driver, grader, evidence packet, and cadence.
+  must keep passing after each significant step. When the fitness test is not
+  already a credible proof loop, define claim, falsifier, driver, grader,
+  evidence packet, and cadence per
+  `primitives/shared/references/verification-system-first.md`.
 - **Stop rule:** what evidence means the architecture is good enough.
 
 Good shape:
@@ -40,63 +39,51 @@ architecture concern, and no broader behavior change is needed.
 
 ## Progress File
 
-Create `/tmp/refactor-{project}.md` immediately. Keep it current; it is the
-handoff if the session dies.
-
-Track:
-
-- Goal, scope, fitness tests, and stop rule.
-- Current architecture read: key modules, smells, constraints.
-- Quality system: standards, proof methods, critic topology, and stop rules
-  from `primitives/shared/references/quality-system.md`.
-- Milestones: planned, active, done.
-- Live-test receipts after each significant step.
-- Review findings, decisions, commits, and residual risk.
-
-Do not put secrets, raw credentials, or private customer data in `/tmp`.
+Create `/tmp/refactor-{project}.md` immediately and keep it current — it is the
+handoff if the session dies. Track the goal/scope/fitness/stop rule, the current
+architecture read (modules, smells, constraints), the quality system
+(`primitives/shared/references/quality-system.md`), milestones (planned/active/
+done), live-test receipts, and review findings, commits, and residual risk. No
+secrets or private customer data in `/tmp`.
 
 ## Working Loop
 
 1. **Read shape before edits.** Map module ownership, public interfaces,
-   invariants, and the live verification path. If no live path exists, build
-   or name the smallest credible one first; a refactor without a falsifiable
+   invariants, and the live verification path. If no live path exists, build or
+   name the smallest credible one first — a refactor without a
    behavior-preservation loop is a rewrite in disguise.
-2. **Choose one architectural pressure.** Examples: split ownership, shallow
-   wrapper, dependency direction, duplicated data shape, feature logic hiding
-   in UI glue. See `primitives/shared/references/delete-first.md` (Ponytail:
+2. **Choose one architectural pressure.** Split ownership, shallow wrapper,
+   dependency direction, duplicated data shape, feature logic hiding in UI glue.
+   See `primitives/shared/references/delete-first.md` (Ponytail:
    `primitives/skills/.external/dietrich-ponytail/SKILL.md`). Do not tidy
    everything.
-3. **Make one significant step.** Significant means a moved boundary, deleted
-   abstraction, renamed public concept, data-flow simplification, or large-file
-   split. Mechanical formatting is not a milestone.
+3. **Make one significant step** — a moved boundary, deleted abstraction,
+   renamed public concept, data-flow simplification, or large-file split.
+   Mechanical formatting is not a milestone, and a step you cannot test and
+   commit independently is too large.
 4. **Live-test immediately.** Use the repo's verification path, `/qa`, or the
-   surface-specific route. Unit tests alone are insufficient for a milestone.
-5. **Autoreview the milestone.** Use fresh-context critique when substantive.
-   Critics get the artifact and the oracle only — never the author's
-   reasoning trail (shared AGENTS.md: Fresh context beats self-review); here
-   that's the diff + architecture goal + fitness tests. Fix blockers before
-   continuing. Scale the critic topology with
+   surface-specific route. Refactors break integration seams; unit tests alone
+   do not close a milestone.
+5. **Autoreview the milestone** with fresh-context critique when substantive.
+   Critics get the artifact and the oracle only — never the author's reasoning
+   trail (shared AGENTS.md: Fresh context beats self-review); here that's the
+   diff + architecture goal + fitness tests. Scale critic topology with
    `primitives/shared/references/quality-system.md`; a risky boundary change
-   earns more than one lens.
-6. **Commit green milestones.** One concern per commit. The progress file stays
-   in `/tmp`, not the repo, unless the operator asks for a durable plan.
-7. **Reassess stop rule.** Continue only while another high-leverage
-   architecture pressure remains inside scope and the live loop stays cheap.
+   earns more than one lens. Fix blockers before continuing.
+6. **Commit green milestones.** One concern per commit.
+7. **Reassess the stop rule.** Continue only while another high-leverage
+   architecture pressure remains in scope and the live loop stays cheap.
 
 ## Delegation Judgment
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster).
+Delegate per the shared Roster contract (shared AGENTS.md: Roster). Useful
+lanes: an Explore lane to map ownership and coupling before edits, a critic lane
+to attack the goal or a milestone diff, a QA lane to exercise the live surface
+when the lead cannot drive it cheaply.
 
-Useful lanes:
-
-- Explore lane: map ownership and coupling before edits.
-- Critic lane: attack the architecture goal or a milestone diff.
-- QA lane: exercise the live surface if the lead cannot drive it cheaply.
-
-Default harsh critic: load the synced
-`thermo-nuclear-code-quality-review` skill
-(`primitives/skills/.external/cursor-thermo-nuclear-code-quality-review/SKILL.md`) for
-milestone diffs that add abstractions, split modules, cross file-size
+Default harsh critic: the synced `thermo-nuclear-code-quality-review` skill
+(`primitives/skills/.external/cursor-thermo-nuclear-code-quality-review/SKILL.md`)
+for milestone diffs that add abstractions, split modules, cross file-size
 thresholds, or claim "cleaner architecture." julius-caveman for interim
 synthesis only; findings, code, commits, and final artifacts stay normal
 English.
@@ -117,27 +104,16 @@ Stop and report instead of improvising when:
   live proof, and review signal.
 - **Architecture theater.** Renames, folders, and wrappers do not count unless
   they reduce coupling, clarify ownership, or delete a real failure mode.
-- **Unfenced win.** A god-file split, a killed dependency, or a corrected
-  dependency direction with no gate to stop it regrowing comes back. Ratchet the
-  structural win into a standing gate — a fitness function, a god-file baseline —
-  per `primitives/shared/references/quality-gates.md`.
-- **Big-bang rewrite.** If you cannot test and commit the step independently,
-  the step is too large.
-- **Test-only proof.** Refactors break integration seams; run the live surface
-  after each meaningful boundary change.
-- **Review after everything.** Late review finds foundational mistakes too
-  late. Review milestone diffs while reversal is cheap.
-- **Untracked progress.** If `/tmp/refactor-{project}.md` is stale, the
-  refactor is no longer resumable.
+- **Unfenced win.** A god-file split or corrected dependency direction with no
+  gate to stop it regrowing comes back. Ratchet the structural win into a
+  standing gate — a fitness function, a god-file baseline — per
+  `primitives/shared/references/quality-gates.md`.
 
 ## Completion Gate
 
 See `primitives/shared/AGENTS.md` (Completion Evidence and Closeout) for the
-shared core. `/refactor` adds:
-
-- Goal stop rule satisfied or explicitly blocked.
-- Every significant step has a live-test receipt.
-- Blocking review findings fixed or rejected with a reason.
-- Meaningful milestones committed.
-- `/tmp/refactor-{project}.md` names final architecture, commits,
-  verification, residual risk, and follow-up pressure outside scope.
+shared core. `/refactor` adds: the goal stop rule satisfied or explicitly
+blocked; a live-test receipt for every significant step; blocking review
+findings fixed or rejected with a reason; meaningful milestones committed; and
+`/tmp/refactor-{project}.md` naming final architecture, commits, verification,
+residual risk, and follow-up pressure outside scope.
