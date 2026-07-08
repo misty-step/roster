@@ -13,6 +13,14 @@ Do not touch:
 Stop conditions:
 Receipt expectation:
 Lane harness: none
+Glass status beats:
+- Publish session start, milestone, blocked, and shipped one-line beats to
+  Glass in the same session.
+- Resolve `GLASS_URL` as `${GLASS_URL:-https://bastion.tail5f5eb4.ts.net:10003}`.
+- Use `glass publish` when the binary is available and wired to the live Glass
+  store; otherwise use `${GLASS_URL%/}/mcp` or `${GLASS_URL%/}/api/posts`.
+- Contract and copy-paste commands:
+  `primitives/skills/sprites/references/glass-status-beats.md`.
 
 ## Launch
 

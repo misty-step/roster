@@ -53,8 +53,12 @@ configuration, PR text, or a shippable artifact. Do not fake unknown values.
 The unit of delegated work, identical for local subagents, roster
 providers, sprites, and Mode B workers: end state, success criteria,
 verification affordances, boundaries, output shape, receipt expectation.
-Template: `skills/sprites/templates/lane-card.md`. The card is the entire
-context the remote agent gets; the oracle field is load-bearing.
+Template: `primitives/skills/sprites/templates/lane-card.md`. The card is the
+entire context the remote agent gets; the oracle field is load-bearing. Every
+roster-dispatched lane also carries the Glass status-beat contract in
+`primitives/skills/sprites/references/glass-status-beats.md`: session start,
+milestone, blocked, and shipped beats in one Glass session, with blocked asks
+also going through Powder `request_input`.
 
 ## 4. Receipts
 
