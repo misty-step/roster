@@ -20,6 +20,14 @@ fn workspace_root() -> PathBuf {
 fn roster_cmd() -> Command {
     let mut command = Command::cargo_bin("roster").expect("roster binary");
     command.current_dir(workspace_root());
+    // The real binary self-reports to Canary on every invocation
+    // (`roster_canary::check_in`/`report_error` in `main`). Strip any
+    // ambient `CANARY_*` env so running this suite in a shell configured
+    // for production Canary access never fires real check-ins/errors.
+    command
+        .env_remove("CANARY_ENDPOINT")
+        .env_remove("CANARY_API_KEY")
+        .env_remove("CANARY_INGEST_KEY");
     command
 }
 
@@ -826,10 +834,7 @@ fn synced_agent_files_keep_frontmatter_at_byte_zero() {
     // Claude Code silently ignores an agent file whose frontmatter is not the
     // first bytes — the sync marker must land AFTER the frontmatter block.
     let home = tempfile::tempdir().expect("home");
-    let root = workspace_root();
-    Command::cargo_bin("roster")
-        .expect("roster binary")
-        .current_dir(&root)
+    roster_cmd()
         .args([
             "sync",
             "--home",

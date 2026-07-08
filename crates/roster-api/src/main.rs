@@ -19,6 +19,14 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    roster_canary::init("roster-api", "roster-api");
+    roster_canary::init_tracing();
+    roster_canary::install_panic_hook();
+    // Standing service: fires a check-in immediately, then every 60s for as
+    // long as this process runs -- a one-shot `check_in()` would go falsely
+    // overdue once the server outlives one TTL window.
+    roster_canary::start_health_loop();
+
     let cli = Cli::parse();
     let addr = format!("{}:{}", cli.bind, cli.port);
     let listener = TcpListener::bind(&addr)

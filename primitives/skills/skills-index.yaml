@@ -58,3 +58,5 @@ skills:
     path: primitives/skills/todoist/SKILL.md
   - name: vision
     path: primitives/skills/vision/SKILL.md
+  - name: mint
+    path: primitives/skills/misty-mint/SKILL.md

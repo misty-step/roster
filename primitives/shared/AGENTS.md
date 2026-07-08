@@ -162,7 +162,16 @@ desktop-app/user-session integration (`op --account <name>`), which pops an
 interactive authorize modal on every process and stalls the operator. With the
 token set, `op` hits the API directly and never prompts. On this machine the
 token lives in the macOS Keychain and the exact bootstrap is
-`export OP_SERVICE_ACCOUNT_TOKEN="${OP_SERVICE_ACCOUNT_TOKEN:-$(security find-generic-password -a "$USER" -s op-agent -w 2>/dev/null)}"`.
+`export OP_SERVICE_ACCOUNT_TOKEN="${OP_SERVICE_ACCOUNT_TOKEN:-$(security find-generic-password -a "$USER" -s op-agent -w 2>/dev/null)}" OP_LOAD_DESKTOP_APP_SETTINGS=false OP_CACHE=false`.
+`OP_LOAD_DESKTOP_APP_SETTINGS=false` is load-bearing on macOS Tahoe
+(root-caused 2026-07-07): without it every `op` invocation — even pure
+service-account mode — opens the 1Password desktop app's Group Container to
+load app settings, App Data Protection blocks that open() behind the TCC
+prompt "op would like to access data from other apps", op hangs indefinitely
+per invoking context, and each hung call leaves a wedged `op daemon
+--background` zombie (110 were found accumulated). Clicking Allow never
+sticks because each invoking context (Codex, launchd jobs, terminals,
+env-cleared runners) prompts separately while fleet automation keeps firing.
 Zsh loads it automatically via `~/.zshenv`, but sanitized contexts do NOT
 inherit it — `bash -c`/`bash -lc` scripts, MCP-server bootstrap commands
 (harnesses spawn MCP servers with a minimal env), daemons/LaunchAgents, cron,
