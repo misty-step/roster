@@ -54,7 +54,7 @@ every subsequent change ships through it and leaves an evidence packet
 behind. Unit tests prove units; only the live loop catches the bug that
 exists between them. An eval or benchmark delta inside its noise floor is not a
 result: size the sample to the effect, report a confidence interval, and compare
-paired against a baseline. Detail: `harnesses/shared/references/verification-system-first.md`.
+paired against a baseline. Detail: `primitives/shared/references/verification-system-first.md`.
 
 ### Delete before adding
 Small surface area. The best change removes code; new surface must earn itself.
@@ -70,7 +70,7 @@ programs — prose mass is code mass. Spines carry mechanism budgets (LOC
 tripwires raised only with a named justification); workloads and judgment
 live outside them. When identities and tickets exist, briefs shrink: the
 master's dispatch is three lines. Detail:
-`harnesses/shared/references/collapse-toward-declaration.md`.
+`primitives/shared/references/collapse-toward-declaration.md`.
 
 ### Test behavior, not implementation
 Assert observable outputs through public interfaces. Tests that assert call
@@ -96,7 +96,7 @@ downstream reader is an LLM, carry the information as rich or fuzzy context and
 add rigid schema, required fields, or fixed taxonomies only where deterministic
 code must branch on the value. Reflexive structure around AI-adjacent seams is a
 recurring failure mode — the model needs the information, not the schema. Detail:
-`harnesses/shared/references/model-native-product-primitives.md`.
+`primitives/shared/references/model-native-product-primitives.md`.
 
 ### Ship the application floor
 Every Misty Step application carries a standing floor: public marketing site,
@@ -105,7 +105,7 @@ near-total test coverage across unit/integration/e2e, Rust-or-strongest-types,
 and push-button onboarding that ends at verified-live (doctor proves it), not
 installed. Grooming treats a missing item as a backlog gap; shapes name a
 per-item waiver or include it. Detail:
-`harnesses/shared/references/application-floor.md`.
+`primitives/shared/references/application-floor.md`.
 
 ### Do not lower gates
 Never disable a test, loosen a lint rule, or weaken a threshold to get green.
@@ -114,7 +114,7 @@ the check optimizes the check, not the quality — so standing gates must be
 tamper-evident, externally enforced, and ratcheted, never self-attested. The
 repo's standing quality floor — the three tiers, the gate-the-diff model, and
 the meaningful-not-arbitrary forms — lives in
-`harnesses/shared/references/quality-gates.md`.
+`primitives/shared/references/quality-gates.md`.
 
 ## Layer 2 — Agent-Specific Gotchas
 
@@ -151,44 +151,26 @@ affordances and say which you checked: project `.env`/`.env.*`, `~/.secrets`,
 and CLI/cloud auth already on the machine (`gh auth token`, `fly auth`,
 sprite/sprites config, `~/.aws`, kube context, `op`/keychain). Production infra
 you assume is "operator-only" — sprite reprovision, Fly deploys, secret reads —
-is usually runnable from the local checkout because the tokens are on disk
-(found live 2026-06: `SPRITES_TOKEN`/`FLY_API_TOKEN`/`GITHUB_PAT` sat in
-`orchestrator/.env` while a multi-hour "credential wall" was narrated). Try the
-action and report the actual failure; never narrate a wall you have not hit.
-Read secrets to use them via env refs — never print their values. For `op`
-(1Password) in an agent loop, authenticate with a service account token
-(`OP_SERVICE_ACCOUNT_TOKEN`); without it `op` falls back to the
-desktop-app/user-session integration (`op --account <name>`), which pops an
-interactive authorize modal on every process and stalls the operator. With the
-token set, `op` hits the API directly and never prompts. On this machine the
-token lives in the macOS Keychain and the exact bootstrap is
+is usually runnable from the local checkout because the tokens are on disk.
+Try the action and report the actual failure; never narrate a wall you have
+not hit.
+
+Read secrets to use them via env refs — never print their values. `~/.secrets`
+holds `op://` REFERENCES, not literal values: `source ~/.secrets` gives you a
+reference string — resolve at point of use (`op read "$VAR"`), never pass it as
+a credential. The tell that you forgot: an auth header or key that starts with
+`op://`, and 401s from a service that worked earlier. For `op` (1Password) in
+an agent loop, authenticate with a service-account token; any command that
+calls `op` from a sanitized context (`bash -c`/`bash -lc`, MCP-server bootstrap
+commands, daemons/LaunchAgents, cron, env-cleared runners) must carry this
+bootstrap line first:
 `export OP_SERVICE_ACCOUNT_TOKEN="${OP_SERVICE_ACCOUNT_TOKEN:-$(security find-generic-password -a "$USER" -s op-agent -w 2>/dev/null)}" OP_LOAD_DESKTOP_APP_SETTINGS=false OP_CACHE=false`.
-`OP_LOAD_DESKTOP_APP_SETTINGS=false` is load-bearing on macOS Tahoe
-(root-caused 2026-07-07): without it every `op` invocation — even pure
-service-account mode — opens the 1Password desktop app's Group Container to
-load app settings, App Data Protection blocks that open() behind the TCC
-prompt "op would like to access data from other apps", op hangs indefinitely
-per invoking context, and each hung call leaves a wedged `op daemon
---background` zombie (110 were found accumulated). Clicking Allow never
-sticks because each invoking context (Codex, launchd jobs, terminals,
-env-cleared runners) prompts separately while fleet automation keeps firing.
-Zsh loads it automatically via `~/.zshenv`, but sanitized contexts do NOT
-inherit it — `bash -c`/`bash -lc` scripts, MCP-server bootstrap commands
-(harnesses spawn MCP servers with a minimal env), daemons/LaunchAgents, cron,
-and any runner that clears the environment (e.g. bitterblossom's local
-substrate). Any command that calls `op` in such a context must carry that
-bootstrap line first (root cause of the 2026-07-04 authorize-modal storm: a
-codex MCP bootstrap ran bare `op read` on every codex launch); falling back to
-the interactive path, or re-fetching the token through it on each call, is the
-anti-pattern. Since 2026-07-07, `~/.secrets` holds `op://` REFERENCES,
-not literal values (harness-kit-914): `source ~/.secrets` gives you a
-reference string — resolve at point of use (`op read "$VAR"`), never pass it
-as a credential. The tell that you forgot: an auth header or key that starts
-with `op://`, and 401s from a service that worked earlier. MCP server
-registrations must resolve refs in their bootstrap command (servers cache
-env at session start). When `op` itself is unavailable, the machine keychain
-is the sanctioned fallback (e.g. `security find-generic-password -a "$USER"
--s powder-api-key -w`); reconcile back to 1Password when it heals.
+MCP server registrations must resolve refs in their bootstrap command (servers
+cache env at session start). When `op` itself is unavailable, the machine
+keychain is the sanctioned fallback (e.g. `security find-generic-password -a
+"$USER" -s powder-api-key -w`); reconcile back to 1Password when it heals. Why
+each flag is load-bearing, the Tahoe root cause, and the incident history:
+`primitives/shared/references/op-1password-bootstrap.md`.
 
 ### Think in HTML for plans
 For non-trivial execution plans and context packets, author the plan directly
@@ -222,7 +204,7 @@ simple architecture notes should stay text-first. Not decoration. Use your
 harness's native image tool if it has one (Codex `image_gen`); otherwise call
 the Gemini API directly — it is a model-native primitive, not a maintained
 wrapper script. Detail:
-`harnesses/shared/references/image-generation.md`.
+`primitives/shared/references/image-generation.md`.
 
 ### Fresh context beats self-review
 Same-model self-critique is theater — a reviewer inheriting the author's
@@ -240,7 +222,7 @@ own decomposition. Do not pre-shred work into atomic tasks; a lane that
 cannot verify itself is under-oracled, not under-decomposed.
 For substantive work, define the quality system before execution: standards,
 independent proof methods, critic topology, and stop rules
-(`harnesses/shared/references/quality-system.md`).
+(`primitives/shared/references/quality-system.md`).
 **Milestone critic gate:** at each implementation milestone, a fresh
 read-only critic sees only the diff + the packet oracle + the todo and must
 return no blocking gap before work advances — prefer a different model
