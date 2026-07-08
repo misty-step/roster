@@ -4,7 +4,7 @@ description: |
   Engineer Harness Kit primitives: skills, shared doctrine, provider roster,
   harness configs, gates, evals, bootstrap, sync. Use for "improve the harness",
   "harness engineering", "bootstrap is wrong", "AGENTS.md is stale", "skill
-  health", "undertriggering skill", "eval skill", "sync primitives",
+  health", "undertriggering skill", "description tax", "eval skill", "sync primitives",
   "stack/infrastructure defaults", "one core many faces", "API/CLI/MCP/SDK skill
   template", "factory product template", "generate repo-local skill", "domain
   agent skill". Trigger: /harness-engineering, /harness, /skill.

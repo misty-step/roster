@@ -192,6 +192,8 @@ phase keeps design-specific fields.
   conversion, accessibility, or domain fit.
 - Generic "modernize" moves are slop when they ignore audience, density, or the
   existing system.
+- Never hide UI defects behind feature explanations. Point to the visible
+  artifact and the concrete change.
 - Meta-copy in UI is a design defect: real product policy, privacy, draft-state,
   or compliance copy is fine when the user is meant to see it; leaking the
   agent's caution is not.

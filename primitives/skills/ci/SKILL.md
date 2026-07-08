@@ -5,7 +5,7 @@ description: |
   repo-owned contract that local, GitHub Actions, Azure, or any runner calls.
   Roster's own gate is fmt/clippy/test plus `cargo run --locked -p roster-cli
   -- check`; consumer repos keep their native gate. Use when: "run ci",
-  "fix ci", "ci is red", "audit/design/strengthen CI", "host-agnostic CI",
+  "fix ci", "ci is red", "is ci passing", "audit/design/strengthen CI", "host-agnostic CI",
   "Dagger", "gates are slow". Trigger: /ci, /gates.
 argument-hint: "[--audit-only|--run-only]"
 ---
