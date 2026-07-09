@@ -13,11 +13,11 @@ mcps:
     command: bash
     args:
       - -c
-      - source ~/.secrets && exec powder-mcp
+      - source ~/.secrets 2>/dev/null; export POWDER_API_KEY="$(security find-generic-password -a "$USER" -s powder-admin-key -w 2>/dev/null || echo "$POWDER_API_KEY")" POWDER_MCP_TOOLSETS=all; exec powder-mcp
     env_refs:
       - POWDER_API_BASE_URL
       - POWDER_API_KEY
-    notes: Canonical Powder remote conventions come from ~/.secrets.
+    notes: The owner orchestrator resolves the sanctioned Keychain admin credential; ~/.secrets remains the endpoint and fallback-key source.
   - name: todoist
     transport: http
     url: https://ai.todoist.net/mcp
