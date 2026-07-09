@@ -39,6 +39,10 @@ screenshots, the DNA-not-dress protocol in
 `references/external-design-references.md` binds every lane. Route to `/shape`
 first when the product direction itself is unsettled.
 
+When motion intent arrives as a vague effect without a name, load
+`emil-animation-vocabulary` before fencing it. The glossary sharpens the brief;
+it does not join the generative bench.
+
 When the target is itself a design system or component library—or the request
 changes shared tokens, recurring components, or multi-surface grammar—classify
 it as a **holistic system lab** and read `references/design-system.md` before
@@ -66,6 +70,7 @@ boundaries in `references/external-design-references.md`):
 | Lane | Brings |
 |---|---|
 | `anthropic-frontend-design` | distinctive aesthetic thesis; calibration against the known AI default looks |
+| `emil-apple-design` | fluid physical interaction: direct manipulation, interruptibility, velocity, momentum, spatial continuity, and material depth |
 | `leon-taste-skill` | metric-based anti-default rules; the dials |
 | `leon-soft-skill` | glossy, luxe, agency-tier |
 | `leon-minimalist-skill` | flat editorial (Notion/Linear), no gradient or shadow |
@@ -78,8 +83,10 @@ boundaries in `references/external-design-references.md`):
 
 Pick the spread against the fence, not a fixed roster: a dense operational
 surface benches density-honest philosophies; a landing page benches hallmark's
-genres against the soft and brutalist poles. `references/aesthetic-library.md`
-holds six operator-endorsed directions lanes can seed from.
+genres against the soft and brutalist poles. Gesture-driven, sheet, spring,
+drag/swipe, or spatial-motion surfaces bench `emil-apple-design`; static visual
+work usually does not. `references/aesthetic-library.md` holds six
+operator-endorsed directions lanes can seed from.
 
 ## Catalog
 

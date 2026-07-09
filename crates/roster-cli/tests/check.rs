@@ -112,6 +112,91 @@ fn check_warns_but_passes_on_past_due_review_date() {
 }
 
 #[test]
+fn check_accepts_consistent_external_provenance_offline() {
+    let tmp = TempDir::new().expect("tempdir");
+    let root = tmp.path();
+    write(
+        root,
+        "primitives/skills/skills-index.yaml",
+        "schema_version: roster.skills_index.v1\nskills: []\n",
+    );
+    write(
+        root,
+        "primitives/skills/.external/registry.yaml",
+        "sources:\n  - repo: example/skills\n    pin: 0123456789abcdef0123456789abcdef01234567\n    alias_prefix: example-\n    include: [motion]\n",
+    );
+    write(
+        root,
+        "primitives/skills/.external/example-motion/SKILL.md",
+        "---\nname: motion\ndescription: Motion guidance.\n---\nbody\n",
+    );
+    write(
+        root,
+        "primitives/skills/.external/example-motion/.sync-meta.json",
+        r#"{"repo":"example/skills","sha":"0123456789abcdef0123456789abcdef01234567","src_path_suffix":"motion"}"#,
+    );
+
+    git(root, &["init", "-q"]);
+    git(root, &["add", "-A"]);
+
+    Command::cargo_bin("roster")
+        .expect("roster binary")
+        .args(["--root", root.to_str().expect("utf8 path"), "check"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn check_reports_external_alias_receipt_and_declaration_drift() {
+    let tmp = TempDir::new().expect("tempdir");
+    let root = tmp.path();
+    write(
+        root,
+        "primitives/skills/skills-index.yaml",
+        "schema_version: roster.skills_index.v1\nskills: []\n",
+    );
+    write(
+        root,
+        "primitives/skills/.external/registry.yaml",
+        "sources:\n  - repo: example/skills\n    pin: 0123456789abcdef0123456789abcdef01234567\n    alias_prefix: example-\n    include: [motion, missing]\n  - repo: collision/skills\n    pin: fedcba9876543210fedcba9876543210fedcba98\n    alias_prefix: example-\n    include: [motion]\n",
+    );
+    write(
+        root,
+        "primitives/skills/.external/example-motion/SKILL.md",
+        "---\nname: motion\ndescription: Motion guidance.\n---\nbody\n",
+    );
+    write(
+        root,
+        "primitives/skills/.external/example-motion/.sync-meta.json",
+        r#"{"repo":"wrong/repo","sha":"wrong-pin","src_path_suffix":"wrong-name"}"#,
+    );
+    write(
+        root,
+        "primitives/skills/.external/undeclared/SKILL.md",
+        "---\nname: undeclared\ndescription: Undeclared skill.\n---\nbody\n",
+    );
+
+    git(root, &["init", "-q"]);
+    git(root, &["add", "-A"]);
+
+    Command::cargo_bin("roster")
+        .expect("roster binary")
+        .args(["--root", root.to_str().expect("utf8 path"), "check"])
+        .assert()
+        .failure()
+        .stdout(predicate::str::contains("alias collision example-motion"))
+        .stdout(predicate::str::contains(
+            "declared alias example-missing has no vendored SKILL.md",
+        ))
+        .stdout(predicate::str::contains("repo mismatch"))
+        .stdout(predicate::str::contains("sha mismatch"))
+        .stdout(predicate::str::contains("src_path_suffix mismatch"))
+        .stdout(predicate::str::contains(
+            "undeclared: vendored skill is not declared",
+        ));
+}
+
+#[test]
 fn check_passes_on_the_real_repo() {
     Command::cargo_bin("roster")
         .expect("roster binary")

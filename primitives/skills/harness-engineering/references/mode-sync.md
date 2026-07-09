@@ -1,30 +1,33 @@
 # /harness-engineering sync
 
-Synchronize external skill exemplars into Harness Kit without making them
+Synchronize external skill exemplars into Roster without making them
 first-party source.
 
 ## Source Of Truth
 
-`registry.yaml` declares external sources, pins, paths, include/exclude filters,
-and alias prefixes. Do not hand-edit `primitives/skills/.external/`; it is
-gitignored machine state owned by `harness-kit-checks sync-external`.
+`primitives/skills/.external/registry.yaml` declares external sources, immutable
+pins, paths, include filters, and alias prefixes. Vendored payloads and their
+`.sync-meta.json` receipts are committed Roster state.
 
 ## Lifecycle
 
-1. `harness-kit-checks sync-external` fetches pinned sources and installs selected
-   skills under `primitives/skills/.external/<alias>/`.
-2. `bootstrap.sh` projects first-party `primitives/skills/*` and synced
-   `primitives/skills/.external/*` into each detected harness as ordinary skill names.
-3. `harness-kit-checks lint-external-skills --strict` checks imported skills
-   are self-contained enough to expose.
+1. Fetch the source at its full pinned SHA; never import from a floating branch.
+2. Copy selected skill folders byte-identically under
+   `primitives/skills/.external/<alias>/`, preserve the upstream license, and
+   write `.sync-meta.json` with repo, SHA, source suffix, and fetch clock.
+3. Update the registry declaration in the same diff.
+4. `roster check` verifies alias uniqueness and registry/receipt/directory
+   consistency offline; compare vendored bytes with the pinned checkout during
+   the import review.
+5. `roster sync --catalog full` projects first-party and external skills into
+   each detected harness.
 
-Partial sync with `--only <repo>` is scoped: it may add/update aliases for that
-source, but it must not prune unrelated external skills. Full sync owns orphan
-cleanup.
+An import changes only its named source. Preserve unrelated vendored skills;
+`roster check` rejects orphan directories rather than silently pruning them.
 
 ## Design Rule
 
 Imported skills are external exemplars/tools. Keep source ownership in the alias
 (`vercel-*`, `every-*`) unless a shaped ticket proves the behavior belongs in a
-first-party Harness Kit primitive. Bootstrap must fail on global skill-name
+first-party Roster primitive. Registry validation must fail on global alias
 collisions instead of relying on projection order.

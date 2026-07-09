@@ -29,7 +29,7 @@ against the answer key below; compare new `SKILL.md` against the prior revision.
 4. **Cadence.** One-off at Track A merge; re-run on any routing-table edit and
    after a major model release (railroading re-audit).
 
-## Answer key (15 prompts)
+## Answer key (17 prompts)
 
 | # | Prompt | primary | acceptable (also a hit) | why |
 |---|---|---|---|---|
@@ -40,14 +40,16 @@ against the answer key below; compare new `SKILL.md` against the prior revision.
 | 5 | "is this screen accessible? check the guidelines" | `vercel-web-design-guidelines` | `impeccable audit` | a11y/guidelines review |
 | 6 | "the motion feels janky — review my animations" | `emil-review-animations` | — | motion REVIEW (not authoring) |
 | 7 | "what easing + duration should this modal use?" | `emil-emil-design-eng` | — | motion AUTHORING |
-| 8 | "generate a landing page from scratch for this product" | `nutlope-hallmark` | `leon-gpt-tasteskill` | greenfield generation |
-| 9 | "polish these cards: exact radii, shadow, optical alignment" | `jakub-make-interfaces-feel-better` | `impeccable polish` | micro-polish, exact values |
-| 10 | "create a DESIGN.md / design contract for this repo" | `/design scaffold` | `leon-stitch-skill`, `@google/design.md` (Track B) | contract/tokens role |
-| 11 | "refactor these components to kill the boolean-prop explosion" | `vercel-composition-patterns` | — | react architecture |
-| 12 | "this looks like generic AI slop — deslop it" | `references/anti-slop.md` | `nutlope-hallmark` slop-test, `npx impeccable detect` | anti-slop ban-core / gate |
-| 13 | "build the UI to match a design image I'll provide" | `leon-images-taste-skill` | — | image-first method |
-| 14 | "tighten the typography hierarchy and font pairing" | `impeccable typeset` | `jakub-make-interfaces-feel-better` | typography role |
-| 15 | "give me 4 structurally different directions for this dashboard" | `/design redesign` | `/design prototype` | native variation fan, stays in core |
+| 8 | "what's the iOS effect called when scrolling resists and snaps back?" | `emil-animation-vocabulary` | — | motion NAMING; no `/design` fanout |
+| 9 | "design an interruptible draggable sheet with momentum" | `design` with `emil-apple-design` lane | — | physical interaction FANOUT; author/reviewer stay separate |
+| 10 | "generate a landing page from scratch for this product" | `nutlope-hallmark` | `leon-gpt-tasteskill` | greenfield generation |
+| 11 | "polish these cards: exact radii, shadow, optical alignment" | `jakub-make-interfaces-feel-better` | `impeccable polish` | micro-polish, exact values |
+| 12 | "create a DESIGN.md / design contract for this repo" | `/design scaffold` | `leon-stitch-skill`, `@google/design.md` (Track B) | contract/tokens role |
+| 13 | "refactor these components to kill the boolean-prop explosion" | `vercel-composition-patterns` | — | react architecture |
+| 14 | "this looks like generic AI slop — deslop it" | `references/anti-slop.md` | `nutlope-hallmark` slop-test, `npx impeccable detect` | anti-slop ban-core / gate |
+| 15 | "build the UI to match a design image I'll provide" | `leon-images-taste-skill` | — | image-first method |
+| 16 | "tighten the typography hierarchy and font pairing" | `impeccable typeset` | `jakub-make-interfaces-feel-better` | typography role |
+| 17 | "give me 4 structurally different directions for this dashboard" | `/design redesign` | `/design prototype` | native variation fan, stays in core |
 
 Notes:
 - A "route" = the specialist skill or the native `/design` verb the skill says

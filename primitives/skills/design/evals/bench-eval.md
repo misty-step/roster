@@ -21,6 +21,7 @@ with its run log at `primitives/skills/skill-eval/examples/routing-eval.md`).
 | 2 | "build a landing page for <small product brief>" (greenfield) | frozen at run time | none (greenfield) | widest spread; genre poles (hallmark vs soft vs brutalist) |
 | 3 | "this screen feels generic — critique it" | frozen at run time | product source outside the lab dir | inverts the assumption that critique returns prose: the answer must still be a rendered catalog of fixed options |
 | 4 | "explore the Aesthetic gallery's sidebar/navigation; show every option in the complete gallery" | Aesthetic `b1f381ebeb34d6fd8e1d6c4a7b69152789bcd391`; canonical `site/primitives.html` | product source outside the lab dir | holistic system mode, general-purpose propositions, wide range; rejects app-shell substitution |
+| 5 | "design a bottom sheet I can drag, interrupt mid-flight, and flick between snap points" + an existing mobile web surface | frozen at run time | product source outside the lab dir | conditional philosophy selection: Apple physical-interaction lane belongs; vocabulary names terms but cannot count as a lane; motion author and reviewer remain distinct |
 
 ## Objective checks (scriptable, pass/fail, ~free)
 
@@ -39,6 +40,11 @@ with its run log at `primitives/skills/skill-eval/examples/routing-eval.md`).
 - [ ] Every fixture-4 candidate composes the same complete canonical gallery
       and neutral content corpus; no standalone application screen counts as a
       candidate.
+- [ ] Fixture 5 includes an `emil-apple-design` lane whose proposition exposes
+      1:1 tracking, velocity handoff, interruptibility, momentum projection,
+      reduced-motion behavior, and an interactive proof. It does not count
+      `emil-animation-vocabulary` as a lane, and its final motion review is
+      attributed to `emil-review-animations`, not the author.
 
 ## Rubric (1–5, blind, justify each)
 
@@ -52,8 +58,8 @@ with its run log at `primitives/skills/skill-eval/examples/routing-eval.md`).
 
 ## Pass condition
 
-A beats B paired on the structural-spread count across ≥3 of 4 fixtures, passes
-fixture 4, AND ties-or-wins every objective check. The bar a no-op skill fails:
+A beats B paired on the structural-spread count across ≥4 of 5 fixtures, passes
+fixtures 4 and 5, AND ties-or-wins every objective check. The bar a no-op skill fails:
 the raw arm reliably returns one answer (or prose, for fixture 3) with no
 provenance and no navigable catalog.
 
@@ -72,10 +78,13 @@ Rejected artifact:
 
 ## Cadence
 
-Run the cheap contract probe on every design-skill change. Run the frozen
-Aesthetic capability regression before merging changes to bench, catalog,
-divergence, or grader behavior and after a worker/judge model change. The
-contract probe proves delivery mechanics only; it is not a capability eval.
+Run the cheap contract probe on every design-skill change. A philosophy-roster
+change also runs a focused blind lane-fidelity smoke against the added or
+changed philosophy. Run the full frozen Aesthetic capability regression before
+merging changes to bench composition mechanics, catalog, divergence, or grader
+behavior and after a worker/judge model change. The contract probe proves
+delivery mechanics only; the focused smoke proves one lane can express its
+source philosophy but does not certify whole-bench spread.
 
 ## Run log
 
