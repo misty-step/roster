@@ -1,0 +1,24 @@
+{
+  "snapshot_count": 7,
+  "min_epics": 4,
+  "max_epics": 4,
+  "ready_pickups": ["HS-001"],
+  "cards": {
+    "HS-001": {"required": [], "allowed": ["keep", "promote"]},
+    "HS-002": {"required": ["active-no-oracle"], "allowed": ["reframe", "promote", "keep"]},
+    "HS-003": {"required": ["active-no-oracle"], "allowed": ["reframe", "promote", "keep"]},
+    "HS-004": {"required": [], "allowed": ["keep", "promote"]},
+    "HS-005": {"required": ["vision-conflict"], "allowed": ["close-proposal", "reject", "demote"]},
+    "HS-006": {"required": ["vision-conflict"], "allowed": ["close-proposal", "reject", "demote"]},
+    "HS-007": {"required": ["vision-conflict", "unsupported-scope"], "allowed": ["close-proposal", "reject", "demote"]}
+  },
+  "mandatory_lenses": [
+    "product-value", "vision-premise", "user-operator-journey", "domain-specialist",
+    "architecture", "simplification-deletion", "runtime-reliability",
+    "security-privacy", "verification", "operations-infrastructure",
+    "docs-onboarding", "agent-readiness", "external-exemplars"
+  ],
+  "required_gaps": ["crash-recovery", "key-rotation", "error-ergonomics", "legacy-serializer"],
+  "tracks": ["user-value", "trust", "system-quality", "comprehension", "operability"],
+  "epochs": ["weeks-1-4", "weeks-5-8", "weeks-9-12"]
+}

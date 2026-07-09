@@ -1,143 +1,133 @@
-# Mega Groom
+# Strategic Quarter Sweep
 
-Strategic `/groom` is an exhaustive project-quality sweep. It should feel
-closer to a full product, architecture, ops, and agent-readiness offsite than
-to issue triage.
+This is the single source for strategic `/groom` breadth, synthesis, and
+portfolio completeness.
 
-## Mission
+## Truth ledger
 
-Boil the ocean, then distill it.
+One row per active Powder card at the frozen snapshot:
 
-The output is a detailed plan for making the current project world class:
-codebase, documentation, infrastructure, operations, product, system design,
-architecture, value proposition, testing, security, and agent interface. The
-backlog diff is the durable expression of that plan.
-
-The plan starts from a project vision. If the repo has no durable vision
-artifact, a strategic groom should emit one or shape the epic that will create
-it; otherwise the sweep has no stable standard for deciding what belongs.
-
-## Coverage Map
-
-Every strategic groom accounts for these surfaces. Mark a surface `complete`,
-`partial`, `failed`, or `skipped`; do not silently omit it.
-
-| Surface | Question |
+| Field | Required judgment |
 |---|---|
-| Product and value prop | Who is this for, why would they care, what would make it indispensable? |
-| Project vision | What durable north star guides brainstorming, backlog moves, deletions, and sequencing? |
-| Operator/user experience | Can a new or returning user achieve the core job without friction? |
-| Architecture and system design | Are the deep modules deep, the boundaries honest, and the interfaces small? |
-| Code quality and simplicity | What can be deleted, flattened, clarified, or made harder to misuse? |
-| Runtime reliability | What fails under load, restart, queue pressure, retries, or partial outages? |
-| Security and privacy | Where can secrets, tokens, user data, metadata, logs, or authority leak or overreach? |
-| Observability and ops | Can an operator see state, cost, queue pressure, incidents, and recovery actions? |
-| Tests and verification | Do gates prove the live behavior that matters, not just units, and do they fail the likely security mistakes before publication? |
-| Documentation and onboarding | Can a cold agent or human understand, run, extend, and debug the project? |
-| Agent readiness | Are skills, AGENTS, lane cards, receipts, and CLI JSON surfaces first-class? |
-| Infrastructure and delivery | Are deploys, rollbacks, backups, hosted checks, and local dev boring? |
-| External exemplars | What do adjacent best-in-class systems prove or warn against? |
+| ID / title | exact board identity |
+| Current state | priority, status, age, claim, branch/merge evidence |
+| Outcome | Goal and user/operator value |
+| Evidence | live source plus freshness |
+| Strategy | vision clause, theme, primary track |
+| Premise | valid, reframed, disproven, uncertain |
+| Relations | canonical outcome, duplicates, dependencies, unlocks |
+| Readiness | Oracle and verification-system completeness |
+| Disposition | keep, reframe, merge-proposal, demote, close-proposal, promote, block |
+| Quarter slot | weeks 1–4, 5–8, 9–12, or outside-quarter with reason |
 
-## Swarm Contract
+Automatic findings: ready without an executable proof loop; ready with an
+unresolved blocker; P0/P1 without current urgency evidence; stale or missing
+claim evidence; duplicate outcomes without a relation; epic without whole-arc
+done criteria; research without a decision target.
 
-Default strategic groom launches a swarm, not a single helper. Use the
-harness's native subagents when explicitly allowed and available; otherwise use
-peer CLIs or sprite lanes. If delegation is unavailable, run the same coverage
-map locally and label the run degraded.
+## Independent lens map
 
-Minimum useful swarm for a normal repo:
+Commission every universal lens separately. One report may inform several
+surfaces, but it counts only for the perspective it was commissioned to hold.
 
-- Product/value strategist.
-- Project-vision editor.
-- Operator/user-experience critic.
-- Runtime reliability investigator.
-- Security/privacy reviewer.
-- Architecture/Ousterhout reviewer.
-- Simplification/deletion reviewer.
-- Test/verification reviewer.
-- Docs/onboarding reviewer.
-- Ops/infrastructure reviewer.
-- Agent-readiness/harness reviewer.
-- External exemplar scout.
-- Premise challenger.
+| Lens | Question |
+|---|---|
+| Product/value | Who is this for, why does it matter, what makes it indispensable? |
+| Vision/premise | Is this the right category, audience, and problem? |
+| User/operator journey | Can the core job be completed clearly and delightfully? |
+| Domain specialist | What does this specific domain demand that generic software advice misses? |
+| Architecture | Are modules deep, boundaries honest, and interfaces small? |
+| Simplification/deletion | What can disappear, collapse, or become declarative? |
+| Runtime reliability | What fails under restart, pressure, retries, or partial outage? |
+| Security/privacy | Where can authority, secrets, data, metadata, or logs leak? |
+| Verification | Which likely failures escape the live proof loops and gates? |
+| Operations/infrastructure | Are deploy, backup, recovery, cost, and observability boring? |
+| Docs/onboarding | Can a cold human understand, run, and debug it? |
+| Agent readiness | Can a cold agent discover, act, verify, and leave receipts? |
+| External exemplars | What adjacent systems prove, contradict, or warn against? |
 
-For small repos, lanes may be combined only when the same evidence answers both
-questions. For important repos, add more lanes rather than fewer.
+Add **at least three repo-composed lenses** derived from a named project
+invariant, persona, incident, competitor, or product tension. Each names a
+distinct falsifier and evidence scope that generic review would miss. A normal
+strategic sweep therefore produces at least 16 independent reports. If a lens
+cannot run, mark the whole strategic run degraded; do not replace its judgment
+with a combined report or claim comprehensive PASS.
 
-Each lane returns:
+Each report returns:
 
 ```markdown
-**<Lane> Report**
-Top Findings
-1. <finding> -- Evidence: <file:line, command, URL, artifact>. Impact: high|med|low.
-2. ...
-World-Class Delta
-<What would have to be true for this surface to be excellent?>
-Backlog Move
-<One epic, ticket, deletion, consolidation, or "no emission" with rationale.>
+**<Report ID> — <Lens>**
+Evidence: <files, commands, routes, URLs, artifacts>
+Top findings: <stable finding ID; ranked; impact + confidence>
+World-class delta: <what excellent requires>
+Backlog move: <candidate ID(s), or no-emission; group finding IDs explicitly>
+Provenance: <lane brief path/hash, raw report path, dispatch/run receipt>
 ```
 
-## Evidence Standard
+## Source and candidate matrices
 
-Exhaustive does not mean sloppy.
+The source matrix has one row per commissioned report: status (`complete`,
+`partial`, `failed`, `skipped`), brief/report/dispatch provenance, falsifier,
+evidence scope, finding IDs, contribution, and candidate IDs. Reject duplicate
+falsifiers or substantially identical evidence scopes as one lens in costumes.
+The finding ledger maps every finding to a candidate or explicit no-emission;
+the candidate ledger maps every candidate to exactly one disposition:
+`emit`, `update`, `absorb into <card>`, or `reject because <evidence>`.
 
-- Cite live files, commands, URLs, artifacts, receipts, screenshots, or
-  rendered surfaces.
-- Label hypotheses as hypotheses.
-- Verify each candidate emission against the repo before writing it.
-- Prefer epics with children for coherent ambitions.
-- Keep deletion and consolidation candidates visible even when not applied.
-- Never use a backlog count as a veto.
+These ledgers prevent swarm theater: provenance plus distinct falsifiers and
+evidence scopes demonstrate independence; finding and candidate disposition
+demonstrate synthesis. Many reports with no mapped consequences fail.
 
-## Output Shape
+## Quarter portfolio
 
-The final groom report should include:
+Normally produce 6–10 coherent epics under themes, sequenced into weeks 1–4,
+5–8, and 9–12. Each epoch ends in inspectable evidence: working route, replay,
+benchmark, recovery drill, rendered artifact, or cold-agent run.
 
-1. **Source Matrix**: every surface/lane, status, evidence, and contribution.
-2. **Project Vision**: canonical artifact read or proposed; audience,
-   job-to-be-done, category, standards, non-goals, bets, and 6-12 month target.
-3. **World-Class Target**: the best version of the project in concrete terms.
-4. **Gap Map**: what live evidence says is missing or weak by surface.
-5. **Verification Map**: missing or weak gates, QA paths, evals, benchmarks,
-   probes, repo-local verification skills, and secret/content/metadata leak
-   checks. Treat missing commit-message, outbound-range, PR-body, log, and
-   generated-artifact scanning as agent-readiness gaps unless the repo has a
-   stronger server-side control.
-6. **Strategy Themes**: 4-8 themes, each with recommendation first and evidence
-   second.
-7. **Backlog Diff**: applied ticket edits/emissions and proposed deletions.
-8. **Sequence**: now, next, later, and blocked.
-9. **Best Next Pickup**: one concrete next issue and why it outranks the rest.
-10. **Residual Risk**: skipped surfaces, failed lanes, missing credentials,
-   uncertain external facts, and stale evidence.
+Every epic has one observable outcome, Goal, whole-arc Oracle, proof loop,
+ordered inline child outcomes, dependencies, primary track, source
+candidate(s), and vision clause. Children remain inline until selected.
 
-## Emission Bar
+The portfolio must cover five tracks:
 
-A strategic groom that emits only a tiny issue set is incomplete unless the
-user explicitly asked for narrow triage. A healthy mega groom usually produces
-some mix of:
+1. **User value** — UX and/or a major product capability.
+2. **Trust** — correctness, reliability, security, or verification.
+3. **System quality** — architecture, simplification, or deletion.
+4. **Comprehension** — docs, onboarding, or agent readiness.
+5. **Operability** — delivery, backups, observability, or routine operations.
 
-- A few P0/P1 safety or correctness moves.
-- Several strategic epics with ordered children.
-- Small ready tickets that remove immediate friction.
-- Deletion/consolidation proposals.
-- A world-class plan artifact when the repo needs shared direction.
+One epic may serve at most two tracks and names one primary. A track with no
+epic needs live evidence that it already meets the world-class target. Each
+quarter also contains two user-visible bets (or an evidenced ruling that the
+project has no user-facing product surface), one explicit deletion/consolidation,
+one externally informed premise challenge, and one operational or
+agent-leverage move. `Now` is ready; `Next` is shaped with dependencies; `Later` is an outcome,
+not an idea. Exactly one card is the best next pickup, with a ranked explanation
+of what it unlocks or de-risks.
 
-Do not pad with low-value tickets. Do not stop at the first credible theme.
-Keep searching until the coverage map has been honestly answered.
+Add a feasibility table: declared parallel WIP cap, capacity assumption,
+dependency critical path, epic-to-epoch assignment, and the evidence/decision
+gate ending each epoch. Work beyond the WIP cap is sequenced. A structurally
+complete fantasy quarter fails.
 
-## Gotchas
+## Anti-padding
 
-- **Three-ticket trap.** Three issues can be the top of the list, not the
-  groom. If only three survived, show the matrix that killed every other
-  candidate.
-- **Vision without receipt.** A beautiful plan with no file, command, URL, or
-  artifact evidence is fan fiction.
-- **Vision as wallpaper.** A vision that does not change what gets emitted,
-  deleted, sequenced, or rejected is decoration, not strategy.
-- **Swarm theater.** Many lanes with the same prompt are one lane wearing
-  disguises. Compose perspectives for the repo.
-- **Issue confetti.** Many tickets without sequencing or shared themes are
-  storage, not strategy.
-- **Local maxima.** Always ask what would make the project excellent in its
-  category, not merely less broken.
+- Coverage earns investigation, not a ticket.
+- Generic tests/docs/polish become children of an evidenced outcome.
+- One finding does not become sibling cards without distinct observables.
+- Report new-card count and net active-card change.
+- More than 10 epics requires a consolidation audit.
+- Fewer than 6 epics requires a candidate-kill matrix showing every other
+  evidenced opportunity was absorbed, rejected, already satisfied, or outside
+  vision; all tracks and epochs still apply.
+- Active work outside the quarter remains explicit with its reason; it is not
+  forced into the portfolio or mislabeled rejected.
+- No top-level outcome survives without live evidence, a vision link, and a
+  place in the sequence.
+
+## Final artifact
+
+First viewport: verdict, world-class target, five-track portfolio, epochs, and
+best pickup. Below it: before/after board truth, source matrix, candidate
+ledger, themes, epics with children, deletions/consolidations, board diff,
+critic verdict, and residual risk.

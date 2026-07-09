@@ -1,219 +1,120 @@
 ---
 name: groom
 description: |
-  Backlog grooming as one always-on loop: tidy the board, then sweep —
-  investigate, research, critique, and shape ambitious work. Tidy every run.
-  Use when: "groom", "backlog", "what should we build", "prioritize",
-  "rethink this", "biggest opportunity", "moonshot", "audit skills",
-  "skill quality audit".
-  Trigger: /groom, /groom audit, /backlog, /rethink, /moonshot, /scaffold.
-argument-hint: "[audit|--emphasis explore|rethink|moonshot|scaffold] [context]"
+  Overhaul a backlog from live repo and board evidence: reconcile every active
+  card, fan out independent product and engineering perspectives, and leave a
+  coherent quarter-scale epic portfolio. Use when: "groom", "backlog",
+  "what should we build", "prioritize", "rethink this", "biggest opportunity",
+  "moonshot", "audit skills", "skill quality audit".
+  Trigger: /groom, /groom audit, /backlog, /moonshot.
+argument-hint: "[audit|tidy|scoped|moonshot] [context]"
 ---
 
 # /groom
 
-Keep the board of record true and make the project more ambitious. Normal
-strategic `/groom` is a mega-sweep, not triage: boil the ocean on purpose, then
-distill it into a world-class plan and backlog diff. A groom that only lists,
-lightly prioritizes, or emits a tiny handful of issues is incomplete unless the
-user explicitly scoped the run down.
+Make the board true, then make the project more ambitious. Bare `/groom` means
+a **strategic quarter sweep**. `tidy` and `scoped` are narrower only when the
+operator says so. A strategic run cannot downgrade itself because the repo is
+small, the queue looks tidy, or delegation is inconvenient.
 
-The backlog diff is the artifact; prose exists to justify it. Groom is a
-conversation at the seams where the operator's judgment is the scarce input. At
-intake, interrogate the operator on ambition, vision deltas, and hidden priors
-so the sweep aims true — the `grill-me`-style posture in
-`primitives/shared/references/interrogate-first.md` is the default here, not a
-fallback gated on arriving with a backlog item. The investigation sweep stays
-autonomous: explore the codebase for what it can answer, and reserve
-interrogation for the operator's judgment, not facts you can read.
+Powder is the board of record. A repo-local `backlog.d/` is an import/fallback
+surface only when Powder is unavailable for that repo. Read the live repo,
+board, root vision, and recent history; never groom ticket prose in isolation.
 
-julius-caveman for interim synthesis only; findings, code, commits, and final
-artifacts stay normal English.
+## 1. Lock the sweep
 
-## Project Vision
+Resolve the operator's ambition, vision deltas, and hidden priors before
+ranking. Ask when they are not already explicit; do not ask for facts the repo
+or board can answer. Record the board snapshot time and active-card IDs.
 
-Every strategic groom creates, refreshes, or explicitly validates a durable
-project vision before ranking work; without one, brainstorming and backlog
-movement collapse into local cleanup.
+**Complete when:** the run has a stated ambition, canonical vision source, and
+frozen active-card set. Any later card is labeled post-snapshot intake.
 
-Read root VISION.md when present; if missing or stale, route to /vision
-(shared AGENTS.md: Vision). Groom's delta: it drafts the smallest durable
-vision artifact itself when none exists — prefer root `VISION.md`;
-`docs/product.md`, a roadmap doc, or a named backlog epic only when repo
-evidence says root vision is the wrong fit — and treats that draft as a
-first-class groom emission rather than waiting on a separate `/vision` pass.
+## 2. Reconcile every active card
 
-- Keep the vision concrete: audience, job-to-be-done, category, standards,
-  non-goals, strategic bets, and what excellent looks like in 6-12 months.
-- Revise the vision when live evidence contradicts it; don't bury direction
-  changes in chat, issue comments, or the final report only.
-- Backchain: themes and tickets should say which part of the vision they
-  advance, de-risk, simplify, or deliberately reject.
-- A vision or moonshot artifact can carry a one-glance system map when
-  relationships or sequencing are too complex for prose alone:
-  `primitives/shared/references/image-generation.md`.
+Create one truth-ledger row per active card using the schema in
+`references/mega-groom.md`. Row count must equal the active-card snapshot.
+Resolve or propose a resolution for shipped state, stale claims, priority,
+claimability, dependencies, oracle quality, overlap, vision alignment, and
+quarter disposition.
 
-## Tidy (mandatory)
+State invariants:
 
-Keep the board of record true — Powder cards, not stale files (shared AGENTS.md:
-Work Ledger; misty-powder skill, powder MCP/CLI). Consume the card store; don't
-hand-roll closure:
+- `ready` means no unresolved blocker and an executable verification system.
+- every active card has Goal + Oracle; ready/M+ work has the full proof loop.
+- every P0/P1 cites current urgency evidence and is compared with the best
+  next pickup.
+- every overlap names a canonical survivor, containment relation, or explicit
+  keep-both rationale.
 
-- **Close shipped work.** A card whose work merged moves to done/shipped via
-  `update_status`/`complete_card`, carrying the shipping evidence — never on a
-  hunch (Powder audits actor, time, and change).
-- **Flag stale claims.** An `in_progress` card on a merged or deleted branch,
-  or one untouched 30+ days, gets surfaced for the operator — not silently
-  flipped.
-- **Surface duplicates** with a proposed consolidation; never merge silently.
-- **Backlog size is telemetry, not policy.** When the active queue looks too
-  broad, report the evidence: count, age, duplicates, stale owners, orphaned
-  themes, unfocused small items. Consolidate only when tickets genuinely share
-  one outcome; never veto an evidenced emission on an arbitrary item count.
+**Complete when:** every snapshot ID has exactly one disposition and no state,
+priority, relation, or readiness contradiction is merely "surfaced."
 
-Where a consumer repo runs on `backlog.d/` files with no Powder registration,
-that tree is the fallback board: archive tickets closed by
-`Closes-backlog:`/`Ships-backlog:` trailers into `_done/`, commit
-`chore(backlog): archive shipped tickets swept by /groom`, and emit trailers
-only via `git interpret-trailers` (canon: `docs/CONTRACTS.md`).
+## 3. Fan out the quarter sweep
 
-## Delegation
+Load `references/mega-groom.md`. Commission its universal lenses as distinct,
+fresh-context reports, then add at least three perspectives composed for this
+repo. Waves are fine; combined roles are not independent evidence. Use
+`references/investigation-bench.md` only for the lane-card shape.
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster). Strategic
-grooming is high-stakes by declaration and defaults to the swarm: independent
-lanes for product/value, operator experience, runtime reliability,
-architecture, simplification/deletion, security/privacy, docs/onboarding,
-ops/infra, testing/verification, agent readiness, and external exemplars,
-with the lead keeping final prioritization. Routine grooming — a tidy-only
-pass, a scoped ticket check — scales the bench down to the stakes per the
-Roster contract instead of running the full swarm.
+If delegation is unavailable, do the coverage locally and label the run
+**degraded**. Degraded work may improve the board but cannot claim a
+comprehensive strategic groom.
 
-## Mega Sweep
+**Complete when:** every mandatory lens has its own dispatch receipt, raw report,
+evidence, distinct falsifier, world-class delta, and backlog move or evidenced
+no-emission ruling. Any failed mandatory lens makes the strategic run degraded
+and ineligible for comprehensive PASS.
 
-For any strategic groom, load `references/mega-groom.md`. It is the contract
-for swarm size, coverage map, source matrix, output shape, and the
-"world-class plan" bar. Use `references/investigation-bench.md` only for lane
-prompt shapes; it is a template library, not the whole run.
+## 4. Synthesize, then mutate
 
-## Ambition Floor
+Build a candidate ledger before editing the board. Every lane recommendation
+maps to one outcome: emitted card, updated card, absorbed-into ID, or evidenced
+rejection. Resolve disagreements; do not average them into vague themes.
 
-Calibrate scope to what frontier agents can execute, not what a human team
-can staff. Execution is cheap; vision is the scarce input. Strategic grooming
-must describe the best version of the whole project, then backchain from that
-standard into epics, deletions, sequencing, and first pickups.
+Create the 12-week portfolio defined in `references/mega-groom.md`. Apply safe
+card creates, updates, and status corrections. Deletions and merges remain
+explicit proposals unless the operator authorized them.
 
-- **Brainstorm deep, from perspectives composed for this repo.** There is
-  no canonical list of layers to sweep. Pick the obvious axes this codebase
-  demands, then add lenses no stock list would hand you — invert a premise,
-  borrow from an adjacent domain, ask what a competitor, operator, or
-  first-time user would notice. Fan the perspectives out as parallel
-  fresh-context lanes; pull in `/research` when outside knowledge would
-  change a verdict. When the sweep keeps returning the obvious (the *mundane
-  harvest* failure), route the divergence through `nous-creative-ideation` — a
-  routed library of named methods (lateral provocations, analogy/biomimicry,
-  premortem-and-inversion) that manufactures non-obvious lenses on purpose. The
-  bar is genuine diversity and depth of exploration, judged fresh each session.
-- **Describe the best version of this software,** not the next safe
-  increment: elegant, easy to change, personalizable, delightful,
-  operationally boring, and valuable enough to matter. The distance between
-  that vision and the live repo is backlog material; close it with epics.
-- **Epic-scoped by default.** Strategic emissions are epics — a product
-  outcome with an ordered child sequence — never pre-shredded tasks. Small
-  items exist as children of an epic or as genuine isolated fixes.
-- **Ambition is not slop.** Every epic's premise earns the same vetting as any
-  finding; a perspective that returns "all fine here" is making a claim, not
-  clearing the bar. The floor raises scope, not tolerance for unevidenced
-  claims.
+**Complete when:** every finding, candidate, and active card traces into the
+portfolio, outside-quarter ledger, or evidenced rejection; the capacity and
+critical path support all three evidence epochs; the board has one ready best
+pickup; the net change is coherent rather than issue confetti.
 
-## Judgment (the actual grooming)
+## 5. Adversarial completion gate
 
-Investigate before opining. A tidy-only pass exists, but only when the user
-asks for one; any other session owes the `references/mega-groom.md` sweep,
-with genuinely independent perspectives run in parallel and `/research` when
-outside context would change a verdict. Fresh-context lanes exist to
-decorrelate judgment, not to fill a roster.
+Give a fresh critic only the before/after truth ledger, dispatch receipts, raw
+lane reports, source matrix, candidate ledger, quarter portfolio, board diff,
+and this contract. A PASS requires every snapshot card and mandatory lens
+completed, dispatch/report provenance and lens distinctness verified, no
+contradictory board state, all five strategic tracks investigated and either
+represented or closed with an evidenced no-emission ruling, three feasible
+evidence-producing epochs, and exactly one best pickup. Fix blockers and re-run
+the critic.
 
-- **Read the live code, not just ticket text.** Hotspots, debt
-  concentrations, the oldest stuck ticket. Every codebase has findings;
-  "everything is fine" means the investigation was shallow.
-- **Challenge premises of the top items.** Symptom or root cause? A ticket's
-  framing is a first draft. Reframe before re-ranking.
-- **Propose deletions.** The best groom shrinks the backlog. Every deletion
-  is a proposal with rationale — humans ratify removals.
-- **Audit the repo's own harness.** Agent readiness is backlog work, not a
-  separate ceremony: does this repo have a verification skill with its real
-  routes/commands (the highest-impact skill category)? Verified build/test/
-  lint commands and conventions an agent can discover cold? Runbooks for
-  its deployed surfaces? A CI gate that would catch the likely failure?
-  A meaningful, enforced quality floor that gates the diff and ratchets legacy
-  debt, or only advisory, arbitrary gates
-  (`primitives/shared/references/quality-gates.md`)? Security gates that catch
-  secret leaks in files and Git/PR metadata before publication? Stale
-  AGENTS/CLAUDE prose? Product context a cold agent would need? Each gap is a
-  ticket like any other.
-- **Vet findings before presenting them.** Re-check each claim against the
-  live repo — open the file, run the command. A plausible finding that
-  doesn't survive a second look is noise that erodes trust in the whole
-  groom.
-- **Theme, then recommend.** Group findings by shared root cause, rank by
-  impact discounted by confidence — effort barely discounts now that agents
-  execute — and argue for one concrete action per theme. Synthesis stays on
-  the lead; when the plan is contestable, land it with the operator the same
-  `grill-me` way — walk the decision tree (sequencing, deletions, the next
-  pickup) one branch at a time, recommending each — instead of dropping the
-  full plan for a rubber-stamp.
+Publish the plan as the ticket-linked HTML artifact required by shared
+doctrine. Close with exact board changes, evidence, skipped/failed lanes, and
+residual risk. End with a clean tree and Powder receipt.
 
-## Ticket Format
+## Branches
 
-Every card (or `backlog.d/<nnn>-<slug>.md` file where that's the board) carries
-Goal + Oracle always, plus a Verification System for M+/ready work — full
-template, epic shape, and promotion rules: `references/ticket-format.md`.
+- **`/groom tidy`** — reconcile every active card and apply safe truth fixes;
+  no strategic swarm or quarter portfolio.
+- **`/groom scoped <target>`** — reconcile every card touching the target,
+  then use the smallest independent lens set that can refute the target plan.
+- **`/groom audit`** — read-only skill/harness usage and staleness report; use
+  live telemetry, no automatic fixes.
+- **`/groom moonshot`** — the full strategic contract plus premise inversion
+  and external exemplars; never a substitute for board reconciliation.
 
-## Audit Mode
+## Card shape
 
-`/groom audit` is a read-only harness-health report, not a grooming run: read
-the harness's skill/prompt usage signal (hook logs where present) and staleness
-vs last edit. Judge it — low usage with high value-when-used is fine, say so;
-low usage with no story is a deletion candidate. Order findings by severity; do
-not auto-fix. In a harness-kit repo the telemetry summary comes from
-`cargo run --locked -p harness-kit-checks -- telemetry --repo .`.
+Every emitted card follows `references/ticket-format.md`. Strategic emissions
+are epic-shaped by default. Read `references/backlog-doctrine.md` only when
+grooming Harness Kit/roster or a repo using the file fallback.
 
-## Refuse
+## Completion evidence
 
-- Never auto-delete or silently merge tickets.
-- Never archive a ticket whose trailer points at an unmerged branch.
-- Never let backlog size alone veto an evidenced ticket or epic.
-- Never skip the swarm on a strategic/mega-sweep groom when subagent, peer
-  CLI, or sprite lanes are available — it's high-stakes by declaration; if all
-  delegation is blocked, report degraded mode and do the local matrix.
-  Routine grooming may scale the bench down per the Roster contract.
-
-## Gotchas
-
-- **Stock-lens grooming.** Running the same investigator roster in every repo
-  is process, not thought. The revealing perspectives are composed for this
-  codebase, this session.
-- **Backlog as graveyard.** Age is a stale signal, not an automatic verdict.
-  Inspect branch, owner, and live relevance before flipping, archiving, or
-  proposing deletion.
-
-## Completion Gate
-
-See `primitives/shared/AGENTS.md` (Completion Evidence, Closeout) for the
-shared core; this phase adds:
-
-1. **Tidy diff** — archived, flipped, flagged; by ID, no padding.
-2. **Source matrix** — swarm lanes, local commands, external research,
-   skipped/failed lanes, and what each contributed.
-3. **World-class plan** — vision, gaps, themes, sequencing, deletion/
-   consolidation candidates, and the one best next pickup.
-4. **Emissions** — epic/ticket edits with `**Why:**` naming the evidence
-   lane; strategic emissions show breadth across the domain map, not just
-   the easiest implementation slice.
-5. **Residual** — open questions, blocked dependencies, unverified areas,
-   and what would make the sweep stronger.
-
-Apply non-destructive backlog edits when the user asked for grooming;
-deletions, abandonments, and silent merges stay proposals unless explicitly
-approved. A groom run ends with a clean tree: archives committed, emissions
-written, deletions awaiting ratification.
+Report: snapshot count; truth-ledger count; source-matrix count and report IDs;
+candidate dispositions; applied/proposed board diff; 12-week portfolio; one
+best pickup; HTML artifact; critic verdict; exact gate/live evidence; residual.

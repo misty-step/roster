@@ -1,0 +1,31 @@
+{
+  "snapshot_count": 14,
+  "min_epics": 6,
+  "max_epics": 10,
+  "ready_pickups": ["HM-008"],
+  "cards": {
+    "HM-001": {"required": ["ready-no-oracle", "duplicate-overlap", "epic-containment"], "allowed": ["merge-proposal", "absorb"], "relation_to": ["HM-014"]},
+    "HM-002": {"required": ["weak-proof-loop", "duplicate-overlap", "epic-containment"], "allowed": ["merge-proposal", "absorb"], "relation_to": ["HM-014"]},
+    "HM-003": {"required": ["epic-containment"], "allowed": ["absorb", "reframe"], "relation_to": ["HM-014"]},
+    "HM-004": {"required": ["active-no-oracle", "symptom-not-outcome"], "allowed": ["absorb", "reframe"], "relation_to": ["HM-012"]},
+    "HM-005": {"required": ["stale-claim", "deleted-branch"], "allowed": ["reframe", "block", "release-claim"]},
+    "HM-006": {"required": ["weak-proof-loop", "epic-containment"], "allowed": ["absorb", "reframe"], "relation_to": ["HM-014"]},
+    "HM-007": {"required": ["implementation-without-outcome"], "allowed": ["demote", "reject", "absorb"]},
+    "HM-008": {"required": [], "allowed": ["keep", "promote"]},
+    "HM-009": {"required": ["weak-proof-loop", "symptom-not-outcome"], "allowed": ["reframe", "absorb"]},
+    "HM-010": {"required": ["vision-conflict"], "allowed": ["close-proposal", "reject", "demote"]},
+    "HM-011": {"required": ["vision-conflict"], "allowed": ["close-proposal", "reject", "demote"]},
+    "HM-012": {"required": ["active-no-oracle"], "allowed": ["reframe", "promote", "keep"]},
+    "HM-013": {"required": ["active-no-oracle"], "allowed": ["reframe", "promote", "keep"]},
+    "HM-014": {"required": ["active-no-oracle", "duplicate-overlap"], "allowed": ["reframe", "promote", "keep"]}
+  },
+  "mandatory_lenses": [
+    "product-value", "vision-premise", "user-operator-journey", "domain-specialist",
+    "architecture", "simplification-deletion", "runtime-reliability",
+    "security-privacy", "verification", "operations-infrastructure",
+    "docs-onboarding", "agent-readiness", "external-exemplars"
+  ],
+  "required_gaps": ["first-run", "token-redaction", "rollback-drill", "plugin-interface", "agent-surface"],
+  "tracks": ["user-value", "trust", "system-quality", "comprehension", "operability"],
+  "epochs": ["weeks-1-4", "weeks-5-8", "weeks-9-12"]
+}
