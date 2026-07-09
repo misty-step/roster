@@ -1,10 +1,11 @@
 {
   "schema_version": "crucible.eval_spec.v1",
   "id": "card-oracle-triage-v0",
+  "title": "Card readiness triage",
   "context": "grooming",
   "task": "card-oracle-triage",
-  "inputs": "32 fleet work cards, class-balanced 16 ready / 16 not_ready, lead-adjudicated 2026-07-09. Sources: 7 live Powder board cards rendered to markdown, 13 committed backlog.d files from 10 fleet repos verbatim, 10 degraded variants (real cards with their Oracle/acceptance sections stripped -- the realistic pre-groom state; task_id prefix deg-), 4 synthetic operator-style quick captures (prefix syn-). Sanitized: no user paths, no private hostnames. Discriminators planted: blocked/parked-but-oracled cards label ready (workflow state is not the judgment); an oracle stated only in body text labels ready; tombstone/steps-only/vibes cards label not_ready.",
-  "outputs": "One word per card, READY or NOT_READY, graded by anchored whole-output regex against the adjudicated label.",
+  "inputs": "32 real fleet work cards \u2014 16 dispatch-ready, 16 not. Mix: live board cards, verbatim backlog files from 10 repos, degraded variants (real cards with their oracle sections stripped \u2014 the pre-groom state, deg-), and raw operator quick-captures (syn-). Labels lead-adjudicated 2026-07-09.",
+  "outputs": "One word per card \u2014 READY or NOT_READY \u2014 graded by anchored regex against the adjudicated label.",
   "graders": {
     "graders": [
       {
@@ -19,7 +20,7 @@
     "confidence": 0.95
   },
   "min_effect_of_interest": 0.3,
-  "decision": "Which cheap model can run the always-on groom triage lane -- matching lead judgment on whether a card carries an executable acceptance oracle (dispatchable) or not? Per-class recall matters as much as the headline: a triager that rubber-stamps everything READY is worse than useless. Disagreement clusters mark where the readiness doctrine itself is ambiguous and still needs the lead.",
+  "decision": "Which cheap model can staff the always-on groom triage lane? A card is READY only if it states a check a cold agent could execute. Per-class recall counts: a triager that rubber-stamps everything READY is worse than useless, and disagreement clusters mark where the readiness doctrine itself needs the lead.",
   "runner": {
     "kind": "prompt_benchmark",
     "corpus": {
@@ -35,6 +36,7 @@
       "tasks": [
         {
           "task_id": "live-canary-responder-gate",
+          "summary": "Live board card: given/then criteria with conformance fixtures \u2014 solidly oracled.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/live-canary-responder-gate.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -45,6 +47,7 @@
         },
         {
           "task_id": "live-crucible-environments",
+          "summary": "Live board card: acceptance names exact commands and persisted artifacts.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/live-crucible-environments.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -55,6 +58,7 @@
         },
         {
           "task_id": "live-exocortex-boundary-scrub",
+          "summary": "Live board card: the oracle is a literal rg command that must return no matches.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/live-exocortex-boundary-scrub.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -65,6 +69,7 @@
         },
         {
           "task_id": "live-powder-ci-gate",
+          "summary": "Live board card: red-PR proof and exact CI commands as criteria.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/live-powder-ci-gate.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -75,6 +80,7 @@
         },
         {
           "task_id": "live-crucible-epochs-body-oracle",
+          "summary": "Discriminator: acceptance array is EMPTY but an explicit Oracle checklist lives in the body \u2014 the whole card must be read.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/live-crucible-epochs-body-oracle.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -85,6 +91,7 @@
         },
         {
           "task_id": "live-aesthetic-nav-lab",
+          "summary": "Live board card: countable criteria (>=6 patterns, viewport presets, no overflow).",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/live-aesthetic-nav-lab.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -95,6 +102,7 @@
         },
         {
           "task_id": "bl-doomscrum-render-verdict",
+          "summary": "Backlog file: single-command verdict JSON with a self-testing fixture \u2014 model oracle discipline.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/bl-doomscrum-render-verdict.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -105,6 +113,7 @@
         },
         {
           "task_id": "bl-bb-webhook-debuggability",
+          "summary": "Backlog file: named fields, caps, and a covering test as criteria.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/bl-bb-webhook-debuggability.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -115,6 +124,7 @@
         },
         {
           "task_id": "bl-bb-report-preservation",
+          "summary": "Backlog file: precise wrapper-behavior checks, some already ticked.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/bl-bb-report-preservation.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -125,6 +135,7 @@
         },
         {
           "task_id": "bl-bbdash-readonly-mcp",
+          "summary": "Backlog file: tool list, default-deny mode, and protocol smoke tests all named.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/bl-bbdash-readonly-mcp.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -135,6 +146,7 @@
         },
         {
           "task_id": "bl-powder-kanban-ui",
+          "summary": "Backlog file: an epic, but with observable checks (lanes visible, screenshots prove usable).",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/bl-powder-kanban-ui.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -145,6 +157,7 @@
         },
         {
           "task_id": "bl-sploot-agent-operable",
+          "summary": "Backlog file: each criterion names a command, script, or doc to verify.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/bl-sploot-agent-operable.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -155,6 +168,7 @@
         },
         {
           "task_id": "bl-vanity-colophon-pause",
+          "summary": "Backlog file: WCAG item with an executable clear condition (re-run the verifier).",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/bl-vanity-colophon-pause.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -165,6 +179,7 @@
         },
         {
           "task_id": "bl-bastion-blocked-but-oracled",
+          "summary": "Discriminator: status says blocked, but the oracle is fully executable \u2014 workflow state must not sway the verdict.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/bl-bastion-blocked-but-oracled.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -175,6 +190,7 @@
         },
         {
           "task_id": "bl-cerberus-parked-but-oracled",
+          "summary": "Discriminator: parked at P4, yet carries a complete oracle \u2014 parked is not not-ready.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/bl-cerberus-parked-but-oracled.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -185,6 +201,7 @@
         },
         {
           "task_id": "bl-doomscrum-draft-with-criteria",
+          "summary": "Discriminator: underscore-prefixed draft file with real acceptance criteria \u2014 draft is not not-ready.",
           "class": "ready",
           "context_file": "fixtures/card-oracle-triage-v0/bl-doomscrum-draft-with-criteria.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -195,6 +212,7 @@
         },
         {
           "task_id": "live-canary-empty-card",
+          "summary": "Canonical empty card: title only \u2014 no body, no criteria.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/live-canary-empty-card.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -205,6 +223,7 @@
         },
         {
           "task_id": "bl-r90-steps-not-checks",
+          "summary": "Checkboxed process steps (grok, groom, dispatch) with no bar for done \u2014 steps are not oracles.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/bl-r90-steps-not-checks.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -215,6 +234,7 @@
         },
         {
           "task_id": "deg-doomscrum-marketing-site",
+          "summary": "Degraded: goal and tone notes survive; the oracle section was stripped.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/deg-doomscrum-marketing-site.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -225,6 +245,7 @@
         },
         {
           "task_id": "deg-doomscrum-distribution",
+          "summary": "Degraded: \"stranger installs in under two minutes\" goal, no stated check.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/deg-doomscrum-distribution.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -235,6 +256,7 @@
         },
         {
           "task_id": "deg-weave-doc-sync",
+          "summary": "Degraded: \"world-class docs on a loop\" \u2014 pure aspiration once the oracle is gone.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/deg-weave-doc-sync.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -245,6 +267,7 @@
         },
         {
           "task_id": "deg-sploot-extension-ux",
+          "summary": "Degraded: \"pleasant to use\" goal with rich context but no completion condition.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/deg-sploot-extension-ux.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -255,6 +278,7 @@
         },
         {
           "task_id": "deg-doomscrum-persona-qa",
+          "summary": "Degraded: concrete-sounding goal (agent files tickets) \u2014 still no stated check.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/deg-doomscrum-persona-qa.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -265,6 +289,7 @@
         },
         {
           "task_id": "deg-aesthetic-gallery",
+          "summary": "Degraded: detailed goal and follow-on prose, oracle stripped.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/deg-aesthetic-gallery.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -275,6 +300,7 @@
         },
         {
           "task_id": "deg-hk-opencode-bakeoff",
+          "summary": "Degraded: research premise and non-goals, ending in an open decision with no acceptance bar.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/deg-hk-opencode-bakeoff.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -285,6 +311,7 @@
         },
         {
           "task_id": "deg-rkc-nonprofit-package",
+          "summary": "Degraded: goal plus child task list \u2014 children are steps, not checks.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/deg-rkc-nonprofit-package.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -295,6 +322,7 @@
         },
         {
           "task_id": "deg-bbdash-comic-ops",
+          "summary": "Degraded: \"evaluate and adopt\" with nothing checkable left.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/deg-bbdash-comic-ops.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -305,6 +333,7 @@
         },
         {
           "task_id": "deg-standby-close-loop",
+          "summary": "Degraded: goal and concrete child steps, no completion condition stated.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/deg-standby-close-loop.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -315,6 +344,7 @@
         },
         {
           "task_id": "syn-glass-sluggish",
+          "summary": "Operator quick-capture: \"make it snappy\" \u2014 hypotheses, no check.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/syn-glass-sluggish.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -325,6 +355,7 @@
         },
         {
           "task_id": "syn-cairn-onboarding",
+          "summary": "Operator quick-capture: \"general DX pass\" \u2014 vibes.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/syn-cairn-onboarding.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -335,6 +366,7 @@
         },
         {
           "task_id": "syn-powder-board-clutter",
+          "summary": "Operator quick-capture: real symptoms, \"clean this up\" \u2014 no bar.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/syn-powder-board-clutter.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
@@ -345,6 +377,7 @@
         },
         {
           "task_id": "syn-fleet-docs-refresh",
+          "summary": "Operator quick-capture: \"do a sweep\" \u2014 unbounded, uncheckable.",
           "class": "not_ready",
           "context_file": "fixtures/card-oracle-triage-v0/syn-fleet-docs-refresh.md",
           "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
