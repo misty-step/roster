@@ -13,10 +13,10 @@ Each entry links a runnable example in `aesthetic-library/<slug>.html` (full,
 self-contained, no build step — open it in a browser) and an optional
 `aesthetic-library/<slug>.png` screenshot the lead adds.
 
-These are aesthetic *presets* in the sense of the SKILL.md dials, parallel to the
-vendored `leon-*` directions — but specimen-grade rather than skill-grade: read
-the example to absorb the move, then build it bespoke for the new surface under
-the anti-slop gate.
+These are seed directions bench lanes can absorb (SKILL.md § Bench), parallel
+to the vendored `leon-*` philosophies — but specimen-grade rather than
+skill-grade: a lane reads the example to absorb the move, then builds it
+bespoke for the new surface under the anti-slop gate.
 
 ---
 

@@ -26,12 +26,43 @@ A design-system document can organize product facts; it cannot replace rendered
 artifact critique. Final judgment still needs a screenshot, URL, rendered
 artifact, or an explicit unverified caveat.
 
+## Holistic System Labs
+
+**Expose** every candidate as a reusable system proposition, not a bespoke
+application shell. When the repo already owns a canonical gallery or registry,
+compose that complete surface into every option; do not replace it with a tiny
+hand-picked sampler. The requested primitive is the varying system rule. The
+comparison corpus and all other established design facts stay fixed.
+
+Every candidate renders the same review matrix:
+
+- **Foundations:** semantic color, spacing and density, shape and elevation,
+  plus light and dark themes.
+- **Typography:** display, body, labels, metadata, numerics, and long wrapping
+  content.
+- **Target anatomy and states:** the primitive's complete anatomy across
+  default, hover, focus, current/selected, expanded, disabled, loading, empty,
+  error, overflow, and reduced-motion states where applicable.
+- **Adjacent components:** buttons, inputs, menus, cards, tables, alerts, and
+  tabs using the established grammar.
+- **Motion:** enter, exit, expansion, selection, and route transitions, with a
+  reduced-motion counterpart.
+- **Compositions:** the gallery/docs surface, content/detail, dense work/data,
+  and an unfamiliar product-neutral composition at desktop, tablet, and phone.
+
+Use one truthful, product-neutral role and stress corpus across candidates so
+the operator compares the system move rather than changing content. Existing
+applications may provide secondary stress tests, but their nouns,
+destinations, data, and one-off rules must not define the proposition. If the
+repo lacks a canonical gallery, build this matrix once as shared comparison
+content; lanes contribute propositions, not substitute galleries.
+
 ## What Belongs In A Repo Design System
 
 Keep the design system local to the consuming repo. Harness Kit provides the
 process and checks; the product owns the visual language.
 
-Minimum useful system:
+The reusable system includes:
 
 - **Tokens:** primitive values, semantic aliases, component-level roles, and
   theme values.

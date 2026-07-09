@@ -1,4 +1,11 @@
-# /design routing eval
+# /design routing eval (retired — preserved as the worked exemplar)
+
+> Historical: `/design` retired its routing layer on 2026-07-09 (Powder
+> `design-always-bench` — every invocation now fans the philosophy bench; no
+> routes exist to grade). Preserved here, run log intact, as the canonical
+> worked example of the eval shape: an answer key, an objective grader, a pass
+> bar a no-op revision fails, a run log. The live `/design` eval is
+> `primitives/skills/design/evals/bench-eval.md`.
 
 The oracle for the composed `/design` (backlog 119, Track A). Tests the one
 claim a router-with-thesis must earn: **given a design request, does the skill
