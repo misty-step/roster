@@ -13,9 +13,9 @@ design prototyping."
 
 - **One section per named issue.** An issue is a problem the operator
   stated ("the footer is cramped," "the bio is wrong"), not a component.
-- **No fewer than six distinct options per section.** Distinct means
-  structurally different, not palette swaps. Always include the current
-  shipped state as an explicit baseline in round 1.
+- **Every section clears the Design Labs Law** (SKILL.md § Catalog — the
+  single statement of the floor). Always include the current shipped state
+  as an explicit baseline in round 1.
 - **Sections never die.** Across rounds: kill weak options, mutate strong
   ones, seed genuinely unexplored directions, and refill toward six.
 - **Carry the winner visibly.** Each section header shows its round
@@ -46,11 +46,12 @@ lab is a **paged viewer**:
 ```
 explorations/lab-NNN/
   index.html   # viewer shell: top bar (viewport controls), sidebar, iframe
-  app.js       # SECTIONS manifest (ids, labels, round status, notes) + shell logic
+  app.js       # SECTIONS manifest (ids, labels, lane, round status, notes) + shell logic
   styles.css   # shell styles only
   frame.html   # skeleton: fonts, design-system CSS, icon sprite, <div id="mount">
-  frame.js     # option builders + SPECS map; renders by location.hash
+  frame.js     # thin composer: merges lane SPECS maps; renders by location.hash
   frame.css    # styles the option screens need, nothing the shell needs
+  lanes/       # one module per bench lane (see Lane modules)
 ```
 
 Options live as small **builder functions** composing shared parts
@@ -58,6 +59,28 @@ Options live as small **builder functions** composing shared parts
 is what makes round mechanics cheap: killing is deleting a key, mutating
 is editing a builder, seeding is adding one. The iframe selects via
 `frame.html#ID`; the shell switches options by setting the frame's hash.
+
+## Lane modules
+
+The bench (SKILL.md § Bench) writes in parallel, so no two lanes may touch
+one file. Each lane's entire output is one module it alone owns:
+
+- `lanes/<alias>.js` — `<alias>` is the philosophy's short name (`taste`,
+  `soft`, `hallmark`, `impec`, …). The module exports builder functions
+  keyed by **namespaced stable IDs** (`TASTE-1`, `HALL-2`); the namespace
+  prefix is the lane's, forever — IDs are never reused, even across rounds.
+- `frame.js` is a thin composer: it imports every lane module and merges
+  their SPECS maps; it holds no builders of its own.
+- Each manifest entry in `app.js` carries `lane: <alias>`, rendered as a
+  **provenance badge** in the sidebar next to the option — verdicts can
+  target a lane ("kill everything from that lane"), and lane hit-rates
+  feed telemetry on which vendored skills earn their keep.
+- A lane also returns one line per option naming its structural move (for
+  the composer's reskin dedupe); everything else it renders, not narrates.
+
+The composer (not the lanes) dedupes cross-lane reskins, seeds refills, and
+owns the manifest. Mutations from verdicts go back to the originating lane's
+philosophy and land in that lane's module under new IDs.
 
 Gotchas learned the hard way:
 
