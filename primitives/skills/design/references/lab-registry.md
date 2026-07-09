@@ -14,10 +14,11 @@ design prototyping."
 - **One section per named issue.** An issue is a problem the operator
   stated ("the footer is cramped," "the bio is wrong"), not a component.
 - **Every section clears the Design Labs Law** (SKILL.md § Catalog — the
-  single statement of the floor). Always include the current shipped state
-  as an explicit baseline in round 1.
+  single statement of the applicable target). Always include the current
+  shipped state as an explicit baseline in round 1.
 - **Sections never die.** Across rounds: kill weak options, mutate strong
-  ones, seed genuinely unexplored directions, and refill toward six.
+  ones, seed genuinely unexplored directions, and refill to the applicable
+  Law target.
 - **Carry the winner visibly.** Each section header shows its round
   number and running winner ("round 2 · winner: COMP-2 the card").
 - Option IDs are stable and never reused (`COMP-7` after `COMP-6` even if
@@ -31,6 +32,9 @@ lab is a **paged viewer**:
 - **Every option renders as its own full-viewport page** — real chrome,
   real content, the real design system loaded from its shipped package
   (CDN pin or installed dep), at true `100dvh` proportions.
+- For holistic system work, that page exposes the same complete canonical
+  gallery for every proposition. Internal tabs or scrolling may organize the
+  gallery, but cannot replace it with a single app screen.
 - **The viewport is adjustable**: preset sizes (fit / 1440×900 / 1280×800
   / 1024×768 / tablet 768×1024 / phone 390×844) plus custom width ×
   height inputs. Sizes larger than the window scale down (CSS transform)
@@ -76,7 +80,10 @@ one file. Each lane's entire output is one module it alone owns:
   target a lane ("kill everything from that lane"), and lane hit-rates
   feed telemetry on which vendored skills earn their keep.
 - A lane also returns one line per option naming its structural move (for
-  the composer's reskin dedupe); everything else it renders, not narrates.
+  the composer's reskin dedupe). In a holistic system lab, that line names the
+  reusable system rule; every builder composes the shared neutral corpus and
+  gallery instead of inventing application-specific content. Everything else
+  it renders, not narrates.
 
 The composer (not the lanes) dedupes cross-lane reskins, seeds refills, and
 owns the manifest. Mutations from verdicts go back to the originating lane's

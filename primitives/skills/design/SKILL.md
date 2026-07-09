@@ -1,7 +1,8 @@
 ---
 name: design
 description: |
-  Interface design by parallel bench: every /design invocation fans out blind
+  Interface and design-system design by parallel bench: every /design
+  invocation fans out blind
   subagent lanes — each obeying one vendored design philosophy end to end —
   and composes their rendered explorations into one clickable lab catalog the
   operator browses and gives verdicts on. Needs a screenshot, URL, rendered
@@ -38,6 +39,12 @@ screenshots, the DNA-not-dress protocol in
 `references/external-design-references.md` binds every lane. Route to `/shape`
 first when the product direction itself is unsettled.
 
+When the target is itself a design system or component library—or the request
+changes shared tokens, recurring components, or multi-surface grammar—classify
+it as a **holistic system lab** and read `references/design-system.md` before
+dispatch. A named primitive is the variable inside the system, not the whole
+option.
+
 ## Bench
 
 Fan out 4–6 blind lanes in parallel (the harness's subagent capability;
@@ -48,6 +55,10 @@ lane output contract (`references/lab-registry.md` § Lane modules). Each lane
 returns 1–3 structurally distinct options. Lanes get the fence and the
 contract only — never each other's output or your reasoning trail (shared
 AGENTS.md: Fresh context beats self-review).
+
+For a cheap zero-build holistic system lab, use six blind philosophies and
+require three proposals from each before dedupe. This is an exploration floor,
+not permission to keep weak work.
 
 The philosophies (vendored under `primitives/skills/.external/`; licences and
 boundaries in `references/external-design-references.md`):
@@ -74,15 +85,22 @@ holds six operator-endorsed directions lanes can seed from.
 
 Compose the lab-registry paged viewer (`references/lab-registry.md`): one
 full-viewport page per option, adjustable viewport, arrow-key nav. Dedupe
-cross-lane reskins, refill toward the Law, include the current shipped state
-as the round-1 baseline, and badge every option with its originating
+cross-lane reskins, refill to the applicable target, include the current
+shipped state as the round-1 baseline, and badge every option with its originating
 philosophy — provenance is how verdicts feed back ("kill everything from that
 lane") and how each vendored skill earns its keep.
 
 **The Design Labs Law (stated here only; everything else points here):** the
-catalog holds **6–20 structurally distinct options**, scaled to render cost.
-Palette/font swaps of one layout count as one option. The pick is the
+candidate catalog holds **6–20 structurally distinct propositions**, scaled to
+render cost. The round-1 baseline is shown separately and never satisfies the
+count. Six is the floor for expensive options, not the default stopping point;
+cheap zero-build and holistic system labs retain **12–20** candidates after
+dedupe. Palette/font swaps of one layout count as one option. The pick is the
 operator's.
+
+In a holistic system lab, one option means one reusable system proposition
+rendered through the same complete gallery contract. A standalone application
+screen is a supplemental stress test, not an option.
 
 ## Verdicts
 
