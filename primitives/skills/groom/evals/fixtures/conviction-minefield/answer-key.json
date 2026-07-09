@@ -1,0 +1,35 @@
+{
+  "snapshot_count": 18,
+  "min_epics": 6,
+  "max_epics": 10,
+  "ready_pickups": ["CV-001"],
+  "cards": {
+    "CV-001": {"required": [], "allowed": ["keep", "promote"]},
+    "CV-002": {"required": ["ready-with-blocker"], "allowed": ["block", "reframe", "merge-proposal", "absorb"]},
+    "CV-003": {"required": ["priority-evidence-drift", "active-no-oracle"], "allowed": ["demote", "reframe", "outside-quarter"]},
+    "CV-004": {"required": ["vision-conflict"], "allowed": ["close-proposal", "reject", "demote"]},
+    "CV-005": {"required": ["ready-no-oracle", "duplicate-overlap"], "allowed": ["merge-proposal", "absorb"], "relation_to": ["CV-006"]},
+    "CV-006": {"required": ["duplicate-overlap"], "allowed": ["keep", "reframe", "absorb"], "relation_to": ["CV-005", "CV-010"]},
+    "CV-007": {"required": ["ready-no-oracle", "epic-containment"], "allowed": ["merge-proposal", "absorb"], "relation_to": ["CV-010"]},
+    "CV-008": {"required": ["stale-claim", "merged-work-active"], "allowed": ["close-proposal", "promote-done"]},
+    "CV-009": {"required": ["duplicate-overlap", "epic-containment"], "allowed": ["merge-proposal", "absorb"], "relation_to": ["CV-011"]},
+    "CV-010": {"required": [], "allowed": ["keep", "promote", "reframe"]},
+    "CV-011": {"required": [], "allowed": ["keep", "promote"]},
+    "CV-012": {"required": ["vision-conflict"], "allowed": ["close-proposal", "reject", "demote"]},
+    "CV-013": {"required": ["active-no-oracle"], "allowed": ["reframe", "promote", "keep"]},
+    "CV-014": {"required": ["active-no-oracle"], "allowed": ["reframe", "promote", "keep", "absorb"]},
+    "CV-015": {"required": ["weak-proof-loop"], "allowed": ["reframe", "keep", "promote"]},
+    "CV-016": {"required": ["active-no-oracle"], "allowed": ["reframe", "promote", "keep", "absorb"]},
+    "CV-017": {"required": ["ready-with-blocker", "weak-proof-loop"], "allowed": ["block", "reframe", "absorb"]},
+    "CV-018": {"required": ["vision-conflict"], "allowed": ["close-proposal", "reject", "demote"]}
+  },
+  "mandatory_lenses": [
+    "product-value", "vision-premise", "user-operator-journey", "domain-specialist",
+    "architecture", "simplification-deletion", "runtime-reliability",
+    "security-privacy", "verification", "operations-infrastructure",
+    "docs-onboarding", "agent-readiness", "external-exemplars"
+  ],
+  "required_gaps": ["scenario-ux", "provider-provenance", "recovery-drill", "cold-agent-onboarding", "dashboard-simplification"],
+  "tracks": ["user-value", "trust", "system-quality", "comprehension", "operability"],
+  "epochs": ["weeks-1-4", "weeks-5-8", "weeks-9-12"]
+}

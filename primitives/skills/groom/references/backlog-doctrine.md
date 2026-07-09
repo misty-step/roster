@@ -1,16 +1,17 @@
 # Backlog Doctrine
 
-## Two-Tier Backlog
+## File fallback only
 
 | Tier | Location | Purpose | Queue health |
 |------|----------|---------|-----|
-| **Shaped work** | `backlog.d/` | Ready-to-build items with goal + oracle + verification system + sequence | Evidence-backed, ordered, actively maintained |
+| **Shaped work** | Powder; `backlog.d/` only when the repo is not registered | Ready-to-build items with goal + oracle + verification system + sequence | Evidence-backed, ordered, actively maintained |
 | **Icebox** | `.groom/BACKLOG.md` | Everything else worth remembering | Searchable, pruned, not a substitute for shaping |
 
-`backlog.d/` is the canonical backlog. Files are the source of truth; there is
-no parallel issue store.
+Powder is canonical when the repo is registered. In a repo with no Powder
+board, `backlog.d/` is the temporary file fallback and this reference governs
+it. Never maintain both as competing ledgers.
 
-Ideas flow between tiers during `/groom` sessions:
+In file-fallback repos, ideas flow between tiers during `/groom` sessions:
 - **Shape:** raw finding → `backlog.d/` file (gets goal + oracle + verification system → ready to build)
 - **Promote:** BACKLOG.md → `backlog.d/` (idea becomes active)
 - **Demote:** `backlog.d/` → BACKLOG.md (item loses priority)
@@ -56,10 +57,11 @@ merge it into a broader reusable effort, or rewrite it until the downstream payo
 - Keep active work narrow. High WIP destroys prioritization.
 - Ideas that aren't execution-ready live in `.groom/BACKLOG.md`.
 
-## Closure protocol
+## File-fallback closure protocol
 
-An active backlog item is closed when it leaves `backlog.d/`, not when someone
-intends to close it later.
+In a file-fallback repo, an active backlog item is closed when it leaves
+`backlog.d/`, not when someone intends to close it later. Powder repos close
+cards through audited status changes instead.
 
 - `/ship` closes shipped work by moving it to `backlog.d/_done/` via
   `harness-kit-checks backlog archive` and carries a

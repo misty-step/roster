@@ -1,0 +1,16 @@
+{
+  "snapshot_count": 18,
+  "mutations_performed": false,
+  "truth_ledger": [
+    {"id": "CV-001", "finding_codes": [], "disposition": "keep", "relation_to": [], "quarter_slot": "weeks-1-4", "evidence_refs": ["R5"]},
+    {"id": "CV-002", "finding_codes": [], "disposition": "keep", "relation_to": [], "quarter_slot": "weeks-1-4", "evidence_refs": ["R2"]},
+    {"id": "CV-010", "finding_codes": [], "disposition": "keep", "relation_to": [], "quarter_slot": "weeks-5-8", "evidence_refs": ["R8"]},
+    {"id": "CV-011", "finding_codes": [], "disposition": "keep", "relation_to": [], "quarter_slot": "weeks-5-8", "evidence_refs": ["R2"]},
+    {"id": "CV-013", "finding_codes": [], "disposition": "keep", "relation_to": [], "quarter_slot": "weeks-9-12", "evidence_refs": ["R2"]},
+    {"id": "CV-015", "finding_codes": [], "disposition": "keep", "relation_to": [], "quarter_slot": "weeks-9-12", "evidence_refs": ["R4"]}
+  ],
+  "source_matrix": [],
+  "finding_ledger": [],
+  "candidate_ledger": [],
+  "portfolio": {"epics": [], "outside_quarter": [], "capacity": {}, "best_pickup": "CV-001", "best_pickup_rationale": "first"}
+}
