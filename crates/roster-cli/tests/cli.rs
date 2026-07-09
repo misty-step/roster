@@ -656,6 +656,21 @@ fn sync_full_catalog_links_first_party_and_external_skills() {
         fs::read_link(&external_skill).unwrap(),
         workspace_root().join("primitives/skills/.external/leon-brutalist-skill")
     );
+    for alias in ["emil-apple-design", "emil-animation-vocabulary"] {
+        for harness in [".claude", ".codex"] {
+            let installed = home.path().join(harness).join("skills").join(alias);
+            assert!(
+                fs::symlink_metadata(&installed).unwrap().is_symlink(),
+                "{harness} should project {alias}"
+            );
+            assert_eq!(
+                fs::read_link(installed).unwrap(),
+                workspace_root()
+                    .join("primitives/skills/.external")
+                    .join(alias)
+            );
+        }
+    }
 
     // pi is absent from this sandbox home, so its skills dir is never created.
     assert!(!home.path().join(".pi/skills").exists());
@@ -841,6 +856,16 @@ fn sync_links_pi_skills_only_when_pi_is_present() {
             .symlink_metadata()
             .is_ok()
     );
+    for alias in ["emil-apple-design", "emil-animation-vocabulary"] {
+        let installed = home.path().join(".pi/skills").join(alias);
+        assert!(fs::symlink_metadata(&installed).unwrap().is_symlink());
+        assert_eq!(
+            fs::read_link(installed).unwrap(),
+            workspace_root()
+                .join("primitives/skills/.external")
+                .join(alias)
+        );
+    }
     assert_eq!(
         fs::read_link(home.path().join(".pi/agent/AGENTS.md")).unwrap(),
         home.path().join(".roster/orchestrator/home-doctrine.md")

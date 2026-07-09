@@ -38,6 +38,7 @@ pub fn run(root: &Path) -> Result<bool> {
         }
     }
     check_index_drift(root, &tracked, &mut findings)?;
+    check_external_provenance(root, &mut findings)?;
 
     for warning in &warnings {
         println!("WARN {warning}");
@@ -49,6 +50,157 @@ pub fn run(root: &Path) -> Result<bool> {
         println!("roster check: ok ({} primitive files)", tracked.len());
     }
     Ok(findings.is_empty())
+}
+
+/// Validate the local, offline half of the external-skill supply chain. The
+/// registry is the declaration; vendored directories and their fetch receipts
+/// must agree with it. Byte parity with GitHub remains an explicit online sync
+/// operation, not a hidden network dependency of `roster check`.
+fn check_external_provenance(root: &Path, findings: &mut Vec<String>) -> Result<()> {
+    let external_root = root.join("primitives/skills/.external");
+    let registry_path = external_root.join("registry.yaml");
+    if !registry_path.is_file() {
+        return Ok(());
+    }
+
+    let registry: serde_yaml::Value = serde_yaml::from_str(
+        &fs::read_to_string(&registry_path).context("read external skill registry")?,
+    )
+    .context("parse external skill registry")?;
+    let sources = registry
+        .get("sources")
+        .and_then(serde_yaml::Value::as_sequence)
+        .cloned()
+        .unwrap_or_default();
+    let mut declared = std::collections::BTreeMap::<String, (String, String, String)>::new();
+
+    for source in sources {
+        let active = source
+            .get("active")
+            .and_then(serde_yaml::Value::as_bool)
+            .unwrap_or(true);
+        let default = source
+            .get("default")
+            .and_then(serde_yaml::Value::as_bool)
+            .unwrap_or(false);
+        if !active || default {
+            continue;
+        }
+        let repo = yaml_string(&source, "repo");
+        let pin = yaml_string(&source, "pin");
+        let prefix = yaml_string(&source, "alias_prefix");
+        if repo.is_empty() || !is_full_git_sha(&pin) || prefix.is_empty() {
+            findings.push(format!(
+                "primitives/skills/.external/registry.yaml: active external source {repo:?} requires repo, a full 40-hex pin, and alias_prefix"
+            ));
+            continue;
+        }
+        let mut names = source
+            .get("include")
+            .and_then(serde_yaml::Value::as_sequence)
+            .into_iter()
+            .flatten()
+            .filter_map(serde_yaml::Value::as_str)
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
+        if let Some(name) = source.get("skill_name").and_then(serde_yaml::Value::as_str) {
+            names.push(name.to_owned());
+        }
+        if names.is_empty() {
+            findings.push(format!(
+                "primitives/skills/.external/registry.yaml: active external source {repo} declares no include or skill_name"
+            ));
+            continue;
+        }
+
+        for source_name in names {
+            let alias = format!("{prefix}{source_name}");
+            if let Some((other_repo, _, _)) = declared.get(&alias) {
+                findings.push(format!(
+                    "primitives/skills/.external/registry.yaml: alias collision {alias} ({other_repo} and {repo})"
+                ));
+                continue;
+            }
+            declared.insert(alias, (repo.clone(), pin.clone(), source_name));
+        }
+    }
+
+    for (alias, (repo, pin, source_name)) in &declared {
+        let dir = external_root.join(alias);
+        if !dir.join("SKILL.md").is_file() {
+            findings.push(format!(
+                "primitives/skills/.external/registry.yaml: declared alias {alias} has no vendored SKILL.md"
+            ));
+            continue;
+        }
+        let meta_path = dir.join(".sync-meta.json");
+        let meta: serde_json::Value = match fs::read_to_string(&meta_path) {
+            Ok(content) => match serde_json::from_str(&content) {
+                Ok(meta) => meta,
+                Err(error) => {
+                    findings.push(format!(
+                        "{}: invalid JSON: {error}",
+                        meta_path.strip_prefix(root).unwrap_or(&meta_path).display()
+                    ));
+                    continue;
+                }
+            },
+            Err(_) => {
+                findings.push(format!(
+                    "primitives/skills/.external/{alias}/.sync-meta.json: missing provenance receipt"
+                ));
+                continue;
+            }
+        };
+        for (field, expected) in [("repo", repo.as_str()), ("sha", pin.as_str())] {
+            let actual = meta.get(field).and_then(serde_json::Value::as_str);
+            if actual != Some(expected) {
+                findings.push(format!(
+                    "primitives/skills/.external/{alias}/.sync-meta.json: {field} mismatch (expected {expected:?}, found {actual:?})"
+                ));
+            }
+        }
+        // Multi-root sources may record the complete nested path while flat
+        // sources record only the leaf. In either case its final component is
+        // the registry's included skill name.
+        let suffix = meta
+            .get("src_path_suffix")
+            .and_then(serde_json::Value::as_str);
+        let suffix_name = suffix
+            .and_then(|value| Path::new(value).file_name())
+            .and_then(|value| value.to_str());
+        if suffix_name != Some(source_name) {
+            findings.push(format!(
+                "primitives/skills/.external/{alias}/.sync-meta.json: src_path_suffix mismatch (expected leaf {source_name:?}, found {suffix:?})"
+            ));
+        }
+    }
+
+    for entry in fs::read_dir(&external_root).context("read external skills directory")? {
+        let entry = entry.context("read external skill entry")?;
+        if !entry.file_type()?.is_dir() || !entry.path().join("SKILL.md").is_file() {
+            continue;
+        }
+        let alias = entry.file_name().to_string_lossy().to_string();
+        if !declared.contains_key(&alias) {
+            findings.push(format!(
+                "primitives/skills/.external/{alias}: vendored skill is not declared by an active registry source"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn yaml_string(value: &serde_yaml::Value, key: &str) -> String {
+    value
+        .get(key)
+        .and_then(serde_yaml::Value::as_str)
+        .unwrap_or_default()
+        .to_owned()
+}
+
+fn is_full_git_sha(value: &str) -> bool {
+    value.len() == 40 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 /// Non-fatal freshness tripwire: any frontmatter `*review_due: YYYY-MM-DD`

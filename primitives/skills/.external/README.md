@@ -21,6 +21,16 @@ for the convention and its prior art.
 ## mattpocock-writing-great-skills
 
 - Source: `mattpocock/skills` at `skills/productivity/writing-great-skills`
-- Pinned commit: `16a2a5cd00b4416f673f4ff38c7971a04dd708e7` (MIT)
+- Pinned commit: `d574778f94cf620fcc8ce741584093bc650a61d3` (MIT)
 - Vendored 2026-07-07 (roster-926 phase A); also the judgment layer behind
   `primitives/shared/references/skill-authoring-standard.md`.
+
+## emilkowalski-skills
+
+- Source: `emilkowalski/skills`
+- Pinned commit: `f76beceb7d3fc8c43309cefad5a095a206103a4e` (MIT)
+- Four aliases: `emil-emil-design-eng`, `emil-review-animations`,
+  `emil-apple-design`, and `emil-animation-vocabulary`.
+- Vendored 2026-07-09 (roster-944); the first two author/review motion, Apple
+  Design is a conditional physical-interface philosophy, and Animation
+  Vocabulary names effects without joining generative design fanout.

@@ -1,10 +1,10 @@
-# Harness Kit Registry — external skill sources, pinned.
+# Roster external skill registry — vendored sources, pinned.
 #
 # Skills are discovered from the filesystem (skills/*/SKILL.md). This file is
 # the provenance ledger for third-party skills:
-# `harness-kit-checks sync-external` installs each source into
-# skills/.external/<alias>/ at its pinned sha. Small, actually-loaded sets
-# are committed (vendored) for reviewable diffs; sync is the update path.
+# Each source is vendored into `primitives/skills/.external/<alias>/` at its
+# pinned SHA. The committed payload and `.sync-meta.json` receipt are the
+# reviewable import; `roster check` rejects registry/receipt/directory drift.
 # Editing a vendored external makes it a fork — mark it here and stop
 # syncing it.
 #
@@ -199,31 +199,30 @@ sources:
     alias_prefix: "jakub-"
     include: [make-interfaces-feel-better]
 
-  # emilkowalski/skill — Emil Kowalski's "Agents with Taste" design-engineering
-  # skills. emil-design-eng: decision flowcharts for easing selection, duration
+  # emilkowalski/skills — Emil Kowalski's design-engineering skill pack.
+  # emil-design-eng: decision flowcharts for easing selection, duration
   # lookup tables by element type, typography / component rules drawn from Sonner
   # and his articles. review-animations: a DMI motion-code reviewer against the
   # same craft bar (ten non-negotiable standards + escalation triggers, with a
-  # STANDARDS.md catalog). Build with one, review with the other. Complements
+  # STANDARDS.md catalog). apple-design supplies a distinct physical-interface
+  # philosophy for gestures, momentum, interruptibility, and materials;
+  # animation-vocabulary is a naming aid, not a generative lane. Complements
   # jakubkrehel/make-interfaces-feel-better: Jakub names techniques, Emil
   # supplies the when-to-use-which flowcharts. Together they form the
   # motion-design judgment layer.
   #
-  # LICENSE: MIT — LICENSE.txt added upstream at this pin (copyright Matt Pocock,
-  # via the `skills` packaging tool). Redistributable with attribution; the prior
-  # no-license caveat is resolved.
+  # LICENSE: MIT, Copyright (c) 2026 Emil Kowalski. Redistributable with
+  # attribution.
   #
-  # NAMING NOTE: upstream skills are "emil-design-eng" and "review-animations";
-  # the alias_prefix yields `emil-emil-design-eng` and `emil-review-animations`
-  # (the doubled "emil" is cosmetic; prefix consistency across author-scoped
-  # sources wins over visual tidiness).
-  - repo: emilkowalski/skill
+  # NAMING NOTE: preserve `emil-emil-design-eng` for compatibility; new aliases
+  # are `emil-apple-design` and `emil-animation-vocabulary`.
+  - repo: emilkowalski/skills
     ref: main
-    pin: ea2cd0ddb235abbe85cdbc03f26686cd465df897
+    pin: f76beceb7d3fc8c43309cefad5a095a206103a4e
     layout: flat
     skills_path: skills
     alias_prefix: "emil-"
-    include: [emil-design-eng, review-animations]
+    include: [emil-design-eng, review-animations, animation-vocabulary, apple-design]
 
   # Leonxlnx/taste-skill — high-agency frontend design family. We keep the
   # output-enforcement helper out of the default sync because it is orthogonal
