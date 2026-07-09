@@ -11,7 +11,7 @@ same ask.
 Set these once per lane:
 
 ```sh
-export GLASS_URL="${GLASS_URL:-https://bastion.tail5f5eb4.ts.net:10003}"
+export GLASS_URL="${GLASS_URL:-https://sanctum.tail5f5eb4.ts.net:10003}"
 export GLASS_AGENT="${GLASS_AGENT:-<lane-agent-id>}"
 export GLASS_SESSION_TITLE="${GLASS_SESSION_TITLE:-<work-ref>: <lane title>}"
 ```

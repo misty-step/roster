@@ -422,7 +422,7 @@ def main():
     ap.add_argument("--html-file")
     ap.add_argument("--body-file")
     ap.add_argument("--root", default=os.path.expanduser("~/artifacts/public"))
-    ap.add_argument("--base-url", default="https://bastion.tail5f5eb4.ts.net/artifacts")
+    ap.add_argument("--base-url", default="https://sanctum.tail5f5eb4.ts.net/artifacts")
     ap.add_argument("--local-only", action="store_true",
                     help="skip the remote PUT; write only the local mirror")
     a = ap.parse_args()

@@ -77,7 +77,7 @@ python3 $S/artifact_create.py --title "The Factory" --slug factory \
 
 The script writes a local mirror (`~/artifacts/public/a/<slug>/index.html`),
 then PUTs the page to the box shelf and prints the canonical URL:
-`https://bastion.tail5f5eb4.ts.net/artifacts/a/<slug>/`. Use a 1–2 word slug.
+`https://sanctum.tail5f5eb4.ts.net/artifacts/a/<slug>/`. Use a 1–2 word slug.
 Publishing needs `ARTIFACTS_API_TOKEN` (env or `~/.secrets`; canonical copy in
 1Password `op://Agents/ARTIFACTS_API_TOKEN`). `--local-only` skips the PUT.
 Verify with `curl -s -o /dev/null -w '%{http_code}' <url>` before handing over
@@ -85,7 +85,7 @@ the link. Publish any raw HTML from anywhere on the tailnet with one line:
 
 ```bash
 curl -T page.html -H "Authorization: Bearer $ARTIFACTS_API_TOKEN" \
-  https://bastion.tail5f5eb4.ts.net/artifacts/a/<slug>/index.html
+  https://sanctum.tail5f5eb4.ts.net/artifacts/a/<slug>/index.html
 ```
 
 ## Serving
@@ -93,7 +93,7 @@ curl -T page.html -H "Authorization: Bearer $ARTIFACTS_API_TOKEN" \
 The shelf lives on the bastion Fly box (`apps/artifacts` in the bastion repo):
 files on the `/data` volume, served at `…ts.net/artifacts/`, indexed newest-first
 at the bare path, linked from the Sanctum portal at the tailnet root
-(`https://bastion.tail5f5eb4.ts.net/`). Survives laptop sleep and reboots.
+(`https://sanctum.tail5f5eb4.ts.net/`). Survives laptop sleep and reboots.
 
 Legacy mirror: `scripts/artifact_serve.py` still serves `~/artifacts/public` on
 `127.0.0.1:8789` under launchd (`com.phaedrus.artifacts.plist`), exposed at

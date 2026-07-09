@@ -25,7 +25,7 @@ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 HOME = os.path.expanduser("~")
 BRIDGE_KEY_PATH = os.path.join(HOME, ".factory-lanes", ".powder-bridge-key")
 BRIDGE_SCRIPT = os.path.join(HOME, ".factory-lanes", "scripts", "bridge.py")
-POWDER_BASE = "https://bastion.tail5f5eb4.ts.net:10001"
+POWDER_BASE = "https://sanctum.tail5f5eb4.ts.net:10001"
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -158,7 +158,7 @@ button{{font:600 13px -apple-system,sans-serif;padding:.45rem .8rem;border:1px s
 .st{{font-weight:600;color:#0a7d5f}} .done .st{{color:#999}}
 .t{{white-space:pre-wrap}} .oc{{margin-top:.4rem;font-size:14px;color:#555;border-top:1px dashed #ddd;padding-top:.35rem}}
 a.home{{font-size:13px;color:#666;text-decoration:none}}</style></head><body>
-<a class="home" href="https://bastion.tail5f5eb4.ts.net/">⌂ Sanctum</a>
+<a class="home" href="https://sanctum.tail5f5eb4.ts.net/">⌂ Sanctum</a>
 <h1>Scratchpad</h1>
 <div class="sub">The pile: things to discuss when there's bandwidth. Dictate freely — nothing here interrupts current work. Say "check the scratchpad" to chew through it.</div>
 <textarea id="tx" placeholder="Scribble, dictate, dump…"></textarea>
@@ -235,7 +235,7 @@ function tog(id){{fetch(API+'/toggle',{{method:'POST',headers:{{'Content-Type':'
                 start_new_session=True)
         except OSError as err:
             return self._json(500, {"error": str(err)})
-        base = "https://bastion.tail5f5eb4.ts.net/artifacts/a/fleet-retro"
+        base = "https://sanctum.tail5f5eb4.ts.net/artifacts/a/fleet-retro"
         url = {"daily": f"{base}/daily/index.html",
                "weekly": f"{base}/weekly/index.html"}.get(window)
         return self._json(202, {
