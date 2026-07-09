@@ -1,0 +1,359 @@
+{
+  "schema_version": "crucible.eval_spec.v1",
+  "id": "card-oracle-triage-v0",
+  "context": "grooming",
+  "task": "card-oracle-triage",
+  "inputs": "32 fleet work cards, class-balanced 16 ready / 16 not_ready, lead-adjudicated 2026-07-09. Sources: 7 live Powder board cards rendered to markdown, 13 committed backlog.d files from 10 fleet repos verbatim, 10 degraded variants (real cards with their Oracle/acceptance sections stripped -- the realistic pre-groom state; task_id prefix deg-), 4 synthetic operator-style quick captures (prefix syn-). Sanitized: no user paths, no private hostnames. Discriminators planted: blocked/parked-but-oracled cards label ready (workflow state is not the judgment); an oracle stated only in body text labels ready; tombstone/steps-only/vibes cards label not_ready.",
+  "outputs": "One word per card, READY or NOT_READY, graded by anchored whole-output regex against the adjudicated label.",
+  "graders": {
+    "graders": [
+      {
+        "id": "oracle_presence_regex",
+        "kind": "deterministic"
+      }
+    ]
+  },
+  "aggregation": "proportion",
+  "uncertainty": {
+    "method": "wilson",
+    "confidence": 0.95
+  },
+  "min_effect_of_interest": 0.3,
+  "decision": "Which cheap model can run the always-on groom triage lane -- matching lead judgment on whether a card carries an executable acceptance oracle (dispatchable) or not? Per-class recall matters as much as the headline: a triager that rubber-stamps everything READY is worse than useless. Disagreement clusters mark where the readiness doctrine itself is ambiguous and still needs the lead.",
+  "runner": {
+    "kind": "prompt_benchmark",
+    "corpus": {
+      "source": "prompt_benchmark",
+      "config": {
+        "provider": "open_router",
+        "model": "deepseek/deepseek-v4-flash",
+        "system_prompt": "You are triaging fleet work cards for agent dispatch. Judge exactly one thing: does the card, as written, carry an executable acceptance oracle?\n\nA card is READY when it states at least one explicit completion check a cold agent could execute or verify directly: a command to run, an artifact whose existence or required content can be checked, a route or endpoint to probe, a countable threshold, or a concretely observable state change. The check may appear anywhere in the card -- an acceptance list, an Oracle section, or plain body text -- but it must be stated as a completion condition, not left for the reader to invent.\n\nA card is NOT_READY when it carries no stated completion check: an empty or goal-only card; criteria that merely restate the goal; quality vibes (clean, fast, world-class, pleasant, snappy); process steps or child task lists with no stated bar for done (investigate X, groom the backlog, do a pass); or an open decision with no stated acceptance. If you would have to invent the check yourself, the card is NOT_READY.\n\nIgnore scheduling and workflow state entirely: a card that is blocked, parked, draft, or low priority is still READY if its completion check is executable. Status fields are not part of the judgment.\n\nRespond with exactly one line containing exactly one word: READY or NOT_READY.",
+        "credential_env": "OPENROUTER_API_KEY",
+        "max_tokens": 2000,
+        "temperature": 0
+      },
+      "tasks": [
+        {
+          "task_id": "live-canary-responder-gate",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/live-canary-responder-gate.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "live-crucible-environments",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/live-crucible-environments.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "live-exocortex-boundary-scrub",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/live-exocortex-boundary-scrub.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "live-powder-ci-gate",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/live-powder-ci-gate.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "live-crucible-epochs-body-oracle",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/live-crucible-epochs-body-oracle.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "live-aesthetic-nav-lab",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/live-aesthetic-nav-lab.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "bl-doomscrum-render-verdict",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/bl-doomscrum-render-verdict.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "bl-bb-webhook-debuggability",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/bl-bb-webhook-debuggability.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "bl-bb-report-preservation",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/bl-bb-report-preservation.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "bl-bbdash-readonly-mcp",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/bl-bbdash-readonly-mcp.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "bl-powder-kanban-ui",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/bl-powder-kanban-ui.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "bl-sploot-agent-operable",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/bl-sploot-agent-operable.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "bl-vanity-colophon-pause",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/bl-vanity-colophon-pause.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "bl-bastion-blocked-but-oracled",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/bl-bastion-blocked-but-oracled.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "bl-cerberus-parked-but-oracled",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/bl-cerberus-parked-but-oracled.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "bl-doomscrum-draft-with-criteria",
+          "class": "ready",
+          "context_file": "fixtures/card-oracle-triage-v0/bl-doomscrum-draft-with-criteria.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "live-canary-empty-card",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/live-canary-empty-card.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "bl-r90-steps-not-checks",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/bl-r90-steps-not-checks.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "deg-doomscrum-marketing-site",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/deg-doomscrum-marketing-site.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "deg-doomscrum-distribution",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/deg-doomscrum-distribution.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "deg-weave-doc-sync",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/deg-weave-doc-sync.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "deg-sploot-extension-ux",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/deg-sploot-extension-ux.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "deg-doomscrum-persona-qa",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/deg-doomscrum-persona-qa.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "deg-aesthetic-gallery",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/deg-aesthetic-gallery.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "deg-hk-opencode-bakeoff",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/deg-hk-opencode-bakeoff.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "deg-rkc-nonprofit-package",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/deg-rkc-nonprofit-package.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "deg-bbdash-comic-ops",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/deg-bbdash-comic-ops.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "deg-standby-close-loop",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/deg-standby-close-loop.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "syn-glass-sluggish",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/syn-glass-sluggish.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "syn-cairn-onboarding",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/syn-cairn-onboarding.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "syn-powder-board-clutter",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/syn-powder-board-clutter.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        },
+        {
+          "task_id": "syn-fleet-docs-refresh",
+          "class": "not_ready",
+          "context_file": "fixtures/card-oracle-triage-v0/syn-fleet-docs-refresh.md",
+          "prompt": "The work card above is the complete card as it appears on the board. Triage it.",
+          "expectation": {
+            "kind": "regex",
+            "pattern": "\\A\\s*NOT_READY\\s*\\z"
+          }
+        }
+      ]
+    }
+  }
+}
