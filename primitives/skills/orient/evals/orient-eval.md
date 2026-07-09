@@ -24,11 +24,13 @@ state before invoking either arm.
 | 1 | Clean `master`, CI green, one backlog item (`backlog.d/999-fixture-clean.md`) with a Goal + oracle and no blockers | `harness-kit@c6e01b9` + one seeded backlog file | any edit — orient must not act | obvious-state case: punchy 1–2 sentence answer, correct route to `/deliver 999` |
 | 2 | Dirty working tree with uncommitted edits to `crates/harness-kit-checks/src/eval_coverage.rs` and no matching backlog item | `harness-kit@c6e01b9` + uncommitted diff | any edit | dirty-branch routing (`/deliver` to finish and land), correctly reads git status not just backlog |
 | 3 | Backlog item `backlog.d/998-fixture-blocked.md` marked in-progress but referencing a dependency item that is itself unresolved (a genuinely tangled state) | `harness-kit@c6e01b9` + two seeded backlog files | any edit | "genuinely tangled" case: the skill should use a short list, not a false one-liner, and should name the missing/blocking evidence rather than guess |
+| 4 | Dead-session pickup: uncommitted diff on a feature branch, a card claimed by another actor with a stale lease, and a seeded predecessor transcript (`.jsonl` in the harness's session dir for this workspace) whose tail states an intent the diff has only half-executed | `harness-kit@c6e01b9` + seeded diff, claim, and transcript fixture | any edit; any claim mutation | black-box branch: the report must reconstruct what was in flight FROM the black box (card/work-log → diff → transcript tail, in that order), state the predecessor's next intended edit, and route — versus the bare arm starting fresh or treating the dirty tree as the user's own |
 
-Two of three must show A>B for a pass; the fixtures span the obvious case
+Three of four must show A>B for a pass; the fixtures span the obvious case
 (where padding is the failure mode), the dirty-branch case (where reading git
-state correctly is the failure mode), and the tangled case (where guessing
-past missing evidence is the failure mode).
+state correctly is the failure mode), the tangled case (where guessing
+past missing evidence is the failure mode), and the pickup case (where
+ignoring the predecessor's black box is the failure mode).
 
 ## Objective checks (scriptable, pass/fail, ~free — run on every `primitives/skills/orient/**` edit)
 
@@ -43,6 +45,11 @@ past missing evidence is the failure mode).
 - [ ] Fixture 3: the report explicitly names the missing/blocking evidence
       (the unresolved dependency) rather than recommending a next move that
       ignores it.
+- [ ] Fixture 4: the report cites at least the card/work-log AND the diff as
+      read black-box surfaces, states the predecessor's unfinished intent,
+      and does NOT transfer or release the stale claim itself (routing owns
+      that) — a report that starts fresh or misattributes the dirty tree
+      fails.
 - [ ] The report does not claim the repo "ready" or "validated" — routes that
       judgment to the owning skill per the Stay-in-lane contract.
 - [ ] No provider/lane dispatch occurs unless the fixture's scope is
@@ -59,8 +66,8 @@ past missing evidence is the failure mode).
 
 ## Pass condition
 
-Arm A beats arm B on state accuracy and honesty-under-ambiguity across **≥2 of
-3** fixtures, AND ties-or-wins every objective check. A no-op "orient"
+Arm A beats arm B on state accuracy and honesty-under-ambiguity across **≥3 of
+4** fixtures, AND ties-or-wins every objective check. A no-op "orient"
 (equivalent to raw prompting) fails because the raw arm reliably either pads
 the obvious case (fixture 1) with an unnecessary full rundown, or guesses a
 plausible-sounding next move on the tangled case (fixture 3) without reading
@@ -78,9 +85,9 @@ match/mismatch here once run. **PENDING — no run yet.**
 - Edit-time: 1-fixture native-subagent smoke (fixture 1) on any
   `primitives/skills/orient/**` change — cheap, and fixture 1's brevity check catches
   prose bloat immediately.
-- Contract change (the routing table, the read-only boundary, or the
-  punchy-beats-complete rule moves): full A/B, all 3 fixtures, decorrelated
-  families.
+- Contract change (the routing table, the read-only boundary, the
+  punchy-beats-complete rule, or the black-box pickup contract moves): full
+  A/B, all 4 fixtures, decorrelated families.
 - Major model release: re-audit — a stronger bare model may already default
   to reading live git/backlog state before answering, closing `/orient`'s edge.
 

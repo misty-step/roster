@@ -1,11 +1,12 @@
 ---
 name: orient
 description: |
-  Fast session-start repository orientation from live local evidence. Use when:
-  "orient yourself", "start of session", "new session", "where are we",
-  "catch me up before acting", after compaction,
-  after switching worktrees, or before choosing a workflow. Trigger:
-  /orient, /ground, /session-start.
+  Fast orientation from live local evidence — at session start, or picking up
+  work a dead session left unfinished. Use when: "orient yourself", "new
+  session", "where are we", "catch me up before acting", after compaction,
+  after switching worktrees, before choosing a workflow; or "pick up where it
+  left off", "the session died / hit its usage limit", "continue that
+  agent's work". Trigger: /orient, /ground, /session-start, /pickup.
 argument-hint: "[scope|--deep]"
 ---
 
@@ -42,6 +43,23 @@ already settled. Beyond the obvious (`git status`, branch, recent commits):
   running on files uses `backlog.d/*.md`, `_done/`, and `Closes-backlog:` trailers
 - roster probe (`roster list` / roster MCP) — only when the next move is a delegation
 
+## Picking up a dead session
+
+Sessions die mid-work — usage limits, crashes, kills — and a dying session
+cannot spare the tokens to write a handoff. It never needs to: every session
+leaves a **black box** — card + work log, working tree, receipts, transcript —
+written as a side effect at zero cost to the writer. You, the successor, pay
+the reconstruction cost at your own rates, in your own harness, on your own
+budget. Read it in cost order until you can state what was in flight, what was
+proven, and what the next edit was going to be:
+[references/black-box.md](references/black-box.md).
+
+Signals that a pickup is what's being asked, even when unstated: a claimed
+card with a stale lease, a dirty tree you didn't make, a fresh transcript
+from another harness in this workspace. Reconstruct first, then route as
+usual — the claim transfer, the finishing diff, and the commit belong to the
+routed skill.
+
 ## Routing
 
 Recommend one next skill. If the signal is mixed, name the missing evidence
@@ -52,6 +70,7 @@ rather than guess from vibes.
 | Shaped ticket, clean branch | `/deliver <ticket>` |
 | Dirty branch, intended changes | `/deliver` (finish and land) |
 | Dirty worktree, unclear ownership | Classify paths, then commit by concern or ask one scope question |
+| Stale claim + predecessor's dirty tree | Read the black box, then route the reconstructed work (usually `/deliver`) |
 | Unshaped idea, unclear acceptance | `/shape` |
 | Empty or stale backlog | `/groom` |
 | Open prioritized backlog, no active branch | `/groom` summary, then one pickup |
@@ -67,10 +86,11 @@ rather than guess from vibes.
 ## Stay in lane
 
 Orient reads; it never acts. Don't deliver, groom, refactor, reflect, debrief,
-mine transcripts, or mutate state. Don't label the repo "ready" or "validated" —
-route that to the owning skill. Don't store session memory; durable state lives
-in backlog, commits, and receipts. Don't spin up provider lanes unless scope is
-broad, stale, or contested. Scoped `AGENTS.md` governs — respect it.
+mine transcripts beyond the black-box tail, or mutate state. Don't label the
+repo "ready" or "validated" — route that to the owning skill. Don't store
+session memory; durable state lives in backlog, commits, and receipts. Don't
+spin up provider lanes unless scope is broad, stale, or contested. Scoped
+`AGENTS.md` governs — respect it.
 
 ## Verification
 

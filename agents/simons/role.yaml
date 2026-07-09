@@ -15,6 +15,9 @@ permissions:
   secrets: env-refs-only
   mutations: with-explicit-scope
 skills:
+  - name: orient
+    path: /Users/phaedrus/Development/roster/primitives/skills/orient/SKILL.md
+    reason: ground in live state; pick up dead-session work from the black box
   - name: performance-review
     path: /Users/phaedrus/Development/simons/.agents/skills/performance-review/SKILL.md
     reason: close the outcome->learning loop — score theses vs benchmark and read calibration before sizing

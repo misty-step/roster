@@ -15,6 +15,9 @@ permissions:
   secrets: env-refs-only
   mutations: card-comments-and-answers-only
 skills:
+  - name: orient
+    path: /Users/phaedrus/Development/roster/primitives/skills/orient/SKILL.md
+    reason: ground in live state; pick up dead-session work from the black box
   - name: powder
     path: /Users/phaedrus/Development/roster/primitives/skills/.external/misty-powder/SKILL.md
     reason: read the asker's card trail, answer asks, write rulings back
