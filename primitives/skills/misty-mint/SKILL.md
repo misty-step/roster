@@ -47,15 +47,14 @@ Concrete — calling OpenRouter through the `openrouter.default` alias:
 
 ```sh
 curl -H "Authorization: Bearer __mint.openrouter.default__" \
-     -X POST "${MINT_BASE_URL:-http://mint-5.tail5f5eb4.ts.net:4949}/proxy/https/openrouter.ai/api/v1/chat/completions" \
+     -X POST "${MINT_BASE_URL:-http://mint.tail5f5eb4.ts.net:4949}/proxy/https/openrouter.ai/api/v1/chat/completions" \
      -d '{"model": "...", "messages": [...]}'
 ```
 
 - **`MINT_BASE_URL`** — prefer the environment; the deployed default is
-  `http://mint-5.tail5f5eb4.ts.net:4949` (dedicated tailnet droplet since
+  `http://mint.tail5f5eb4.ts.net:4949` (dedicated tailnet droplet since
   2026-07-08, do-migration-105; plain HTTP is correct — WireGuard is the
-  transport encryption, and the node name regains `mint` once stale Fly-era
-  registrations are cleaned). Local `mint serve` uses `http://127.0.0.1:4949`.
+  transport encryption). Local `mint serve` uses `http://127.0.0.1:4949`.
   You must be a tailnet peer: calls from off-tailnet (or through `tailscale
   serve`/443, which launders the peer address) are refused by design.
 - **`__mint.<service>.<name>__`** goes anywhere a real credential value would
