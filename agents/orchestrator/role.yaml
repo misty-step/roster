@@ -21,6 +21,9 @@ skills:
   - name: shape
     path: /Users/phaedrus/Development/roster/primitives/skills/shape/SKILL.md
     reason: turn raw work into an acceptance oracle before dispatch
+  - name: project-engineering
+    path: /Users/phaedrus/Development/roster/primitives/skills/project-engineering/SKILL.md
+    reason: adopt or audit a repo-specific engineering fitness function without imposing one layout
   - name: groom
     path: /Users/phaedrus/Development/roster/primitives/skills/groom/SKILL.md
     reason: keep the board true and ambitious

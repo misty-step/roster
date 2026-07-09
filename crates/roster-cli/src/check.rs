@@ -2,7 +2,8 @@
 //! frontmatter shape, path references skill prose cites, index/disk parity,
 //! and conflict markers. Semantic judgment (premise soundness, prose
 //! quality) stays model work — see the ci and shape skills. Scope is
-//! `primitives/`, git-tracked files only.
+//! `primitives/`, including untracked non-ignored files so a new primitive is
+//! gated before its first commit.
 
 use anyhow::{Context, Result, ensure};
 use std::{
@@ -45,10 +46,7 @@ pub fn run(root: &Path) -> Result<bool> {
         println!("FAIL {finding}");
     }
     if findings.is_empty() {
-        println!(
-            "roster check: ok ({} tracked primitives files)",
-            tracked.len()
-        );
+        println!("roster check: ok ({} primitive files)", tracked.len());
     }
     Ok(findings.is_empty())
 }
@@ -90,7 +88,14 @@ fn check_review_due(path: &Path, content: &str, warnings: &mut Vec<String>) {
 
 fn tracked_files(root: &Path) -> Result<Vec<PathBuf>> {
     let output = Command::new("git")
-        .args(["ls-files", "--", "primitives"])
+        .args([
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "--",
+            "primitives",
+        ])
         .current_dir(root)
         .output()
         .context("run git ls-files")?;

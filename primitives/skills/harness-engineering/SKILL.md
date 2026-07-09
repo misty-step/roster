@@ -31,6 +31,7 @@ Engineer the harness. Keep it thin.
 | current model/provider/harness facts | `primitives/skills/roster/references/model-provider-harness-index.md` |
 | open-model defaults | `references/open-model-roster.md` |
 | preferred stack / infrastructure defaults | `references/preferred-stack.md` |
+| adopt or audit a repo engineering fitness function | `../project-engineering/SKILL.md` |
 | factory app capability routing | `../factory-apps/SKILL.md` |
 | one core / many faces product template | `references/one-core-many-faces.md` + `templates/one-core-many-faces/` |
 | generate a focused repo-local skill for a domain agent | `references/repo-local-skill-generation.md` + `templates/repo-local-skill/` |

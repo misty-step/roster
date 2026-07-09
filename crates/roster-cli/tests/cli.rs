@@ -137,6 +137,26 @@ fn materialize_bb_prints_agent_binding() {
 }
 
 #[test]
+fn materialize_bb_refuses_agents_whose_required_mcps_cannot_be_bound() {
+    roster_cmd()
+        .args(["materialize", "builder", "--harness", "bb"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "bb cannot bind required MCP servers for agent \"builder\": powder",
+        ));
+}
+
+#[test]
+fn materialize_bb_maps_workspace_write_to_edit_authority() {
+    roster_cmd()
+        .args(["materialize", "designer", "--harness", "bb"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("authority = \"edit\""));
+}
+
+#[test]
 fn materialize_omp_prints_valid_frontmatter_with_slow_alias() {
     // Same pattern as materialize_claude below: assert against actual
     // model_policy.reasoning-derived output, not a hand-copied fixture.
@@ -154,6 +174,37 @@ fn materialize_omp_prints_valid_frontmatter_with_slow_alias() {
 }
 
 #[test]
+fn materialize_omp_maps_filesystem_and_command_permissions() {
+    roster_cmd()
+        .args(["materialize", "designer", "--harness", "omp"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "tools: [read, grep, glob, write, edit, bash, web_search]",
+        ));
+
+    roster_cmd()
+        .args(["materialize", "sweep", "--harness", "omp"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "tools: [read, grep, glob, web_search]",
+        ))
+        .stdout(predicate::str::contains("bash").not());
+}
+
+#[test]
+fn materialize_omp_refuses_agents_whose_required_mcps_cannot_be_bound() {
+    roster_cmd()
+        .args(["materialize", "boss", "--harness", "omp"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "omp cannot bind required MCP servers for agent \"boss\": powder",
+        ));
+}
+
+#[test]
 fn materialize_claude_prints_native_subagent_frontmatter() {
     // Expected models come from primitives/models.yaml's `models` table:
     // orchestrator's preferred concrete id is claude-fable-5 (claude:
@@ -162,10 +213,15 @@ fn materialize_claude_prints_native_subagent_frontmatter() {
     for (agent, expected_tools, expected_model) in [
         (
             "orchestrator",
-            "Read, Write, Edit, Grep, Glob, Bash, WebSearch",
+            "Read, Write, Edit, Grep, Glob, Bash, WebSearch, mcp__powder__*",
             "inherit",
         ),
         ("cerberus", "Read, Grep, Glob, Bash", "sonnet"),
+        (
+            "boss",
+            "Read, Grep, Glob, WebSearch, mcp__powder__add_comment, mcp__powder__answer_input",
+            "inherit",
+        ),
     ] {
         let output = roster_cmd()
             .args(["materialize", agent, "--harness", "claude"])
@@ -249,7 +305,7 @@ fn brief_without_card_renders_agent_context_and_overrides() {
 fn brief_with_card_fetches_powder_context() {
     let stub = PowderStub::once(
         "200 OK",
-        r#"{"card":{"title":"Test card","body":"Card body from Powder","acceptance":["first criterion","second criterion"]}}"#,
+        r#"{"card":{"title":"Test card","body":"Card body from Powder","criteria":[{"text":"first criterion"},{"text":"second criterion"}],"status":"claimed","updated_at":1783635700,"claim":{"agent":"builder-7","run_id":"run-123","expires_at":1783639300}}}"#,
     );
 
     roster_cmd()
@@ -261,6 +317,15 @@ fn brief_with_card_fetches_powder_context() {
         .stdout(predicate::str::contains("## Powder Card"))
         .stdout(predicate::str::contains("- ID: roster-123"))
         .stdout(predicate::str::contains("- Title: Test card"))
+        .stdout(predicate::str::contains("- Status: claimed"))
+        .stdout(predicate::str::contains("- Powder updated at: 1783635700"))
+        .stdout(predicate::str::contains("- Fetched at:"))
+        .stdout(predicate::str::contains(
+            "- Active claim: builder-7 via run-123 until 1783639300",
+        ))
+        .stdout(predicate::str::contains(
+            "Powder is authoritative; re-read this card at claim/start",
+        ))
         .stdout(predicate::str::contains("- first criterion"))
         .stdout(predicate::str::contains("Card body from Powder"));
 
@@ -303,6 +368,43 @@ fn brief_card_malformed_json_reports_decode_error() {
 
     let request = stub.request();
     assert!(request.starts_with("GET /api/v1/cards/bad-json HTTP/1.1"));
+}
+
+#[test]
+fn brief_card_requires_authoritative_snapshot_fields() {
+    let stub = PowderStub::once(
+        "200 OK",
+        r#"{"card":{"title":"Incomplete","body":"","criteria":[]}}"#,
+    );
+
+    roster_cmd()
+        .args(["brief", "orchestrator", "--card", "stale-card"])
+        .env("POWDER_API_BASE_URL", &stub.base_url)
+        .env("POWDER_API_KEY", "powder-test-key")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("card.status is required"));
+
+    let request = stub.request();
+    assert!(request.starts_with("GET /api/v1/cards/stale-card HTTP/1.1"));
+}
+
+#[test]
+fn brief_card_rejects_present_but_malformed_claim() {
+    let stub = PowderStub::once(
+        "200 OK",
+        r#"{"card":{"title":"Claimed","body":"","criteria":[],"status":"claimed","updated_at":1783635700,"claim":{"agent":"builder-7","expires_at":1783639300}}}"#,
+    );
+
+    roster_cmd()
+        .args(["brief", "orchestrator", "--card", "bad-claim"])
+        .env("POWDER_API_BASE_URL", &stub.base_url)
+        .env("POWDER_API_KEY", "powder-test-key")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "card.claim.run_id is required when claim is present",
+        ));
 }
 
 #[test]

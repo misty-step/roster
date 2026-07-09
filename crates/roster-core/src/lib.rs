@@ -196,11 +196,22 @@ pub struct SubagentRights {
 }
 
 #[derive(Debug)]
-pub struct CardContext {
+pub struct PowderCardSnapshot {
     pub id: String,
     pub title: String,
     pub body: String,
     pub acceptance: Vec<String>,
+    pub status: String,
+    pub updated_at: i64,
+    pub fetched_at: i64,
+    pub claim: Option<PowderClaim>,
+}
+
+#[derive(Debug)]
+pub struct PowderClaim {
+    pub agent: String,
+    pub run_id: String,
+    pub expires_at: i64,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -221,12 +232,12 @@ pub enum RosterError {
     Validation(String),
 }
 
-pub fn render_claude_agent(agent: &Agent, models: &Models) -> String {
+pub fn render_claude_agent(agent: &Agent, models: &Models) -> Result<String, String> {
     let role = &agent.role;
     let model = claude_model(role, models);
-    let tools = claude_tools(role);
+    let tools = claude_tools(role)?;
 
-    format!(
+    Ok(format!(
         r#"---
 name: {name}
 description: {description}
@@ -278,7 +289,7 @@ tools: {tools}
         secrets = role.permissions.secrets,
         mutations = role.permissions.mutations,
         evidence = bullet_list(&role.evidence_expectations),
-    )
+    ))
 }
 
 /// Composes the single doctrine file `roster sync` points every harness's
@@ -362,33 +373,59 @@ fn claude_model(role: &Role, models: &Models) -> String {
     }
 }
 
-fn claude_tools(role: &Role) -> String {
-    let mut tools = vec!["Read"];
+fn claude_tools(role: &Role) -> Result<String, String> {
+    let mut tools = vec!["Read".to_string()];
 
-    if role.permissions.filesystem.contains("write") || role.permissions.mutations != "none" {
-        tools.push("Write");
-        tools.push("Edit");
+    // Mutating an external system through a scoped MCP does not grant file
+    // writes. The filesystem declaration is the only source for Write/Edit.
+    if allows_file_writes(role) {
+        tools.push("Write".to_string());
+        tools.push("Edit".to_string());
     }
 
-    tools.push("Grep");
-    tools.push("Glob");
+    tools.push("Grep".to_string());
+    tools.push("Glob".to_string());
 
-    if role.permissions.commands != "none" && role.permissions.commands != "disabled-by-default" {
-        tools.push("Bash");
+    if allows_shell(role) {
+        tools.push("Bash".to_string());
     }
 
     if role.permissions.network == "allowed" {
-        tools.push("WebSearch");
+        tools.push("WebSearch".to_string());
     }
 
-    tools.join(", ")
+    for mcp in &role.mcps {
+        match (mcp.as_str(), role.permissions.mutations.as_str()) {
+            ("powder", "card-comments-and-answers-only") => {
+                tools.push("mcp__powder__add_comment".to_string());
+                tools.push("mcp__powder__answer_input".to_string());
+            }
+            ("powder" | "robinhood-trading", "with-explicit-scope") => {
+                tools.push(format!("mcp__{mcp}__*"));
+            }
+            _ => {
+                return Err(format!(
+                    "claude has no safe required-MCP tool mapping for agent {:?}: server {mcp:?}, mutations {:?}",
+                    role.name, role.permissions.mutations
+                ));
+            }
+        }
+    }
+
+    Ok(tools.join(", "))
 }
 
 // bb (Bitterblossom) config has no MCP concept: `role.mcps`/`mcps_contextual`
 // are not rendered into the generated TOML at all, required or contextual.
 pub fn render_bb_agent(agent: &Agent, models: &Models) -> Result<String, String> {
     let role = &agent.role;
+    require_no_mcps("bb", role)?;
     let model = bb_model(role, models)?;
+    let authority = if allows_file_writes(role) {
+        "edit"
+    } else {
+        "read"
+    };
     let skills = toml_array(
         &role
             .skills
@@ -411,7 +448,7 @@ skills = {skills}
 secrets = ["OPENROUTER_API_KEY"]
 
 [policy]
-authority = "read"
+authority = "{authority}"
 model_allowlist = ["{model}"]
 trigger_bindings = ["manual"]
 iteration_cap = 24
@@ -426,6 +463,7 @@ side_effect_policy = "kill"
         reasoning = toml_escape(&role.model_policy.preferred.reasoning),
         model = toml_escape(&model),
         skills = skills,
+        authority = authority,
     ))
 }
 
@@ -442,12 +480,13 @@ side_effect_policy = "kill"
 /// otherwise), resolved at omp's session level via `--slow`/`--smol`, not a
 /// concrete model id -- so unlike `render_claude_agent`/`render_bb_agent`
 /// this needs no `Models` lookup.
-pub fn render_omp_agent(agent: &Agent) -> String {
+pub fn render_omp_agent(agent: &Agent) -> Result<String, String> {
     let role = &agent.role;
+    require_no_mcps("omp", role)?;
     let alias = omp_model_alias(&role.model_policy.preferred.reasoning);
     let tools = omp_tools(role);
 
-    format!(
+    Ok(format!(
         r#"---
 name: {name}
 description: {description}
@@ -464,7 +503,7 @@ tools: {tools}
         alias = alias,
         tools = tools,
         instructions = agent.instructions.trim(),
-    )
+    ))
 }
 
 fn omp_model_alias(reasoning: &str) -> &'static str {
@@ -485,7 +524,11 @@ fn omp_tools(role: &Role) -> String {
     // the `output:` schema this renderer doesn't emit, and there's no
     // evidenced per-role criterion for lsp/ast_grep beyond the two samples.
     let mut tools = vec!["read", "grep", "glob"];
-    if role.permissions.commands != "none" && role.permissions.commands != "disabled-by-default" {
+    if allows_file_writes(role) {
+        tools.push("write");
+        tools.push("edit");
+    }
+    if allows_shell(role) {
         tools.push("bash");
     }
     if role.permissions.network == "allowed" {
@@ -494,11 +537,34 @@ fn omp_tools(role: &Role) -> String {
     format!("[{}]", tools.join(", "))
 }
 
+fn allows_file_writes(role: &Role) -> bool {
+    role.permissions.filesystem == "workspace-write"
+}
+
+fn allows_shell(role: &Role) -> bool {
+    matches!(
+        role.permissions.commands.as_str(),
+        "allowed" | "verification-only"
+    )
+}
+
+fn require_no_mcps(harness: &str, role: &Role) -> Result<(), String> {
+    if role.mcps.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "{harness} cannot bind required MCP servers for agent {:?}: {}",
+            role.name,
+            role.mcps.join(", ")
+        ))
+    }
+}
+
 pub fn render_brief(
     agent: &Agent,
     add_skills: &[String],
     add_mcps: &[String],
-    card: Option<&CardContext>,
+    card: Option<&PowderCardSnapshot>,
 ) -> String {
     let role = &agent.role;
     let mut output = format!(
@@ -568,6 +634,20 @@ Read: {instruction_path}
         output.push_str("\n## Powder Card\n\n");
         output.push_str(&format!("- ID: {}\n", card.id));
         output.push_str(&format!("- Title: {}\n", card.title));
+        output.push_str(&format!("- Status: {}\n", card.status));
+        output.push_str(&format!("- Powder updated at: {}\n", card.updated_at));
+        output.push_str(&format!("- Fetched at: {}\n", card.fetched_at));
+        if let Some(claim) = &card.claim {
+            output.push_str(&format!(
+                "- Active claim: {} via {} until {}\n",
+                claim.agent, claim.run_id, claim.expires_at
+            ));
+        } else {
+            output.push_str("- Active claim: none\n");
+        }
+        output.push_str(
+            "- Authority: Powder is authoritative; re-read this card at claim/start and refresh if its update or claim differs.\n",
+        );
         if !card.acceptance.is_empty() {
             output.push_str("\n### Acceptance\n\n");
             output.push_str(&bullet_list(&card.acceptance));
@@ -742,6 +822,12 @@ fn validate_agent(directory: &Path, role: &Role, instructions: &str) -> Result<(
         "permissions.filesystem",
         directory,
     )?;
+    require_one_of(
+        &role.permissions.filesystem,
+        "permissions.filesystem",
+        &["read-only", "workspace-write"],
+        directory,
+    )?;
     require_non_empty(
         &role.permissions.commands,
         "permissions.commands",
@@ -799,6 +885,25 @@ fn require_non_empty(value: &str, field: &str, directory: &Path) -> Result<(), R
         )));
     }
     Ok(())
+}
+
+fn require_one_of(
+    value: &str,
+    field: &str,
+    allowed: &[&str],
+    directory: &Path,
+) -> Result<(), RosterError> {
+    if allowed.contains(&value) {
+        Ok(())
+    } else {
+        Err(RosterError::Validation(format!(
+            "{} has unsupported {} {:?}; expected one of {}",
+            directory.display(),
+            field,
+            value,
+            allowed.join(", ")
+        )))
+    }
 }
 
 fn render_skills(skills: &[SkillRef], add_skills: &[String]) -> String {

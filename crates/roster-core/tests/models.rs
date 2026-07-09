@@ -18,35 +18,43 @@ fn orchestrator_claude_render_resolves_claude_fable_5_to_inherit_not_sonnet() {
     let models = Models::load(workspace_root()).expect("models.yaml loads");
     let orchestrator = roster.agent("orchestrator").expect("orchestrator exists");
 
-    let rendered = render_claude_agent(orchestrator, &models);
+    let rendered = render_claude_agent(orchestrator, &models).expect("orchestrator claude render");
 
     assert!(rendered.contains("model: inherit"), "{rendered}");
     assert!(!rendered.contains("model: sonnet"), "{rendered}");
 }
 
 #[test]
-fn orchestrator_bb_render_resolves_claude_fable_5_to_kimi_not_bare_id() {
+fn claude_render_rejects_required_mcp_without_explicit_tool_policy() {
+    let models = Models::load(workspace_root()).expect("models.yaml loads");
+    let mut agent = unresolvable_model_agent();
+    agent.role.mcps = vec!["powder".to_string()];
+
+    let error = render_claude_agent(&agent, &models).expect_err("read-only MCP must fail closed");
+    assert!(
+        error.contains("no safe required-MCP tool mapping"),
+        "{error}"
+    );
+    assert!(error.contains("mutations \"none\""), "{error}");
+}
+
+#[test]
+fn orchestrator_bb_render_rejects_unbindable_required_mcp() {
     let roster = Roster::load(workspace_root()).expect("roster loads");
     let models = Models::load(workspace_root()).expect("models.yaml loads");
     let orchestrator = roster.agent("orchestrator").expect("orchestrator exists");
 
-    let rendered =
-        render_bb_agent(orchestrator, &models).expect("claude-fable-5 resolves via the table");
-
-    assert!(
-        rendered.contains("model = \"moonshotai/kimi-k2.7-code\""),
-        "{rendered}"
-    );
-    assert!(!rendered.contains("model = \"claude-fable-5\""));
+    let error = render_bb_agent(orchestrator, &models).expect_err("powder cannot bind on bb");
+    assert!(error.contains("required MCP servers"), "{error}");
 }
 
 #[test]
 fn omp_render_produces_parseable_frontmatter_with_slow_alias_for_high_reasoning() {
     let roster = Roster::load(workspace_root()).expect("roster loads");
-    let orchestrator = roster.agent("orchestrator").expect("orchestrator exists");
-    assert_eq!(orchestrator.role.model_policy.preferred.reasoning, "high");
+    let ai_scout = roster.agent("ai-scout").expect("ai-scout exists");
+    assert_eq!(ai_scout.role.model_policy.preferred.reasoning, "high");
 
-    let rendered = render_omp_agent(orchestrator);
+    let rendered = render_omp_agent(ai_scout).expect("ai-scout omp render");
     let frontmatter = rendered
         .split("---")
         .nth(1)
@@ -54,7 +62,7 @@ fn omp_render_produces_parseable_frontmatter_with_slow_alias_for_high_reasoning(
     let parsed: serde_yaml::Value =
         serde_yaml::from_str(frontmatter).expect("frontmatter is valid YAML");
 
-    assert_eq!(parsed["name"], "orchestrator");
+    assert_eq!(parsed["name"], "ai-scout");
     assert_eq!(parsed["model"][0], "pi/slow");
     assert!(
         parsed["tools"]
@@ -62,18 +70,18 @@ fn omp_render_produces_parseable_frontmatter_with_slow_alias_for_high_reasoning(
             .unwrap()
             .contains(&"bash".into())
     );
-    assert!(rendered.contains(orchestrator.instructions.trim()));
+    assert!(rendered.contains(ai_scout.instructions.trim()));
     // Deliberately absent per roster-915's schema-waiver decision.
     assert!(!rendered.contains("spawns:"));
     assert!(!rendered.contains("output:"));
 }
 
 #[test]
-fn omp_render_produces_valid_agent_md_for_builder_too() {
+fn omp_render_produces_valid_writable_agent_for_designer() {
     let roster = Roster::load(workspace_root()).expect("roster loads");
-    let builder = roster.agent("builder").expect("builder exists");
+    let designer = roster.agent("designer").expect("designer exists");
 
-    let rendered = render_omp_agent(builder);
+    let rendered = render_omp_agent(designer).expect("designer omp render");
     let frontmatter = rendered
         .split("---")
         .nth(1)
@@ -81,8 +89,14 @@ fn omp_render_produces_valid_agent_md_for_builder_too() {
     let parsed: serde_yaml::Value =
         serde_yaml::from_str(frontmatter).expect("frontmatter is valid YAML");
 
-    assert_eq!(parsed["name"], "builder");
+    assert_eq!(parsed["name"], "designer");
     assert!(parsed["model"].as_sequence().is_some());
+    assert!(
+        parsed["tools"]
+            .as_sequence()
+            .unwrap()
+            .contains(&"write".into())
+    );
 }
 
 #[test]
@@ -91,7 +105,7 @@ fn cerberus_claude_render_resolves_gpt_5_5_to_sonnet() {
     let models = Models::load(workspace_root()).expect("models.yaml loads");
     let cerberus = roster.agent("cerberus").expect("cerberus exists");
 
-    let rendered = render_claude_agent(cerberus, &models);
+    let rendered = render_claude_agent(cerberus, &models).expect("cerberus claude render");
 
     assert!(rendered.contains("model: sonnet"), "{rendered}");
 }

@@ -188,7 +188,7 @@ fn build_plan(
 
     // Orchestrator supplementary docs — unchanged from the pre-farm sync.
     let brief = render_brief(orchestrator, &[], &[], None);
-    let claude_agent = render_claude_agent(orchestrator, models);
+    let claude_agent = render_claude_agent(orchestrator, models).map_err(anyhow::Error::msg)?;
     let skills_index = skills_index_json(orchestrator)?;
     plan.push(PlannedEntry::File {
         relative_path: format!("{SYNC_DIR_REL}/brief.md"),
@@ -224,7 +224,7 @@ fn build_plan(
         let claude_rendered = if is_orchestrator {
             claude_agent.clone()
         } else {
-            render_claude_agent(agent, models)
+            render_claude_agent(agent, models).map_err(anyhow::Error::msg)?
         };
         plan.push(PlannedEntry::File {
             relative_path: format!(".codex/agents/{name}.md"),

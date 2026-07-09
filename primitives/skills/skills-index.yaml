@@ -38,6 +38,8 @@ skills:
     path: primitives/skills/design/SKILL.md
   - name: factory-apps
     path: primitives/skills/factory-apps/SKILL.md
+  - name: project-engineering
+    path: primitives/skills/project-engineering/SKILL.md
   - name: compound
     path: primitives/skills/compound/SKILL.md
   - name: council

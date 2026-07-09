@@ -4,8 +4,8 @@ mod sync;
 use anyhow::{Context, Result, anyhow};
 use clap::{Parser, Subcommand, ValueEnum};
 use roster_core::{
-    CardContext, Models, Roster, render_bb_agent, render_brief, render_claude_agent,
-    render_omp_agent, render_show,
+    Models, PowderCardSnapshot, PowderClaim, Roster, render_bb_agent, render_brief,
+    render_claude_agent, render_omp_agent, render_show,
 };
 use serde_json::Value;
 use std::path::PathBuf;
@@ -113,7 +113,10 @@ fn run(cli: Cli) -> Result<()> {
             match harness {
                 Harness::Claude => {
                     let models = Models::load(&cli.root)?;
-                    print!("{}", render_claude_agent(agent, &models));
+                    print!(
+                        "{}",
+                        render_claude_agent(agent, &models).map_err(|error| anyhow!(error))?
+                    );
                 }
                 Harness::Codex => print!("{}", render_brief(agent, &[], &[], None)),
                 Harness::Bb => {
@@ -123,7 +126,10 @@ fn run(cli: Cli) -> Result<()> {
                         render_bb_agent(agent, &models).map_err(|error| anyhow!(error))?
                     );
                 }
-                Harness::Omp => print!("{}", render_omp_agent(agent)),
+                Harness::Omp => print!(
+                    "{}",
+                    render_omp_agent(agent).map_err(|error| anyhow!(error))?
+                ),
             }
         }
         Command::Brief {
@@ -175,7 +181,7 @@ pub(crate) fn find_agent<'a>(roster: &'a Roster, name: &str) -> Result<&'a roste
         .ok_or_else(|| anyhow!("unknown agent {name:?}"))
 }
 
-fn fetch_powder_card(id: &str) -> Result<CardContext> {
+fn fetch_powder_card(id: &str) -> Result<PowderCardSnapshot> {
     let base_url = std::env::var("POWDER_API_BASE_URL")
         .context("POWDER_API_BASE_URL is required for --card")?;
     let api_key =
@@ -192,7 +198,7 @@ fn fetch_powder_card(id: &str) -> Result<CardContext> {
     let title = card
         .get("title")
         .and_then(Value::as_str)
-        .unwrap_or("")
+        .context("card.title is required")?
         .to_string();
     let body = card
         .get("body")
@@ -209,12 +215,54 @@ fn fetch_powder_card(id: &str) -> Result<CardContext> {
                 .map(ToOwned::to_owned)
                 .collect::<Vec<_>>()
         })
+        .filter(|items| !items.is_empty())
+        .or_else(|| {
+            card.get("criteria").and_then(Value::as_array).map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.get("text").and_then(Value::as_str))
+                    .map(ToOwned::to_owned)
+                    .collect::<Vec<_>>()
+            })
+        })
         .unwrap_or_default();
+    let status = card
+        .get("status")
+        .and_then(Value::as_str)
+        .context("card.status is required")?
+        .to_string();
+    let updated_at = card
+        .get("updated_at")
+        .and_then(Value::as_i64)
+        .context("card.updated_at is required")?;
+    let claim = match card.get("claim") {
+        None | Some(Value::Null) => None,
+        Some(claim) => Some(PowderClaim {
+            agent: claim
+                .get("agent")
+                .and_then(Value::as_str)
+                .context("card.claim.agent is required when claim is present")?
+                .to_string(),
+            run_id: claim
+                .get("run_id")
+                .and_then(Value::as_str)
+                .context("card.claim.run_id is required when claim is present")?
+                .to_string(),
+            expires_at: claim
+                .get("expires_at")
+                .and_then(Value::as_i64)
+                .context("card.claim.expires_at is required when claim is present")?,
+        }),
+    };
 
-    Ok(CardContext {
+    Ok(PowderCardSnapshot {
         id: id.to_string(),
         title,
         body,
         acceptance,
+        status,
+        updated_at,
+        fetched_at: chrono::Utc::now().timestamp(),
+        claim,
     })
 }

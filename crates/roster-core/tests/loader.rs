@@ -108,6 +108,13 @@ fn loads_seed_agents_from_repo() {
     );
 
     let orchestrator = roster.agent("orchestrator").expect("orchestrator exists");
+    assert!(
+        orchestrator
+            .role
+            .skills
+            .iter()
+            .any(|skill| skill.name == "project-engineering")
+    );
     assert_eq!(orchestrator.role.mcps, ["powder"]);
     assert_eq!(
         orchestrator.role.mcps_contextual,
@@ -156,6 +163,8 @@ fn loads_seed_agents_from_repo() {
     assert!(simons.instructions.contains("No money movement"));
 
     let sweep = roster.agent("sweep").expect("sweep exists");
+    assert!(sweep.role.mcps.is_empty());
+    assert_eq!(sweep.role.mcps_contextual, ["qmd"]);
     assert!(sweep.role.subagent_rights.may_spawn_subagents);
 
     let verifier = roster.agent("verifier").expect("verifier exists");
@@ -237,4 +246,46 @@ evidence_expectations: []
 
     let error = Roster::load(temp.path()).expect_err("missing instructions rejected");
     assert!(error.to_string().contains("instructions.md"), "{error}");
+}
+
+#[test]
+fn unsupported_filesystem_permission_is_rejected_instead_of_granting_write() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let agent_dir = temp.path().join("agents/bad");
+    fs::create_dir_all(&agent_dir).expect("agent dir");
+    fs::write(agent_dir.join("instructions.md"), "# Bad\n").expect("instructions");
+    fs::write(
+        agent_dir.join("role.yaml"),
+        r#"schema_version: roster.role.v1
+name: bad
+description: Bad fixture
+model_policy:
+  preferred:
+    model: gpt-5.5
+    reasoning: high
+  fallbacks: []
+permissions:
+  filesystem: no-write
+  commands: read-only
+  network: disabled-by-default
+  secrets: none
+  mutations: none
+skills: []
+mcps: []
+subagent_rights:
+  may_dispatch: false
+  may_spawn_subagents: false
+  may_use_peer_harnesses: false
+evidence_expectations: []
+"#,
+    )
+    .expect("role");
+
+    let error = Roster::load(temp.path()).expect_err("invalid permission rejected");
+    assert!(
+        error
+            .to_string()
+            .contains("unsupported permissions.filesystem \"no-write\""),
+        "{error}"
+    );
 }
