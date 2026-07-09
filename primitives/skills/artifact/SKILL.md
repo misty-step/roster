@@ -90,15 +90,15 @@ curl -T page.html -H "Authorization: Bearer $ARTIFACTS_API_TOKEN" \
 
 ## Serving
 
-The shelf lives on the bastion Fly box (`apps/artifacts` in the bastion repo):
-files on the `/data` volume, served at `…ts.net/artifacts/`, indexed newest-first
-at the bare path, linked from the Sanctum portal at the tailnet root
+The shelf lives on the DigitalOcean Sanctum host (`apps/artifacts` in the
+Sanctum repo): files on the `/data` volume, served at `…ts.net/artifacts/`,
+indexed newest-first at the bare path, linked from the Sanctum portal at the tailnet root
 (`https://sanctum.tail5f5eb4.ts.net/`). Survives laptop sleep and reboots.
 
 Legacy mirror: `scripts/artifact_serve.py` still serves `~/artifacts/public` on
 `127.0.0.1:8789` under launchd (`com.phaedrus.artifacts.plist`), exposed at
 `serenity.tail5f5eb4.ts.net/artifacts/`. Old links keep resolving; the local
-tree doubles as the shelf's backup. New links always point at bastion.
+tree doubles as the shelf's backup. New links always point at Sanctum.
 
 ## Extending
 
