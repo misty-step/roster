@@ -185,10 +185,10 @@ fn materialize_agent(args: &Value) -> Result<Value, String> {
         .ok_or_else(|| format!("unknown agent {agent_name:?}"))?;
     let harness = required_str(args, "harness")?;
     let text = match harness {
-        "claude" => render_claude_agent(agent, &load_models(args)?),
+        "claude" => render_claude_agent(agent, &load_models(args)?)?,
         "codex" => render_brief(agent, &[], &[], None),
         "bb" => render_bb_agent(agent, &load_models(args)?)?,
-        "omp" => render_omp_agent(agent),
+        "omp" => render_omp_agent(agent)?,
         other => {
             return Err(format!(
                 "unknown harness {other:?}; expected claude, codex, bb, or omp"

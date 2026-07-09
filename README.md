@@ -57,28 +57,27 @@ roster brief cerberus --card <powder-id>     # dispatch brief with live card fol
 Every declaration lives at `agents/<name>/role.yaml` + `agents/<name>/instructions.md`
 and is validated by `roster_core::Roster::load` (`deny_unknown_fields`: an
 unrecognized key or a missing `instructions.md` fails the load, not just a lint
-warning). Values below are the actual fields in use across the eight seed
-agents (`agents/builder`, `agents/cerberus`, `agents/designer`,
-`agents/incident-hound`, `agents/oracle`, `agents/orchestrator`,
-`agents/sweep`, `agents/verifier`).
+warning). `agents/*/role.yaml` is the inventory; use `roster list` and
+`roster show <name>` for current values instead of copying that catalog into
+documentation.
 
-| Field | Type | What it's for | Actual values in use |
-|---|---|---|---|
-| `schema_version` | string | Declaration format version | `roster.role.v1` on all eight agents |
-| `name` | string | Agent id; must match the directory name and be unique across `agents/` | `builder`, `cerberus`, `designer`, `incident-hound`, `oracle`, `orchestrator`, `sweep`, `verifier` |
-| `description` | string | One-sentence purpose, echoed by `roster list`/`show`/`brief` | see `roster list` output below |
-| `model_policy.preferred` | {model, reasoning} | Concrete, invocable model id + its reasoning effort (see concrete-id resolution below) | `gpt-5.5`/`high` (builder, verifier), `gpt-5.5`/`xhigh` (cerberus, incident-hound), `claude-fable-5`/`high` (orchestrator), `claude-fable-5`/`medium` (designer), `openrouter/deepseek/deepseek-v4-flash`/`high` (oracle), `openrouter/deepseek/deepseek-v4-flash`/`medium` (sweep) |
-| `model_policy.fallbacks` | list\<{model, reasoning}\> | Ordered fallback ids, each with its own reasoning | e.g. sweep: `openrouter/moonshotai/kimi-k2.7-code`, `openrouter/qwen/qwen3-coder-next` (both `medium`) |
-| `permissions.filesystem` | string | Free text; feeds `claude_tools()` (`Write`/`Edit` are added when this contains `"write"`) | `workspace-write` (builder, designer, orchestrator), `read-only` (cerberus, incident-hound, oracle, sweep, verifier) |
-| `permissions.commands` | string | Free text; `Bash` is added by `claude_tools()` unless this is `"none"` or `"disabled-by-default"` | `allowed` (builder, designer, orchestrator), `verification-only` (cerberus, incident-hound, oracle, verifier), `read-only` (sweep) |
-| `permissions.network` | string | Free text; `WebSearch` is added by `claude_tools()` only when this is exactly `"allowed"` | `allowed` (builder, designer, incident-hound, oracle, orchestrator, sweep, verifier), `disabled-by-default` (cerberus) |
-| `permissions.secrets` | string | Free text, documentation only (no code branches on it today) | `env-refs-only` (builder, orchestrator), `none` (cerberus, designer, incident-hound, oracle, sweep, verifier) |
-| `permissions.mutations` | string | Free text; `Write`/`Edit` are also added by `claude_tools()` when this is not `"none"` | `with-explicit-scope` (builder, orchestrator), `styling-and-markup-scope` (designer), `none` (cerberus, incident-hound, oracle, sweep, verifier) |
-| `skills` | list\<{name, path, reason}\> | Skill files the agent should read; `path` is an absolute filesystem path (mostly under `primitives/skills`, a few still pending migration from `harness-kit`) | orchestrator has 8, builder/verifier/sweep have 3 each, cerberus/designer/incident-hound have 3 each, oracle has 2 |
-| `mcps` | list\<string\> | Bare MCP server names required at dispatch time (rendered as claude/codex/brief's "MCP Servers → Required") | builder, orchestrator: `powder`; sweep: `qmd`; cerberus, designer, incident-hound, oracle, verifier: none |
-| `mcps_contextual` | list\<string\>, optional (defaults empty) | MCP server names to bind only when present in the calling harness (rendered as "MCP Servers → Contextual (bind when present)"); not rendered for `bb` (no MCP concept there) | orchestrator: `qmd`, `todoist`, `bitterblossom`, `glass`; oracle: `exa`, `firecrawl`, `context7`; the rest: none |
-| `subagent_rights.may_dispatch` / `may_spawn_subagents` / `may_use_peer_harnesses` | bool | What the agent is allowed to fan work out to | `may_spawn_subagents` is `true` on all eight (roster-924); `may_dispatch`/`may_use_peer_harnesses` stay agent-specific (`false` for designer, incident-hound, oracle, sweep) |
-| `evidence_expectations` | list\<string\> | Free prose bullets, no fixed vocabulary; printed verbatim under `## Evidence Contract` / `## Evidence Expectations` | see `agents/*/role.yaml` |
+| Field | Type | What it's for |
+|---|---|---|
+| `schema_version` | string | Declaration format version; currently `roster.role.v1`. |
+| `name` | string | Agent id; must match the directory name and be unique. |
+| `description` | string | One-sentence purpose echoed by `list`, `show`, and `brief`. |
+| `model_policy.preferred` | {model, reasoning} | Concrete model id plus reasoning effort. |
+| `model_policy.fallbacks` | list\<{model, reasoning}\> | Ordered fallback ids, each with its own reasoning. |
+| `permissions.filesystem` | string | Adds native write/edit tools only when it contains `write`. |
+| `permissions.commands` | string | Adds unrestricted shell tools only for `allowed` or `verification-only`; `read-only` stays shell-free. |
+| `permissions.network` | string | Adds native search only when exactly `allowed`. |
+| `permissions.secrets` | string | Declared secret posture; documentation unless a target renderer maps it. |
+| `permissions.mutations` | string | External mutation scope. It never implies filesystem write access; narrow known scopes map to narrow MCP tools. |
+| `skills` | list\<{name, path, reason}\> | Skill files the agent should read, with the reason each belongs. |
+| `mcps` | list\<string\> | Required MCP servers. Materialization fails when a target cannot bind them. |
+| `mcps_contextual` | list\<string\>, optional | Optional MCP servers, rendered as “bind when present.” |
+| `subagent_rights.*` | bool | Declared dispatch, spawn, and peer-harness rights. |
+| `evidence_expectations` | list\<string\> | Output-shaped evidence contract rendered verbatim. |
 
 ### Concrete model ids and per-harness resolution
 
@@ -119,15 +118,16 @@ for `model_policy.preferred` — never for fallbacks:
   straight from the declaration; nothing in this repo yet targets the
   `~/.codex/roles/<name>.toml` shape the roster-910 dispatch-matrix research
   found on this machine.
-- **`--harness bb`** (`render_bb_agent` / `bb_model`): resolves to the first
+- **`--harness bb`** (`render_bb_agent` / `bb_model`): required-MCP agents fail
+  before rendering because BB has no MCP binding surface. MCP-free agents
+  resolve to the first
   `openrouter/`-prefixed model found in `preferred` then `fallbacks`,
-  stripping the prefix (unchanged — this is how oracle and sweep resolve,
+  stripping the prefix (this is how ai-scout and sweep resolve,
   since their `preferred` id is already `openrouter/`-prefixed). Only if
   neither is `openrouter/`-prefixed does it fall through to `models.yaml`'s
   `bb` column for `preferred.model` (e.g. `claude-fable-5` and `gpt-5.5` both
   → `openrouter/moonshotai/kimi-k2.7-code`, prefix stripped the same way —
-  this is how orchestrator and incident-hound resolve, since neither has an
-  `openrouter/`-prefixed fallback). If the id isn't in the table either,
+  this is how incident-hound resolves). If the id isn't in the table either,
   `render_bb_agent` returns `Err` — it never emits an uninvokable id like
   `model = "gpt-5.5"` into the generated TOML.
 
@@ -152,12 +152,13 @@ not vibes.
 3. Run `cargo test --workspace`. `roster_core::Roster::load` will accept the
    new agent, but note `crates/roster-core/tests/loader.rs`'s
    `loads_seed_agents_from_repo` test hardcodes the exact seed-agent name list
-   — adding a real fourth seed agent means updating that assertion too, or the
+   — adding an agent means updating that assertion too, or the
    test fails on the list mismatch (not a validation error).
 
-This was run for real while authoring this section, with a throwaway
-`agents/example/role.yaml` (removed afterward — it is not a ninth seed
-agent):
+Historical loader proof from the founding roster follows. Its names and models
+are intentionally non-authoritative; `roster list` is the live inventory. A
+throwaway `agents/example/role.yaml` demonstrated that discovery succeeds before
+the exact-list regression assertion is updated:
 
 ```
 $ cargo run -q -p roster-cli -- list

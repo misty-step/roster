@@ -26,7 +26,8 @@ skills:
   - name: diagnose
     path: /Users/phaedrus/Development/roster/primitives/skills/diagnose/SKILL.md
     reason: structured triage when the sweep finds a contradiction
-mcps:
+mcps: []
+mcps_contextual:
   - qmd
 subagent_rights:
   may_dispatch: false
