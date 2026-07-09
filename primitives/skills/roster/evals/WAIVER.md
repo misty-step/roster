@@ -4,7 +4,7 @@ expires: 2026-08-01
 
 ## Reason
 
-Reference/routing skill (peer-CLI capability map). The falsifiable claim is routing correctness, structurally identical to `/design`'s already-proven routing-eval pattern (`primitives/skills/design/evals/routing-eval.md`) — next in line to adapt that harness with a roster-specific answer key.
+Reference/routing skill (peer-CLI capability map). The falsifiable claim is routing correctness, structurally identical to the already-proven routing-eval pattern (`primitives/skills/skill-eval/examples/routing-eval.md`, run 15/15 while it lived in `/design`) — next in line to adapt that harness with a roster-specific answer key.
 
 ## Disposition
 

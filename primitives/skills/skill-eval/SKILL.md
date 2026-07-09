@@ -21,7 +21,7 @@ proof, and the proof must be able to come back **no-skill won**.
 An eval is a *run with a grader*, never a directory shape. Structural eval
 trees were deleted as theater in the 2026-06 consolidation (`backlog.d/103`);
 do not rebuild them. The exemplar to copy is
-`primitives/skills/design/evals/routing-eval.md`: an answer key, an objective grader, a
+`examples/routing-eval.md` (retired from `/design`, run log intact): an answer key, an objective grader, a
 pass bar a no-op revision fails, a run log. The protocol contract is
 `primitives/skills/harness-engineering/references/mode-eval.md`.
 
@@ -29,7 +29,8 @@ pass bar a no-op revision fails, a run log. The protocol contract is
 
 1. **Name the one claim.** Every skill earns exactly one load-bearing,
    falsifiable claim — the thing it makes true that raw prompting does not
-   (design: "routes to the right specialist first try"; shape: "a stranger
+   (design: "a blind philosophy bench yields structurally distinct options
+   where raw prompting yields one layout in costumes"; shape: "a stranger
    builds the right thing from the packet"). Write it as a sentence that could
    be wrong. A skill whose claim you can't name, or whose claim raw prompting
    already meets, is a deletion candidate — say so and stop. That is a valid,
@@ -126,7 +127,7 @@ A full pass is ~15–18 runs (paid, slow). Do not gate every edit on it.
 | blind grader prompt | `templates/grader-prompt.md` |
 | drive the A/B (smoke + serious) | `references/run-recipe.md` |
 | eval protocol contract | `primitives/skills/harness-engineering/references/mode-eval.md` |
-| canonical worked eval | `primitives/skills/design/evals/routing-eval.md` |
+| canonical worked eval | `examples/routing-eval.md` |
 | first instance | `primitives/skills/shape/evals/shape-eval.md` |
 
 ## Verification
