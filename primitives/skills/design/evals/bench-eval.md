@@ -68,7 +68,7 @@ beside a known passing reference; on disagreement, fix the rubric rather than
 overruling the human.
 
 Rejected artifact:
-`https://bastion.tail5f5eb4.ts.net/artifacts/a/aesthetic-nav-lab-001/`.
+`https://sanctum.tail5f5eb4.ts.net/artifacts/a/aesthetic-nav-lab-001/`.
 
 ## Cadence
 
