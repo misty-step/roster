@@ -66,8 +66,8 @@ servers:
       command: bash
       args:
         - -lc
-        - test -n "${POWDER_API_BASE_URL:-}" || POWDER_API_BASE_URL="$(op read "op://Agents/POWDER_ENDPOINT/URL")"; test -n "${POWDER_API_KEY:-}" || POWDER_API_KEY="$(op read "op://Agents/POWDER_API_KEY__bridge/credential")"; export POWDER_API_BASE_URL POWDER_API_KEY; cd /Users/phaedrus/Development/powder && exec cargo run --locked -q -p powder-mcp
-      env_policy: inherited_or_op_agents_vault
+        - test -n "${POWDER_API_BASE_URL:-}" || POWDER_API_BASE_URL="$(op read "op://Agents/POWDER_ENDPOINT/URL")"; POWDER_API_KEY="$(security find-generic-password -a "$USER" -s powder-admin-key -w 2>/dev/null || op read "op://Agents/POWDER_API_KEY__bridge/credential")"; export POWDER_API_BASE_URL POWDER_API_KEY POWDER_MCP_TOOLSETS=all; cd /Users/phaedrus/Development/powder && exec cargo run --locked -q -p powder-mcp
+      env_policy: operator_keychain_then_op_agents_vault
 
   - id: bitterblossom
     app: Bitterblossom
