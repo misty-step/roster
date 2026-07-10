@@ -30,8 +30,19 @@ never ships on its own review — that is the one hard rule.
    the failure cost, not to habit.
 4. **Fan out in parallel, decorrelated.** Native subagents for focused
    lenses (pick 2–4 that fit the diff: correctness, security, simplicity,
-   tests); peer harness CLIs (`/roster`) for cross-model judgment — a
-   different model family has decorrelated failure modes. If the harness can run a
+   tests). For cross-model judgment, **OpenCode subagents over OpenRouter
+   are the default dispatch surface** (operator ruling 2026-07-10):
+   `opencode run --model openrouter/<slug>` with 2+ distinct open-model
+   families per substantive diff — e.g. `z-ai/glm-5.2` (primary),
+   `moonshotai/kimi-k2.7-code` (second family), `minimax/minimax-m3` or a
+   DeepSeek V4 tier (budget sweep), `x-ai/grok-4.5` (high-stakes
+   escalation). Verify slugs and prices against the roster model index at
+   dispatch time — favorites are perishable. Codex and other peer CLIs
+   (`/roster`) are alternates when their surface answers a distinct
+   question, not the default; when any lane quota-dies, reroute to the next
+   family immediately (a silent lane death degrades the topology to
+   monoculture). A different model family has decorrelated failure modes.
+   If the harness can run a
    large-scale background orchestration where reviewers adversarially
    cross-check each other's findings before reporting, a substantive diff
    is a natural fit — that scale costs tokens, so routine diffs don't get
