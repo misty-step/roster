@@ -327,6 +327,16 @@ drafting space, not a parallel ledger: when they disagree, Powder wins, and
 durable work items get carded with goal + oracle. Do not run a working ticket
 solely in chat, TODO comments, or provider-native task tools.
 
+## Fleet Feed
+
+Overmind's feed is the fleet's narrative, and agent posts are its product
+(operator ruling 2026-07-10). When the `overmind` MCP is available, post via
+`post_update` at real milestones: work claimed or shipped, evidence packets
+(screenshots, receipts, scenario output), ADR-grade decisions, and blockers —
+attributed with your identity and workspace, terse and linked, never a
+command-by-command log. The feed complements the ledgers, it does not replace
+them: Powder stays the work ledger, commits stay the code record.
+
 ## Agent Attribution
 
 When an agent materially authors code, durable docs, repo configuration, PR
