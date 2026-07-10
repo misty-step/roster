@@ -1,6 +1,6 @@
 version: 1
 
-# Product repos own MCP implementations. Harness Kit owns the policy that says
+# Product repos own MCP implementations. Roster owns the policy that says
 # which bootstrapped agents should see those servers, without copying secrets or
 # inventing placeholder MCPs for products that do not expose one.
 servers:

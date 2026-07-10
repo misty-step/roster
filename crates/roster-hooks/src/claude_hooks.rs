@@ -4,8 +4,9 @@
 //! stdin/stdout hook protocol, same patterns, same guard logic. Only the
 //! five roster needs are carried over (`permission-auto-approve`,
 //! `time-context`, `destructive-command-guard`, `github-cli-guard`,
-//! `skill-invocation-tracker`, `secrets-read-guard`); harness-kit's other hooks stay there
-//! pending a later phase.
+//! `skill-invocation-tracker`, `secrets-read-guard`). Other predecessor hooks
+//! were intentionally not carried because they were not wired into the live
+//! workstation configuration at retirement.
 
 use std::env;
 use std::fs::{self, OpenOptions};

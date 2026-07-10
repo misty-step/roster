@@ -6,7 +6,8 @@ instructions, skills, etc.).
 Koan-compliant: the roster IS declarations, so the UI is a generator, not an
 app. Reads agents/*/role.yaml + instructions.md + primitives/models.yaml +
 primitives/subagent-pool.yaml, emits an HTML fragment for the house artifact
-template (publish via harness-kit's artifact_create.py --html-file). No
+template (publish via primitives/skills/artifact/scripts/artifact_create.py
+--html-file). No
 server, no JS, <details> for drill-down. Regenerate whenever declarations
 change:
 
