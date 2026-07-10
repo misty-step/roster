@@ -31,7 +31,14 @@ lab is a **paged viewer**:
 
 - **Every option renders as its own full-viewport page** — real chrome,
   real content, the real design system loaded from its shipped package
-  (CDN pin or installed dep), at true `100dvh` proportions.
+  (CDN pin or installed dep), at true `100dvh` proportions. Full viewport
+  means full: `100dvw` × `100dvh`, no letterboxing, no page-in-a-page
+  (operator ruling 2026-07-10).
+- **Every option supports light AND dark, defaulting to system**
+  (`prefers-color-scheme`), with any manual toggle stamping a root
+  attribute that wins over the media query (operator ruling 2026-07-10).
+  A deliberately single-theme direction must say so on the option card,
+  not silently ship one mode.
 - For holistic system work, that page exposes the same complete canonical
   gallery for every proposition. Internal tabs or scrolling may organize the
   gallery, but cannot replace it with a single app screen.
