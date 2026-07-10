@@ -8,7 +8,7 @@
 # so determinism = idempotent bake + per-sprite golden checkpoint.
 set -euo pipefail
 
-RECEIPTS_DIR="${SPRITE_LANE_RECEIPTS:-$HOME/.harness-kit/receipts/sprite-lane}"
+RECEIPTS_DIR="${SPRITE_LANE_RECEIPTS:-$HOME/.roster/receipts/sprite-lane}"
 GOLDEN_MARKER=".sprite-lane-golden"
 BAKE_VERSION="1"
 
@@ -26,7 +26,7 @@ Usage:
   sprite-lane fetch <sprite> <lane-id>           Pull log + receipt for a detached lane.
   sprite-lane reset <sprite>                     Restore the golden checkpoint.
 
-Receipts land in ~/.harness-kit/receipts/sprite-lane/.
+Receipts land in ~/.roster/receipts/sprite-lane/.
 Auth: codex lanes reuse local ~/.codex/auth.json (file credential store).
       claude lanes need ANTHROPIC_API_KEY exported locally.
 EOF

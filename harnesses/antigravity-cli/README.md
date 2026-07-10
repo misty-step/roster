@@ -1,6 +1,6 @@
 # Antigravity CLI Harness Notes
 
-Antigravity CLI is the Google-family provider lane for Harness Kit. The local
+Antigravity CLI is the Google-family provider lane for Roster. The local
 binary is `agy`.
 
 ## Dispatch Shape
@@ -14,8 +14,7 @@ agy --dangerously-skip-permissions --print-timeout 10m --print "Read AGENTS.md a
 `--print` consumes the next argument as the prompt. If `--print-timeout` appears
 after `--print`, Antigravity treats the timeout flag text as the prompt and the
 provider lane can exit successfully without doing the requested work. Keep
-`--print` last in roster dispatch commands so `harness-kit-checks dispatch-agent` can
-append the prompt safely.
+`--print` last and pass the composed Roster brief as its argument.
 
 Useful local checks:
 
@@ -100,8 +99,7 @@ output as evidence, not authority, like every other provider lane.
 
 - Use Antigravity for a bounded Google-family perspective, especially design,
   critique, docs, and cross-check lanes.
-- Keep `--print` last so `harness-kit-checks dispatch-agent` can append the scoped
-  commission safely.
+- Keep `--print` last so the composed Roster brief is consumed as the prompt.
 - Give the lane role, objective, scope, output shape, and boundaries; do not
   rely on project-global chat context.
 - Record receipts for followed, failed, or irrelevant outputs. A zero exit is

@@ -24,13 +24,14 @@ Prose is the burner label. Hooks are the redesigned stove.
 
 ## Local CI
 
-For Harness Kit itself, run the Rust-owned local gate:
+For Roster itself, run the Rust-owned local gate:
 
 ```sh
-cargo run --locked -p harness-kit-checks -- check --repo .
+cargo run --locked -p roster-cli -- check
 ```
 
-When adding gate coverage, put durable checks in `harness-kit-checks` first.
+When adding gate coverage, keep deterministic catalog checks inside
+`roster check`; semantic quality belongs to evals and fresh critics.
 Do not make Dagger, Docker, GitHub Actions YAML, or provider CLIs the default
 inner-loop gate for Harness Kit.
 

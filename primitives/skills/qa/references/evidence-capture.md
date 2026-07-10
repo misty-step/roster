@@ -6,7 +6,7 @@ terminal output.
 ## Directory Convention
 
 ```bash
-EVIDENCE_DIR="$(cargo run --quiet --locked -p harness-kit-checks -- evidence create 2>/dev/null || printf '.evidence/manual/%s/\n' "$(date -u +%Y-%m-%d)")"
+EVIDENCE_DIR=".evidence/manual/$(date -u +%Y-%m-%d)"
 mkdir -p "$EVIDENCE_DIR"
 # All evidence for a QA session goes here: .evidence/<branch>/<date>/
 ```

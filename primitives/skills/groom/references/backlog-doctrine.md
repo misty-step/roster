@@ -58,16 +58,10 @@ merge it into a broader reusable effort, or rewrite it until the downstream payo
 
 ## Closure protocol
 
-An active backlog item is closed when it leaves `backlog.d/`, not when someone
-intends to close it later.
-
-- `/ship` closes shipped work by moving it to `backlog.d/_done/` via
-  `harness-kit-checks backlog archive` and carries a
-  `Closes-backlog:` or `Ships-backlog:` trailer into the squash commit.
-- `/groom`'s always-on tidy sweep scans master for those trailers and
-  archives any surviving ticket files.
-- `## What Was Built` is archival content; an item that already has that block
-  does not belong in active backlog.
+Powder is the work ledger of record. Close shipped work on its card with the
+exact proof link or command; repo-local `backlog.d/` files are import seeds and
+drafting space, not a parallel lifecycle. When a legacy seed is represented by
+a Powder card, archive or remove it through that repo's explicit convention.
 
 ## Healthy item shapes
 

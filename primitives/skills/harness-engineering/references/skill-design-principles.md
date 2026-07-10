@@ -64,17 +64,15 @@ Loop already demands.
 6. Convert any repeated gotcha into a script, hook, eval, or gate when feasible.
    Use `../../../shared/references/verification-system-first.md` for
    eval, benchmark, QA, or smoke-path design.
-7. Run `cargo run --locked -p harness-kit-checks -- check-frontmatter --repo .`
+7. Run `cargo run --locked -p roster-cli -- check`
    and the full repo gate before shipment.
 
 ## New Skill: Eval Scaffold Is Not Optional
 
-Every new first-party skill ships with eval coverage from the first commit,
-not as a follow-up. The `check-eval-coverage` gate
-(`cargo run --locked -p harness-kit-checks -- check-eval-coverage --repo .`,
-folded into the repo gate) fails the build for any `primitives/skills/<name>/SKILL.md`
-with no `primitives/skills/<name>/evals/*.md` and no live `primitives/skills/<name>/evals/WAIVER.md`
-— so this step is enforced, not just recommended.
+Every new first-party skill ships with eval coverage or an explicit waiver in
+the first commit, not as a follow-up. `roster check` verifies referenced paths;
+the eval's behavioral claim is reviewed and run through `/skill-eval`, not
+reduced to a structural string-matching gate.
 
 When scaffolding a new skill:
 

@@ -4,14 +4,11 @@ Measure what the catalog actually earns, then recommend lifecycle actions.
 
 ## Data
 
-```sh
-cargo run --locked -p harness-kit-checks -- telemetry --format markdown
-```
-
-Reads `~/.claude/skill-invocations.jsonl` (written by the Claude
-`skill-invocation-tracker` PostToolUse hook) plus delegation receipts in
-`.harness-kit/traces/delegations.jsonl`. Filter with `--since 30d`,
-`--skill NAME`, `--project NAME`.
+Read `~/.claude/skill-invocations.jsonl` (written by the Claude
+`skill-invocation-tracker` PostToolUse hook), then cross-check durable lane
+evidence on the relevant Powder cards. Roster intentionally does not carry a
+semantic telemetry engine; analyze the JSONL directly or with a bounded
+one-off query and preserve only the resulting judgment.
 
 **Codex has no invocation hook.** Its usage signal comes from session-log
 mining — count distinct sessions that actually read a skill file:

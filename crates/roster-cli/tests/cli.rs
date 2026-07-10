@@ -677,6 +677,79 @@ fn sync_full_catalog_links_first_party_and_external_skills() {
 }
 
 #[test]
+fn sync_rehomes_installed_pi_and_gemini_surfaces_from_harness_kit() {
+    let home = tempfile::tempdir().expect("temp home");
+    let predecessor = home.path().join("fake-harness-kit");
+    write_file(
+        &predecessor.join("harnesses/shared/AGENTS.md"),
+        "old doctrine",
+    );
+    write_file(
+        &predecessor.join("harnesses/pi/settings.json"),
+        "{\"old\":true}",
+    );
+    write_file(
+        &predecessor.join("harnesses/codex/config.toml"),
+        "old = true",
+    );
+    write_file(&predecessor.join("skills/orient/SKILL.md"), "old skill");
+
+    for (link, target) in [
+        (
+            home.path().join(".pi/settings.json"),
+            predecessor.join("harnesses/pi/settings.json"),
+        ),
+        (
+            home.path().join(".codex/config/config.toml"),
+            predecessor.join("harnesses/codex/config.toml"),
+        ),
+        (
+            home.path().join(".gemini/config/skills/orient"),
+            predecessor.join("skills/orient"),
+        ),
+        (
+            home.path().join(".gemini/antigravity-ide/skills/orient"),
+            predecessor.join("skills/orient"),
+        ),
+        (
+            home.path().join(".gemini/antigravity-cli/AGENTS.md"),
+            predecessor.join("harnesses/shared/AGENTS.md"),
+        ),
+    ] {
+        fs::create_dir_all(link.parent().unwrap()).unwrap();
+        std::os::unix::fs::symlink(target, link).unwrap();
+    }
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+
+    assert_eq!(
+        fs::read_link(home.path().join(".pi/settings.json")).unwrap(),
+        workspace_root().join("harnesses/pi/settings.json")
+    );
+    assert_eq!(
+        fs::read_link(home.path().join(".codex/config/config.toml")).unwrap(),
+        workspace_root().join("harnesses/codex/config.toml")
+    );
+    for path in [
+        ".gemini/config/skills/orient",
+        ".gemini/antigravity-ide/skills/orient",
+    ] {
+        assert_eq!(
+            fs::read_link(home.path().join(path)).unwrap(),
+            workspace_root().join("primitives/skills/orient")
+        );
+    }
+    assert_eq!(
+        fs::read_link(home.path().join(".gemini/antigravity-cli/AGENTS.md")).unwrap(),
+        home.path().join(".roster/orchestrator/home-doctrine.md")
+    );
+}
+
+#[test]
 fn sync_curated_catalog_only_links_orchestrators_skills() {
     let home = tempfile::tempdir().expect("temp home");
 

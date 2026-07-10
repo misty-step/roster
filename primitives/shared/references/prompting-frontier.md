@@ -45,7 +45,7 @@ expectations, and house rules.
    ("match this, then beat it") and at prior SESSION TRACES as technique
    ("read what the forest build tried; learn what worked"). In this shop the
    traces are searchable: QMD collections cover Claude/Codex session
-   history; `.harness-kit/traces/` and `~/.factory-lanes/wave*/` hold lane
+   history; Powder runs/comments/links and `~/.factory-lanes/wave*/` hold lane
    receipts. Re-explaining a solved problem to a fresh lane is waste.
 7. **Clear the road up front.** Budgets instead of permission-asks; key
    LOCATIONS documented (never values); "make your own calls, return only

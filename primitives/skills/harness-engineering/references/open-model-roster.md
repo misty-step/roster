@@ -7,7 +7,7 @@ roster_review_due: 2026-08-05
 Last researched: 2026-07-08 (OpenRouter catalog re-pulled; harness notes from
 2026-06-19 substrate report unless dated otherwise).
 
-Use this when choosing open-model defaults and variants for Harness Kit roster
+Use this when choosing open-model defaults and variants for Roster
 lanes. Treat this as a one-day operating snapshot. Re-check OpenRouter and run
 live local smokes before each default change.
 
@@ -24,7 +24,7 @@ OpenRouter snapshot unless a later live probe is cited.
 | Goose | `openrouter/moonshotai/kimi-k2.7-code` | MCP-heavy workflows that span code plus trackers, docs, browsers, chat, or internal tools. |
 
 Claude, Antigravity, Cursor, and Grok remain useful conditional tools. They are
-not the default composition bias for Harness Kit peer lanes when a
+not the default composition bias for Roster peer lanes when a
 smoke-tested open-model lane can answer the same question. Conditional does
 not mean static: Grok Build's default moved to grok-4.5 on 2026-07-08
 (Opus-class at `$2/$6`, with `--best-of-n` and `--check` self-verification) —
@@ -35,7 +35,7 @@ re-run the comparison instead of citing the old verdict (facts:
 ## Local Smoke Evidence
 
 Sentinel objective: `open-model-roster-smoke`, expected output
-`HARNESS_OPEN_MODEL_OK`, run through `harness-kit-checks dispatch-agent` on
+`HARNESS_OPEN_MODEL_OK`, run through each provider's direct headless surface on
 2026-06-14.
 
 | Lane | Receipt | Verdict | Note |

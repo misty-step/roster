@@ -42,7 +42,7 @@ scripts/sprite-lane fetch <sprite> <lane-id>      # pull a detached lane's log
 scripts/sprite-lane reset <sprite>                # restore golden checkpoint
 ```
 
-Receipts land in `~/.harness-kit/receipts/sprite-lane/<lane-id>.json` with the
+Receipts land in `~/.roster/receipts/sprite-lane/<lane-id>.json` with the
 remote log path, exit code, and timing.
 
 ## Provisioning model

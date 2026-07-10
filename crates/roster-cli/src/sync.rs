@@ -294,6 +294,34 @@ fn build_plan(
             target: doctrine_target,
         });
     }
+    if gemini_present(home) {
+        for relative_path in [
+            ".gemini/antigravity-cli/AGENTS.md",
+            ".gemini/antigravity-ide/AGENTS.md",
+            ".gemini/antigravity/AGENTS.md",
+        ] {
+            plan.push(PlannedEntry::Symlink {
+                relative_path: relative_path.to_string(),
+                target: home.join(SYNC_DIR_REL).join("home-doctrine.md"),
+            });
+        }
+    }
+
+    // Retire the predecessor's remaining config-file symlinks when those
+    // harnesses are installed. These are copied source templates, not the
+    // primary mutable live configs.
+    if home.join(".codex/config").is_dir() {
+        plan.push(PlannedEntry::Symlink {
+            relative_path: ".codex/config/config.toml".to_string(),
+            target: root.join("harnesses/codex/config.toml"),
+        });
+    }
+    if pi_present(home) {
+        plan.push(PlannedEntry::Symlink {
+            relative_path: ".pi/settings.json".to_string(),
+            target: root.join("harnesses/pi/settings.json"),
+        });
+    }
 
     Ok(plan)
 }
@@ -367,10 +395,18 @@ fn opencode_present(home: &Path) -> bool {
     home.join(".config/opencode/opencode.json").exists()
 }
 
+fn gemini_present(home: &Path) -> bool {
+    home.join(".gemini").is_dir()
+}
+
 fn detect_skill_harness_dirs(home: &Path) -> Vec<String> {
     let mut dirs = vec![".claude/skills".to_string(), ".codex/skills".to_string()];
     if pi_present(home) {
         dirs.push(".pi/skills".to_string());
+    }
+    if gemini_present(home) {
+        dirs.push(".gemini/config/skills".to_string());
+        dirs.push(".gemini/antigravity-ide/skills".to_string());
     }
     dirs
 }
@@ -391,9 +427,9 @@ fn skills_index_json(agent: &roster_core::Agent) -> Result<String> {
 
     let value = json!({
         "schema_version": "roster.sync.skills.v1",
-        "phase": "P2-reference-only",
+        "phase": "P3-roster-authoritative",
         "agent": agent.role.name,
-        "note": "Skill bodies remain in harness-kit until the P3 primitives migration; this is the curated orchestrator subset.",
+        "note": "Roster is the authoritative skill and agent declaration source.",
         "skills": skills,
         "mcps": agent.role.mcps,
     });

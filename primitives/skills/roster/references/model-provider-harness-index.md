@@ -45,8 +45,8 @@ time; never hardcode them into gates.
 
 ## Local Harness Roster
 
-Source: `.harness-kit/agents.yaml`, probed with
-`cargo run --locked -p harness-kit-checks -- probe-agent-roster` on 2026-06-14.
+Source: `primitives/providers.yaml`, with command discovery rechecked on
+2026-06-14 and selected providers refreshed on the dates below.
 
 | Provider target | Harness / CLI | Active model id | Dispatch surface | Local probe status |
 |---|---|---|---|---|
@@ -166,65 +166,15 @@ Kimi K2.7 Code sentinel dispatch receipts on 2026-06-14:
 
 ## Focused Lane Harness Projection
 
-Roster dispatch can optionally use a `lane_harness.v1` manifest to project a
-minimal child harness before launching a provider. This is for context hygiene:
-the primary lead can give a lane only the local skills and external aliases
-needed for its role instead of inheriting every globally installed Harness Kit
-skill.
+Roster composes a narrow lane from an identity declaration rather than a
+second manifest format. Generate the prompt-native brief with
+`roster brief <identity> --card <powder-card-id>`; add task-specific skills or
+MCPs with `--add-skill` and `--add-mcp`. When a harness-native declaration is
+needed, run `roster materialize <identity> --harness <claude|codex|pi|bb>`.
 
-Use it when a lane has a narrow responsibility and extra skills would be
-misleading, such as a CI-only critic, a docs-only verifier, or an implementation
-lane that should not see shaping or grooming skills. Do not use it as a semantic
-workflow engine, a permission system, or a substitute for the lead's judgment.
-
-Minimum operating path:
-
-```sh
-cargo run --locked -p harness-kit-checks -- materialize-lane-harness \
-  --manifest crates/harness-kit-checks/tests/fixtures/lane-harness.yaml
-
-cargo run --locked -p harness-kit-checks -- dispatch-agent \
-  --provider-target codex \
-  --objective "bounded lane objective" \
-  --input-ref "path/or/ticket" \
-  --prompt-file /tmp/lane.md \
-  --repo . \
-  --lane-harness crates/harness-kit-checks/tests/fixtures/lane-harness.yaml
-```
-
-Manifest constraints:
-
-- `provider_target` must match a provider id in the roster and the dispatch
-  provider target.
-- `model_override`, when present, must match the provider's roster model or one
-  of its configured `model_variants` keys or values.
-- `allowed_local_skills` must name existing first-party skills and cannot
-  escape the repo `skills/` root.
-- `allowed_external_aliases` must resolve to pinned aliases in `registry.yaml`.
-- `fallback.on_provider_failure` is `record_and_return`; a failed Codex, Pi,
-  Goose, OpenCode, Claude, Antigravity, Cursor, or Grok lane should produce
-  evidence for the lead, not crash the whole composition.
-- `fallback.replacement_policy` is `lead_explicit`; replacing a failed lane is
-  a lead decision, not an automatic provider loop.
-
-Runtime projection creates an ignored root under
-`.harness-kit/tmp/lane-harness/<id>/`, links the allowed skills into the
-known harness skill locations, sets child environment variables (`HOME`,
-`CODEX_HOME`, `CLAUDE_CONFIG_DIR`, `PI_HOME`, `GEMINI_CONFIG_DIR`,
-`GOOSE_CONFIG_DIR`, `OPENCODE_CONFIG_DIR`, `XDG_CONFIG_HOME`), and removes the
-root after dispatch unless
-`--keep-lane-root` is supplied for debugging.
-
-Receipt fields make projection auditable:
-
-- `lane_harness_ref`: manifest path.
-- `lane_harness_sha256`: manifest hash at dispatch time.
-- `projection_status`: `projected` or `failed`.
-- `failure_kind`: typed provider or projection failure such as
-  `credits_exhausted`, `auth_required`, `missing_binary`, `probe_timeout`,
-  `dispatch_timeout`, `nonzero_exit`, `sentinel_mismatch`, or
-  `projection_failed`.
-- `output_check`: optional sentinel verdict when `--expect-output` is used.
+The selected harness or runner owns execution. Roster owns declarations and
+projection only; Powder owns durable run receipts. A failed provider returns
+evidence to the lead, which decides whether to replace the lane.
 
 ## Open-Model / OpenRouter Catalog Snapshot
 
@@ -513,8 +463,8 @@ tracks `grok-4.5` as of 2026-07-08.
 
 - Active local id: `composer-2.5`.
 - Local dispatch surface: Cursor Agent CLI `cursor-agent -p --model composer-2.5`.
-- Source for local availability: `.harness-kit/agents.yaml` plus
-  `probe-agent-roster` on 2026-06-07.
+- Source for local availability: `primitives/providers.yaml` plus a direct
+  `cursor-agent --version`/headless smoke on 2026-06-07.
 - Public model-card/pricing/context facts were not verified in this refresh.
   Do not infer pricing, context, or benchmark facts from the local model id.
 
@@ -523,14 +473,16 @@ tracks `grok-4.5` as of 2026-07-08.
 Use `/harness-engineering models` or `/research` when this file is stale
 or a user asks for current model/provider/harness choices.
 
-1. Read `.harness-kit/agents.yaml`, harness settings, and this file.
-2. Probe local providers with `cargo run --locked -p harness-kit-checks -- probe-agent-roster`.
+1. Read `primitives/providers.yaml`, harness settings, and this file.
+2. Probe local providers with `command -v` plus the provider's documented
+   non-billable version/help command; use a bounded sentinel only when needed.
 3. Query live provider catalogs/docs for exact model ids, context windows,
    max output, pricing, tool support, release dates, and deprecation notes.
 4. Update this file with hard facts only.
-5. Update `.harness-kit/agents.yaml` and harness settings only when changing a
+5. Update `primitives/providers.yaml` and harness settings only when changing a
    runnable default or variant.
-6. Run `cargo run --locked -p harness-kit-checks -- probe-agent-roster --validate-only`.
+6. Run `cargo run --locked -p roster-cli -- check` and the affected provider's
+   direct smoke probe.
 
 Do not add subjective labels such as role fit, taste, or task suitability to
 this file. Put task-specific composition rationale in the run's receipts,

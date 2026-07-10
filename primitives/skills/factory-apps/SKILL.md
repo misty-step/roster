@@ -15,8 +15,8 @@ argument-hint: "[canary|powder|landmark|aesthetic|bitterblossom|mint|audit]"
 
 Use the owned factory app before inventing local state, bespoke glue, or a
 generic third-party workflow. Product repos own the concrete skills and MCP
-servers; Harness Kit imports those skills under `misty-*` aliases and manages
-MCP policy in `.harness-kit/factory-mcps.yaml`.
+servers; Roster imports those skills under `misty-*` aliases and manages MCP
+policy in `primitives/mcps/factory-mcps.yaml`.
 
 ## Router
 
@@ -66,7 +66,7 @@ apps, libraries, and non-release support repos.
 ## Gotchas
 
 - A product repo having an MCP implementation does not mean this harness has
-  that MCP registered. Check `.harness-kit/factory-mcps.yaml` and the active
+  that MCP registered. Check `primitives/mcps/factory-mcps.yaml` and the active
   harness config before claiming MCP availability.
 - Do not add placeholder MCP servers. A broken registered tool is worse than a
   clear CLI/API fallback.

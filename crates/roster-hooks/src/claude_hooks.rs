@@ -505,6 +505,28 @@ pub fn run_secrets_read_guard_from_stdin() -> Result<()> {
     Ok(())
 }
 
+pub fn run_secrets_read_tool_guard_from_stdin() -> Result<()> {
+    let mut input = String::new();
+    std::io::stdin()
+        .read_to_string(&mut input)
+        .context("failed to read stdin")?;
+    if let Some(output) = secrets_read_tool_guard(&input, &home_dir()) {
+        println!("{}", serde_json::to_string(&output)?);
+    }
+    Ok(())
+}
+
+pub fn run_secrets_redaction_command_rewrite_from_stdin() -> Result<()> {
+    let mut input = String::new();
+    std::io::stdin()
+        .read_to_string(&mut input)
+        .context("failed to read stdin")?;
+    if let Some(output) = secrets_redaction_command_rewrite(&input) {
+        println!("{}", serde_json::to_string(&output)?);
+    }
+    Ok(())
+}
+
 pub fn secrets_read_guard(input: &str, home: &Path) -> Option<Value> {
     let data: Value = serde_json::from_str(input).ok()?;
     if data.get("tool_name").and_then(Value::as_str) != Some("Bash") {
@@ -527,6 +549,88 @@ pub fn secrets_read_guard(input: &str, home: &Path) -> Option<Value> {
                 "BLOCKED: {reason}\n\nCommand: {command}\n\nUse `source ~/{}` (or `.`) instead — the sanctioned access pattern. Never cat/grep/head/tail a secret file; its value can land in this transcript, which is QMD-indexed and permanently searchable.",
                 SECRET_FILE_HOME_SUFFIXES[0]
             ),
+        }
+    }))
+}
+
+/// Blocks Claude Code's Read tool from loading designated secret files.
+/// This is separate from the Bash guard because Read bypasses shell-command
+/// inspection, and settings deny entries have not reliably covered absolute
+/// path resolution in the live client.
+pub fn secrets_read_tool_guard(input: &str, home: &Path) -> Option<Value> {
+    let data: Value = serde_json::from_str(input).ok()?;
+    if data.get("tool_name").and_then(Value::as_str) != Some("Read") {
+        return None;
+    }
+    let file_path = data
+        .get("tool_input")
+        .and_then(Value::as_object)
+        .and_then(|input| input.get("file_path"))
+        .and_then(Value::as_str)?;
+    if file_path.is_empty() {
+        return None;
+    }
+    let expanded = if let Some(rest) = file_path.strip_prefix("~/") {
+        home.join(rest)
+    } else {
+        PathBuf::from(file_path)
+    };
+    if !SECRET_FILE_HOME_SUFFIXES
+        .iter()
+        .any(|suffix| expanded == home.join(suffix))
+    {
+        return None;
+    }
+    Some(json!({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": format!(
+                "BLOCKED: Direct Read of a designated secret file. Its value can be printed into this transcript, which is QMD-indexed and permanently searchable.\n\nFile: {file_path}\n\nUse `source ~/{}` (or `.`) in a Bash command instead — the sanctioned access pattern.",
+                SECRET_FILE_HOME_SUFFIXES[0]
+            ),
+        }
+    }))
+}
+
+/// Rewrites Bash commands so stdout/stderr are synchronously redacted before
+/// Claude Code records the tool result. A PostToolUse hook is too late: the
+/// raw result has already reached the transcript and telemetry at that point.
+pub fn secrets_redaction_command_rewrite(input: &str) -> Option<Value> {
+    let data: Value = serde_json::from_str(input).ok()?;
+    if data.get("tool_name").and_then(Value::as_str) != Some("Bash") {
+        return None;
+    }
+    let tool_input = data.get("tool_input").and_then(Value::as_object)?;
+    let command = tool_input.get("command").and_then(Value::as_str)?;
+    if command.is_empty() || command.contains("redact-stream") {
+        return None;
+    }
+    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    if destructive_command_guard(input, &cwd).is_some()
+        || secrets_read_guard(input, &home_dir()).is_some()
+    {
+        return None;
+    }
+    let escaped = command.replace('\'', r"'\''");
+    let rewritten = format!(
+        "__roster_out=$(mktemp); __roster_err=$(mktemp); \
+         ( eval '{escaped}' ) > \"$__roster_out\" 2> \"$__roster_err\"; __roster_rc=$?; \
+         roster-hooks redact-stream < \"$__roster_out\"; \
+         roster-hooks redact-stream < \"$__roster_err\" >&2; \
+         /usr/bin/trash \"$__roster_out\" \"$__roster_err\" 2>/dev/null; \
+         exit $__roster_rc"
+    );
+    Some(json!({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "modifiedToolInput": {
+                "command": rewritten,
+                "description": tool_input
+                    .get("description")
+                    .and_then(Value::as_str)
+                    .unwrap_or("Bash command (output redacted for secret shapes)"),
+            }
         }
     }))
 }
@@ -901,5 +1005,48 @@ mod tests {
         let output = secrets_guard_command(temp.path(), "grep POWDER_API_KEY ~/.secrets --")
             .expect("must block the exact command shape that caused a live leak");
         assert_eq!(output["hookSpecificOutput"]["permissionDecision"], "deny");
+    }
+
+    #[test]
+    fn secrets_read_tool_guard_blocks_designated_file_only() {
+        let temp = TempDir::new().unwrap();
+        let home = temp.path();
+        for file_path in ["~/.secrets", &home.join(".secrets").display().to_string()] {
+            let input = json!({
+                "tool_name": "Read",
+                "tool_input": {"file_path": file_path.replace("~", &home.display().to_string())},
+            })
+            .to_string();
+            let output = secrets_read_tool_guard(&input, home)
+                .unwrap_or_else(|| panic!("expected block for: {file_path}"));
+            assert_eq!(output["hookSpecificOutput"]["permissionDecision"], "deny");
+        }
+        assert!(
+            secrets_read_tool_guard(
+                &json!({"tool_name": "Read", "tool_input": {"file_path": "~/README.md"}})
+                    .to_string(),
+                home,
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn redaction_rewrite_wraps_bash_and_preserves_guard_decisions() {
+        let output = secrets_redaction_command_rewrite(
+            r#"{"tool_name":"Bash","tool_input":{"command":"echo 'hello world'"}}"#,
+        )
+        .unwrap();
+        let rewritten = output["hookSpecificOutput"]["modifiedToolInput"]["command"]
+            .as_str()
+            .unwrap();
+        assert!(rewritten.contains("roster-hooks redact-stream"));
+        assert!(rewritten.contains("( eval"));
+        assert!(rewritten.contains(r"'\''hello world'\''"));
+
+        for command in ["rm README.md", "cat ~/.secrets"] {
+            let input = format!(r#"{{"tool_name":"Bash","tool_input":{{"command":"{command}"}}}}"#);
+            assert!(secrets_redaction_command_rewrite(&input).is_none());
+        }
     }
 }

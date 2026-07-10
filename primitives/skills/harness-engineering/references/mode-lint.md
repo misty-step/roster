@@ -7,7 +7,7 @@ Validate a skill against quality gates.
 | Gate | Check | Fix |
 |------|-------|-----|
 | **Description triggers** | Does description include trigger phrases? | Add "Use when:" with concrete phrases |
-| **Trigger alias** | Does description include `Trigger:` aliases? | Add explicit slash commands or natural-language aliases; `harness-kit-checks check-frontmatter` enforces this. |
+| **Trigger alias** | Does description include `Trigger:` aliases? | Add explicit slash commands or natural-language aliases; `roster check` enforces frontmatter shape. |
 | **Clean category** | Does the skill own one clear category: reference, verification, analysis, process automation, scaffold, review, CI/CD, runbook, or ops? | Split or compose instead of letting one skill straddle unrelated workflows. |
 | **Size** | SKILL.md < 500 lines? | Extract to references/ |
 | **Gotchas** | Does it enumerate failure modes? | Add a gotchas section |
@@ -45,7 +45,7 @@ a throwaway project and verifies `--help` works from there.
 Run on all skills: `for s in primitives/skills/*/SKILL.md; do /harness-engineering lint "$s"; done`
 
 For duplicate skills, long descriptions, unused candidates, and prompt-budget
-pressure, use `harness-kit-checks telemetry`, the registry, and the
+pressure, use harness-native invocation logs, the registry, and the
 first-party route graph; lint checks one skill's shape, not catalog tax.
 
 For skill-design upgrades across the catalog, load

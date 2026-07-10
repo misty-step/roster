@@ -40,7 +40,7 @@ from the workers'.
   result; it is a transcript waiting for a grader.
 - The cheapest valid eval is live telemetry plus judgment: did the skill
   trigger when it should, and did sessions that loaded it end better?
-  (`harness-kit-checks telemetry`.)
+  (harness-native invocation logs plus Powder receipts.)
 - HarnessX-style trace evolution is review-only here: a Mode B/eval lane may
   propose typed harness edits from sanitized traces, but no source edit ships
   without held-out tasks, the full Harness Kit gate, fresh critic review, and

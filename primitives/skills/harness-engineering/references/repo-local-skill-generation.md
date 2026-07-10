@@ -29,9 +29,9 @@ machinery here. This pattern generates **one to three focused skills**, not a
 harness: no manifest, no killswitch, no lint hook, no state machine. A lead
 agent reads a repo, exercises judgment about what's worth generating, writes
 it, proves it once with a cold-agent smoke. If a repo needs more than a
-handful of bespoke skills, that is a signal to give it a role-scoped bootstrap
-bundle (`.harness-kit/bundles.yaml`, backlog 130) instead of hand-generating
-a pile — bundles subset the existing catalog; this pattern authors net-new
+handful of bespoke skills, that is a signal to declare a focused Roster
+identity with a curated `role.yaml` skill list instead of hand-generating
+a pile — identities subset the existing catalog; this pattern authors net-new
 repo-specific content that has no catalog equivalent.
 
 ## Read the repo before writing anything

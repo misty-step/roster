@@ -25,18 +25,11 @@ Glass status beats:
 ## Launch
 
 ```sh
-cargo run --locked -p harness-kit-checks -- dispatch-agent \
-  --provider-target <provider> \
-  --model-override <variant-or-id> \
-  --objective "<objective>" \
-  --input-ref "<path-or-ticket>" \
-  --prompt-file <lane-card-path> \
-  --repo <target-repo> \
-  --backlog-ref <work-ref>
+roster brief <identity> --card <powder-card-id> > /tmp/lane-brief.md
+# Prepend /tmp/lane-brief.md to this card, then launch it through the chosen
+# harness's native subagent or peer-CLI surface.
 ```
 
-Add `--lane-harness <manifest>` only when the lane needs focused visible skills.
-Use `--repo <target-repo>` when launching from outside the target repo; default
-receipts, transcripts, local roster discovery, and lane-harness projection are
-scoped to that repo unless explicitly overridden.
-Remove `--model-override` when the card says `none`.
+Use `roster materialize <identity> --harness <harness>` when a harness-native
+projection is needed. Durable receipts belong on the Powder card as a run,
+comment, or link.

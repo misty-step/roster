@@ -42,29 +42,18 @@ Session transcripts live at `~/.claude/projects/`. Structure:
 Slash commands appear as: `<command-name>/skill-name</command-name>` in user message content.
 Tool calls appear as `{ "type": "tool_use", "name": "ToolName", "input": {...} }` in assistant content.
 
-## Durable Mining Command
+## Durable Mining Contract
 
-For opt-in effectiveness mining, use the repo command instead of a one-off
-`/tmp` script:
-
-```bash
-cargo run --quiet --locked -p harness-kit-checks -- mine-transcript-effectiveness \
-  --transcript /path/to/session.jsonl \
-  --skill-log crates/harness-kit-checks/tests/fixtures/skill-invocations.jsonl \
-  --format markdown
-```
-
-The command requires explicit `--transcript` or `--source-root`, redacts before
-reporting, fails closed on unresolved secret-like content, joins local evidence
-stores when refs match, and reports missing source coverage instead of
-inferring effectiveness from sparse data. Use `--allow-redacted-excerpts` only
-for local operator review; default reports contain counts and refs, not raw
-turn text.
+Effectiveness mining is an opt-in research lane over explicit transcript and
+skill-log inputs. Redact before reporting, fail closed on unresolved
+secret-like content, join evidence stores only when refs match, and report
+missing coverage instead of inferring effectiveness from sparse data. Default
+reports contain counts and refs, not raw turn text.
 
 ## Durable Command Expansion Checklist
 
-When the durable command needs broader coverage, extend
-`harness-kit-checks mine-transcript-effectiveness` and its tests to extract:
+When the analysis needs broader coverage, extend the research query and its
+falsification checks to extract:
 
 ### Quantitative
 - **Sessions per project** (top 20)

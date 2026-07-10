@@ -67,8 +67,8 @@ Only when auditing roster itself:
   soundness and other semantic judgment stay model work, not linted here.
 - `skills-index.yaml` is current after skill/primitive changes (`roster check`
   surfaces drift; fixing it is a manual edit, not an auto-fix).
-- Active skill prose does not tell operators that the archived Harness Kit
-  repo's gate (`harness-kit-checks`) is roster's current source-repo gate.
+- Active skill prose does not point operators at the retired predecessor's
+  gate as Roster's source-repo gate.
 
 Do not add consumer-repo CI framework code to roster to satisfy this rubric.
 Update skill guidance, templates, or repo-local consumer gates.

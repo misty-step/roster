@@ -122,12 +122,10 @@ repo or planning branch and replace:
 Then delete every face the first slice cannot verify. The template is a menu,
 not a mandate. A repo earns a face by naming its proof loop.
 
-The template itself cannot drift silently: `check-template`
-(`crates/harness-kit-checks/src/template_check.rs`, part of this repo's own
-`check --repo .`) materializes every `.tmpl` file with sample tokens into a
-temp workspace, checks no token survives substitution, and runs
-`cargo generate-lockfile && cargo build --locked --workspace` against it. A
-broken template file fails Harness Kit's own gate, not just a consumer's.
+The template must be verified by materializing it into a temporary workspace,
+checking no token survives substitution, and running
+`cargo generate-lockfile && cargo build --locked --workspace`. A consumer
+cannot inherit trust from the template's source tree.
 
 ## Verification System
 

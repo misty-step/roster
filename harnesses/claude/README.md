@@ -1,6 +1,6 @@
 # Claude Code Harness Notes
 
-Claude Code is a primary roster lane for Harness Kit. Use it for independent
+Claude Code is a primary Roster lane. Use it for independent
 dynamic delegation when the lead is not already Claude.
 
 ## Dispatch Shape
@@ -12,9 +12,9 @@ prompt:
 claude -p --dangerously-skip-permissions --permission-mode bypassPermissions --model claude-opus-4-8 --effort xhigh "Role: reviewer. Objective: inspect this diff. Output: 5 bullets."
 ```
 
-The roster entry should stay thin: launch Claude, provide the scoped prompt,
-and let `harness-kit-checks dispatch-agent` capture transcript evidence and
-write a sanitized receipt. Do not encode workflow semantics in the command.
+The Roster entry stays thin: prepend the scoped `roster brief`, launch Claude,
+and record durable evidence on the Powder card. Do not encode workflow
+semantics in the command.
 
 ## Dynamic Delegation Notes
 
