@@ -98,7 +98,7 @@ alone unless they sleep most of the time or can be rewritten to Workers/D1.
 - **Bitterblossom for Mode B**: event-triggered dispatch, reflex agents,
   CI-native review, incident response, scheduled workflows, and durable control
   loops.
-- **Harness Kit for Mode A**: ad-hoc operator work, skills, shared doctrine,
+- **Roster for Mode A**: ad-hoc operator work, skills, shared doctrine,
   peer lanes, and local evidence loops.
 - **Fly Sprites for heavy or isolated lanes**: remote sandboxes, golden
   checkpoints, long-running or parallel work.

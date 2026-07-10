@@ -1,6 +1,6 @@
 # /harness-engineering create
 
-Create a new Harness Kit source skill or agent from scratch.
+Create a new Roster source skill or agent from scratch.
 
 For a project-local skill in a consumer repo (bespoke QA drivers, persona
 probes), write it directly into the repo's `.agents/skills/<name>/` with the

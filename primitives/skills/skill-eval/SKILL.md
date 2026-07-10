@@ -111,7 +111,7 @@ A full pass is ~15–18 runs (paid, slow). Do not gate every edit on it.
   claim's distinct failure modes.
 - **Eval bloat.** This skill stays minimal. Serious, repeated arena work
   (composition sweeps, model selection) graduates to Daedalus; it does not
-  expand Harness Kit into a benchmark platform.
+  expand Roster into a benchmark platform.
 - **Grading prose, not outcomes.** "The packet reads well" is not the claim. "A
   cold lane built the feature from the packet" is. Grade the outcome the skill
   promises.

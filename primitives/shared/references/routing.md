@@ -24,7 +24,7 @@ judgment in the skill.
 | Question a different model family answers better: second opinion, adversarial critique, competing attempt | Peer harness CLI (`/roster`) |
 | Tens-to-hundreds of parallel agents, or findings that need adversarial cross-checking at scale | The harness's own large-scale orchestration feature when it has one; otherwise parallel subagents or a sprite fleet |
 | Heavy, long-running, detached, or isolation-needing lane | Sprite lane via `/sprites` |
-| Recurring event-driven workflow | Mode B: the event plane (bitterblossom), not ad-hoc Harness Kit |
+| Recurring event-driven workflow | Mode B: the event plane (bitterblossom), not ad-hoc Roster |
 | Mechanical command already chosen; emergency preservation; user forbids delegation | Direct solo |
 | Need tool/permission isolation only | Static project subagent |
 

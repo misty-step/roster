@@ -1,6 +1,6 @@
 # Misty Step Factory Fleet Integration Standard
 
-This standard applies to active `misty-step` organization projects. Harness Kit
+This standard applies to active `misty-step` organization projects. Roster
 owns the routing doctrine; the product repos own their actual Canary, Powder,
 and Landmark integration surfaces.
 

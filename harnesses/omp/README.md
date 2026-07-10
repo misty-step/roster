@@ -1,9 +1,8 @@
 # OMP Harness Notes
 
-OMP (oh-my-pi) is the primary lead harness for Harness Kit. It is not a roster
-delegation target — it is the harness the operator drives directly. The roster
-(codex, pi, goose, opencode) provides cross-model peer lanes that OMP dispatches
-through `task` subagents or the `dispatch-agent` receipt system.
+OMP (oh-my-pi) is a supported Roster harness the operator can drive directly.
+Roster materializes declared identities for OMP; the active harness owns native
+subagent execution, and Powder owns durable receipts.
 
 ## Config Surfaces
 
@@ -11,21 +10,21 @@ through `task` subagents or the `dispatch-agent` receipt system.
 compaction, memory, advisor. The global config is user-owned and shared across
 all repos.
 
-**Harness Kit source (`harnesses/omp/`).** Keep OMP-specific notes and future
-bootstrap inputs here. Harness Kit does not commit a source-root `.omp/`
-projection; operator-local `.omp/` files are user-owned unless a shaped ticket
-proves bootstrap support is worth adding.
+**Roster source (`harnesses/omp/`).** Keep portable OMP-specific notes and
+projection inputs here. Operator-local `.omp/` files remain user-owned unless a
+shaped ticket proves a managed projection is worth adding.
 
 ## Model Composition
 
 OMP's role-based routing assigns different models to different work types in
 the user's global config. Keep repo source limited to portable doctrine and
-bootstrap inputs; model rosters live in Harness Kit's roster files.
+projection inputs; provider declarations live in `primitives/providers.yaml`
+and model translations in `primitives/models.yaml`.
 
 ## What's Different from Codex / Claude Code
 
 - **TTSR rules** — regex-matched invariants injected mid-stream; survive
-  compaction. If Harness Kit needs source-controlled OMP rules later, they
+  compaction. If Roster needs source-controlled OMP rules later, they
   should be generated from shared doctrine or shaped as explicit bootstrap
   inputs, not committed as root `.omp/` drift.
 - **Hashline edits** — content-hash anchored; rejects stale patches before
@@ -41,6 +40,6 @@ bootstrap inputs; model rosters live in Harness Kit's roster files.
 
 ## Harness-Agnostic Principle
 
-The shared doctrine (`AGENTS.md`, `harnesses/shared/AGENTS.md`, `skills/`) is
+The shared doctrine (`primitives/shared/AGENTS.md`, references, and skills) is
 harness-agnostic and portable across all harnesses. OMP-specific config does
 not leak into shared doctrine.

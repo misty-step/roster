@@ -161,6 +161,6 @@ Responses include `response.citations` with source URLs. Always cite them.
 - `enable_video_understanding` is X Search only
 - `allowed_domains` / `excluded_domains` cannot be combined in one request
 - `allowed_x_handles` / `excluded_x_handles` cannot be combined in one request
-- In the Harness Kit runtime, xAI is a retrieval/discourse provider when
+- In the Roster runtime, xAI is a retrieval/discourse provider when
   `XAI_API_KEY` is set. It is routed before Exa for social/discourse queries
   and after Exa for recency corroboration.

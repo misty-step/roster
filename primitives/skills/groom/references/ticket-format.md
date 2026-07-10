@@ -39,5 +39,5 @@ Every active ticket has Goal + Oracle; fix or demote anything that doesn't.
 For M+ work or anything promoted to `Status: ready`, fill in the Verification
 System fields. M+ tickets promoted to `Status: ready` also follow `/shape`'s
 `references/prd-ticket-quality.md`; otherwise they stay raw ideas. When
-grooming Harness Kit itself, apply the product lens in
+grooming Roster itself, apply the product lens in
 `references/backlog-doctrine.md`.

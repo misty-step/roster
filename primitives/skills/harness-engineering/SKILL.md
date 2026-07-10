@@ -1,7 +1,7 @@
 ---
 name: harness-engineering
 description: |
-  Engineer Harness Kit primitives: skills, shared doctrine, provider roster,
+  Engineer Roster primitives: skills, shared doctrine, provider roster,
   harness configs, gates, evals, bootstrap, sync. Use for "improve the harness",
   "harness engineering", "bootstrap is wrong", "AGENTS.md is stale", "skill
   health", "undertriggering skill", "description tax", "eval skill", "sync primitives",
@@ -68,7 +68,7 @@ test below — most patterns are prompts, not skills.
   their specific surface answers the task.
 - Skills stay self-contained: scripts/libs/references under the skill; state
   roots from invoking repo.
-- Code outside a skill serves only Harness Kit source-repo maintenance,
+- Code outside a skill serves only Roster source-repo maintenance,
   generated artifacts, bootstrap/install, or harness configuration. It is not a
   place for skill behavior.
 - Treat a skill as a folder, not a markdown file. Use scripts, references,
@@ -80,11 +80,11 @@ test below — most patterns are prompts, not skills.
   support, benchmark sources, deprecations, and freshness. Do not encode
   role-fit policy there; the lead agent composes task-specific teams from
   current evidence.
-- Harness Kit source skills live in `primitives/skills/`; repo-local `.agents/skills/` and
+- Roster source skills live in `primitives/skills/`; repo-local `.agents/skills/` and
   harness-specific skill bridge dirs are `/seed` output for consumer repos.
 - Generated/root `AGENTS.md` is a router, not a manual. Keep non-obvious facts
   only.
-- System bootstrap exposes the full first-party skill catalog; repo-local
+- `roster sync` exposes the first-party skill catalog; repo-local
   vendoring is exceptional and must earn its complexity.
 - Provider CLIs are tools. Do not wrap them in semantic orchestration unless a
   shaped ticket explicitly asks.

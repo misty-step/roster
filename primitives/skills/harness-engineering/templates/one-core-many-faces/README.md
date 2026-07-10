@@ -11,7 +11,7 @@ should adopt the doctrine (core/shell/adapter separation, intent-shaped MCP
 tools, proof-before-expansion) without migrating its file layout.
 
 This is a scaffold, not a generator. Replace tokens, delete unearned faces, and
-make the first verified slice work before adding surface. Harness Kit's own
+make the first verified slice work before adding surface. Roster's own
 gate materializes this template with sample tokens and builds it
 (`check-template`) so a broken `.tmpl` file fails before it ever reaches a
 consumer.

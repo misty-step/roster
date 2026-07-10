@@ -1,21 +1,20 @@
 # Backlog Doctrine
 
-## Two-Tier Backlog
+## Work ledger
 
 | Tier | Location | Purpose | Queue health |
 |------|----------|---------|-----|
-| **Shaped work** | `backlog.d/` | Ready-to-build items with goal + oracle + verification system + sequence | Evidence-backed, ordered, actively maintained |
-| **Icebox** | `.groom/BACKLOG.md` | Everything else worth remembering | Searchable, pruned, not a substitute for shaping |
+| **Shaped work** | Powder | Ready-to-build cards with goal + oracle + verification system + sequence | Evidence-backed, ordered, actively maintained |
+| **Draft/import seed** | repo-local `backlog.d/` where present | Temporary shaping and import source | Must graduate to Powder before execution |
 
-`backlog.d/` is the canonical backlog. Files are the source of truth; there is
-no parallel issue store.
+Powder is the canonical work ledger. Repo-local backlog files are not a parallel
+lifecycle.
 
 Ideas flow between tiers during `/groom` sessions:
-- **Shape:** raw finding → `backlog.d/` file (gets goal + oracle + verification system → ready to build)
-- **Promote:** BACKLOG.md → `backlog.d/` (idea becomes active)
-- **Demote:** `backlog.d/` → BACKLOG.md (item loses priority)
-- **Archive:** BACKLOG.md → strikethrough (idea is done, obsolete, or absorbed)
-- **Discard:** any tier → gone (no remaining value)
+- **Shape:** raw finding → Powder card with goal + oracle + verification system.
+- **Promote:** draft/import seed → Powder card.
+- **Demote:** move the Powder card to backlog with the evidence for deprioritization.
+- **Close:** complete or abandon the Powder card with proof or a successor.
 
 ## What the active backlog is for
 
@@ -23,17 +22,17 @@ The active backlog (`backlog.d/`) is the current plan, not storage for every ide
 A good backlog is ordered, transparent, and actively maintained. It should make the next
 decisions obvious.
 
-## Harness Kit Product Lens
+## Roster Product Lens
 
-Harness Kit is primarily a harness product for other repositories. Its own repo is where
+Roster is the agent declaration and primitive source for other repositories. Its own repo is where
 patterns get validated before they spread.
 
-When shaping Harness Kit backlog items, prefer work that is one of:
+When shaping Roster cards, prefer work that is one of:
 - a reusable primitive, scaffold, reference, or policy other repos can adopt
 - a proving-ground validation of a pattern meant to transfer outward
 - debt removal that materially blocks downstream adoption or trust
 
-If an item only improves Harness Kit's own repo and has no clear transfer value, demote it,
+If an item only improves Roster's own repo and has no clear transfer value, demote it,
 merge it into a broader reusable effort, or rewrite it until the downstream payoff is explicit.
 
 ## Core rules
@@ -52,7 +51,7 @@ merge it into a broader reusable effort, or rewrite it until the downstream payo
 - Prefer one canonical item per outcome.
 - Split discovery from delivery.
 - Order work by user value, risk reduction, learning, and enablement.
-- For Harness Kit itself, optimize for downstream leverage first and local convenience second.
+- For Roster itself, optimize for downstream leverage first and local convenience second.
 - Keep active work narrow. High WIP destroys prioritization.
 - Ideas that aren't execution-ready live in `.groom/BACKLOG.md`.
 
@@ -103,7 +102,7 @@ Move items down when they:
 - duplicate a broader surviving issue
 - depend on undefined architecture
 - represent “maybe someday” ideas with no current owner
-- only improve Harness Kit's own repo without reusable payoff
+- only improve Roster's own repo without reusable payoff
 
 ## Cadence
 
@@ -133,7 +132,7 @@ Before an issue is execution-ready, verify:
 - dependencies are visible
 - scope boundaries are present
 - verification is executable
-- downstream leverage or proving-ground rationale is explicit for Harness Kit items
+- downstream leverage or proving-ground rationale is explicit for Roster cards
 - the issue can be completed in one coherent pass or should be split
 
 ## AI-agent adaptation

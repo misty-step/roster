@@ -1,6 +1,6 @@
 # Pi Harness Notes
 
-Pi is the primary open-model roster lane for Harness Kit. Use it for independent
+Pi is a primary open-model Roster lane. Use it for independent
 dynamic delegation when model diversity is more valuable than another
 proprietary coding-agent opinion.
 
@@ -9,12 +9,14 @@ proprietary coding-agent opinion.
 Use print mode with explicit provider/model/thinking/tool settings from the
 roster:
 
+```sh
 pi -p --provider openrouter --model moonshotai/kimi-k2.7-code --thinking xhigh --tools read,bash,edit,write,grep,find,ls "Role: investigator. Objective: inspect this oracle. Output: risks and proof."
 ```
 
-The command stays a thin launch surface. `roster brief` / `roster materialize`
-appends the commission, applies the timeout, stores transcript evidence, and
-records the receipt.
+The command stays a thin launch surface. `roster brief` composes the identity
+and card context; `roster materialize` emits the harness-native declaration.
+The invoking runner owns timeout and transcript capture; Powder owns durable
+receipts.
 
 ## Model Variants
 
@@ -44,8 +46,8 @@ For direct one-off use, keep the same Pi shape and swap only `--model`.
   lanes can drift when the prompt is loose.
 - Keep provider/model defaults in `primitives/providers.yaml`; do not bake them
   into workflow skills.
-- Pi settings are symlinked by bootstrap, so a fresh `bash bootstrap.sh` exposes
-  the current `harnesses/pi/settings.json` default.
+- `roster sync --catalog full --all-agents` links Pi settings, skills, doctrine,
+  and declared agents from the Roster checkout.
 - Use the prompt shape `Role: ... Objective: ... Scope: ... Output: ...`.
 - Run from the target workspace. Paths orient the lane; cwd is the workspace.
 - Use roster lanes for multi-model Pi benches instead of hand-rolling parallel

@@ -40,7 +40,7 @@ are one proof method. A critic who inherited the author's reasoning is not fresh
 | Tiny | mechanical, single-file, low-blast-radius change | Structural gate or exact manual inspection; name why no fresh critic is needed. |
 | Substantive | product behavior, shared code, harness primitive, generated output, or multi-file diff | Live oracle + structural gate + one fresh-context critic aimed at the likely production embarrassment. |
 | High-stakes | security, data loss, auth, migrations, architecture boundary, public launch surface, or hard-to-rollback infra | Live oracle + structural gate + multiple distinct critic lenses or model families; re-review blocker fixes. |
-| Event-driven | PR-ready review, incident response, scheduled audits, or recurring production checks | Mode B / bitterblossom owns orchestration; Harness Kit supplies the packet and lane contracts. |
+| Event-driven | PR-ready review, incident response, scheduled audits, or recurring production checks | Mode B / bitterblossom owns orchestration; Roster supplies the packet and lane contracts. |
 
 Scale down aggressively when the work is small. Scale up only when the failure
 would be expensive, public, irreversible, or hard to observe.

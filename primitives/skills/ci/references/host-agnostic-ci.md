@@ -3,7 +3,7 @@
 Use this when designing, auditing, or repairing CI across local machines,
 GitHub Actions, Azure Pipelines, self-hosted runners, or future hosts.
 
-Harness Kit remains a focused agent primitive catalog. Do not build a CI
+Roster remains a focused agent primitive catalog. Do not build a CI
 framework here. The `/ci` skill teaches agents how to shape repo-local CI; the
 implementation belongs in the consumer repo.
 

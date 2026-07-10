@@ -101,9 +101,9 @@ not the full bench.
   it, and own the result.
 - A failed or rambling lane is a result too — report it, don't re-roll
   silently.
-- Oracle is browser-mode only in Harness Kit. Use it for high-context consults
+- Oracle is browser-mode only in Roster. Use it for high-context consults
   through a signed-in ChatGPT session; do not use Oracle API mode or multi-model
-  API panels from the Harness Kit roster default.
+  API panels from the Roster default.
 - For a bounded lane whose evidence should outlive the session, write the
   receipt to Powder — a run, comment, or link on the card the lane's work
   feeds. Optional for quick second opinions; useful when the lane's verdict

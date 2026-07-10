@@ -84,7 +84,7 @@ an architecture choice needs the full treatment.
   review focus.
 - **Loops cross the Mode A/Mode B boundary.** For recurring or unattended
   workflow ideas, load `primitives/shared/references/loop-readiness.md` and
-  shape a handoff instead of a Harness Kit scheduler.
+  shape a handoff instead of a Roster scheduler.
 - **Premise source named.** The packet cites the artifact that explains why
   this shape exists (`Premise Source: sha256:<digest> <path-or-url>`) or
   carries an explicit waiver with residual risk. Voice/raw-transcript

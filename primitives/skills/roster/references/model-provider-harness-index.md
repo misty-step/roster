@@ -63,7 +63,7 @@ Source: `primitives/providers.yaml`, with command discovery rechecked on
 
 Local probe status proves only command discovery. It does not prove task
 quality, current billing, tool-call reliability, or benchmark performance.
-Oracle status proves only the browser-mode dry-run path; Harness Kit forbids
+Oracle status proves only the browser-mode dry-run path; Roster forbids
 Oracle API mode in its skill and roster defaults.
 
 ## Realtime And Speech Substrate Snapshot

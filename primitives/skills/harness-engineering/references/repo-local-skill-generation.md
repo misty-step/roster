@@ -19,7 +19,7 @@ evals-per-skill floor, backlog 128, extended to generated skills).
 
 ## Boundary: this is not `/tailor` again
 
-Harness Kit tried whole-repo harness generation twice and retired it both
+The predecessor Harness Kit tried whole-repo harness generation twice and retired it both
 times (`backlog.d/_done/029-tailor-per-repo-harness-generator.md`,
 `backlog.d/_done/045-harness-pivot-minimal-globals.md`): a manifest schema, an
 A/B eval with automatic rollback, a pre-commit lint hook enforcing a skill
@@ -82,13 +82,13 @@ against role-scoped bundles instead.
 
 - Path: `<target-repo>/.agents/skills/<repo>-<domain>/SKILL.md` — e.g.
   `canary-qa`, `powder-qa`, `canary-deploy`. The repo prefix is load-bearing:
-  it keeps the generated skill from shadowing a first-party Harness Kit skill
+  it keeps the generated skill from shadowing a first-party Roster skill
   name (`qa`, `deploy`) and makes provenance legible from the directory name
   alone.
-- Never write into Harness Kit's own tree, and never write directly into a
+- Never write into Roster's own tree, and never write directly into a
   harness-specific bridge directory (`.claude/skills/`, `.codex/skills/`,
   `.pi/skills/`) in the target repo — those are sync/bootstrap output in
-  repos that run Harness Kit's own bootstrap, not source. `.agents/skills/`
+  repos that project Roster primitives, not source. `.agents/skills/`
   is the portable root a harness projects from.
 - Copy `templates/repo-local-skill/SKILL.md.tmpl` as the starting shape:
   frontmatter (`name`, `description` with explicit `Use when:`/`Trigger:`
@@ -104,10 +104,10 @@ frontmatter closing `---`, before the first heading:
 
 ```markdown
 <!--
-Generated via harness-kit's repo-local skill generation pattern
+Generated via Roster's repo-local skill generation pattern
 (primitives/skills/harness-engineering/references/repo-local-skill-generation.md).
 Source repo: <owner/repo> @ <sha>. Generated: <YYYY-MM-DD>.
-Generator ref: harness-kit@<sha used to generate this>.
+Generator ref: roster@<sha used to generate this>.
 Facts below are repo-derived at generation time, not invented. Re-verify
 commands against the live repo before trusting this if it has aged — a
 generated skill is a snapshot, not a live view.
@@ -125,7 +125,7 @@ generated content from hand-authored content and judge staleness.
 Copy `templates/repo-local-skill/evals/eval-stub.md.tmpl` to
 `<target-repo>/.agents/skills/<repo>-<domain>/evals/<repo>-<domain>-eval.md`.
 It is a deliberately smaller instrument than
-`primitives/skills/skill-eval/templates/eval-spec.md` (Harness Kit's first-party
+`primitives/skills/skill-eval/templates/eval-spec.md` (Roster's first-party
 template): one falsifiable claim, one to two fixtures built around a cold-
 agent run (not a multi-arm A/B judge panel — the claim being tested is "does
 a cold agent execute the real command from this skill alone," not "does this
@@ -156,7 +156,7 @@ committed (next section), so real evidence should already exist.
 
 - No manifest, no A/B eval infrastructure, no rollback, no lint-enforced skill
   cap — see the boundary section above.
-- No shadowing a first-party Harness Kit skill name.
+- No shadowing a first-party Roster skill name.
 - No touching the target repo's root `SKILL.md` (the product skill, if one
   exists) or its `AGENTS.md`/gate contract — this pattern adds a skill, it
   does not rewrite the repo's own doctrine.

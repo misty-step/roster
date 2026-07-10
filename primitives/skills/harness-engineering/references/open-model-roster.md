@@ -112,7 +112,7 @@ promotion.
 
 ### Pi
 
-Pi stays the smallest open-model peer lane because Harness Kit already has
+Pi stays the smallest open-model peer lane because Roster already has
 dispatch receipts and model override support for it. Roster dispatch uses
 `--no-extensions` so optional personal Pi extensions cannot make a successful
 model response exit nonzero. Pi also supports custom OpenAI-compatible
@@ -151,7 +151,7 @@ Source: https://openrouter.ai/docs/cookbook/coding-agents/opencode-integration.
   decorrelated peer critiques. The model family may be the same; the harness
   behavior is not.
 - Promote a default only with: live OpenRouter catalog evidence, local binary
-  probe, and at least one real Harness Kit smoke receipt.
+  probe, and at least one real Roster smoke receipt.
 - Keep model facts in `primitives/skills/roster/references/model-provider-harness-index.md`.
   Keep role-fit policy here and in shared doctrine.
 - Do not add a new provider wrapper if Pi/Goose/OpenCode plus model variants

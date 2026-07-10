@@ -42,9 +42,9 @@ workspace access to the target repo.
 
 ## Projection Paths
 
-Harness Kit projects first-party skills directly into the Antigravity CLI skill
+Roster projects first-party skills directly into the Antigravity CLI skill
 path. On this machine `~/.gemini/antigravity-cli/skills` resolves to
-`~/.gemini/config/skills`; `bootstrap.sh` populates that directory with
+`~/.gemini/config/skills`; `roster sync` populates that directory with
 per-skill symlinks and links shared `AGENTS.md` into
 `~/.gemini/antigravity-cli/AGENTS.md`.
 
@@ -61,23 +61,23 @@ shape is:
 └── mcp_config.json
 ```
 
-Harness Kit does not emit a plugin bundle by default. Use the direct skill
+Roster does not emit a plugin bundle by default. Use the direct skill
 projection for first-party skills; create a plugin only when a repo needs a
 single deployable unit that combines skills with MCP servers, rules, or hooks.
 
 ## Rules, Hooks, and Settings
 
-Rules are Antigravity-owned policy files. Harness Kit's shared doctrine lives
+Rules are Antigravity-owned policy files. Roster's shared doctrine lives
 in `AGENTS.md`; do not duplicate it into Antigravity rules unless a repo has an
 Antigravity-only constraint that cannot live cross-harness.
 
-Hooks belong in Antigravity `hooks.json` files. Harness Kit currently installs
+Hooks belong in Antigravity `hooks.json` files. Roster currently installs
 Claude hooks only; do not translate them blindly. Add Antigravity hooks only
 after a shaped ticket proves the hook event, matcher, and JSON stdin/stdout
 contract are stable.
 
 Settings live in `~/.gemini/antigravity-cli/settings.json` and are user-owned.
-Bootstrap may link shared guidance and skills, but it must not overwrite
+Roster sync may link shared guidance and skills, but it must not overwrite
 Antigravity settings or permission policy.
 
 ## Legacy Gemini CLI Migration
@@ -85,11 +85,11 @@ Antigravity settings or permission policy.
 Treat Gemini CLI as migration/import support, not the future Google harness.
 Official Antigravity migration docs describe one-time import of Gemini CLI
 extensions, skills, commands, MCP servers, and hooks into Antigravity plugins.
-Harness Kit should preserve enough notes to help an operator migrate, while
-new provider lanes and bootstrap projections target `agy` and Antigravity
+Roster preserves enough notes to help an operator migrate, while new provider
+lanes and projections target `agy` and Antigravity
 paths.
 
-## Harness Kit Rule
+## Roster Rule
 
 Roster entries should keep Antigravity conditional until a local smoke proves
 the prompt was followed. Receipts and final synthesis should treat Antigravity

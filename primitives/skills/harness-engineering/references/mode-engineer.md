@@ -33,7 +33,7 @@ cargo run --locked -p roster-cli -- check
 When adding gate coverage, keep deterministic catalog checks inside
 `roster check`; semantic quality belongs to evals and fresh critics.
 Do not make Dagger, Docker, GitHub Actions YAML, or provider CLIs the default
-inner-loop gate for Harness Kit.
+inner-loop gate for Roster.
 
 ## Consumer repo gate velocity
 

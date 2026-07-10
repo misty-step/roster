@@ -4,7 +4,7 @@ Use this when a draft still feels machine-made after a first pass.
 
 Source scan: distilled from the MIT-licensed `hardikpandya/stop-slop`,
 `humanizerai/agent-skills`, `stephenturner/skill-deslop`,
-`conorbronsdon/avoid-ai-writing`, and existing Harness Kit design/showcase copy
+`conorbronsdon/avoid-ai-writing`, and predecessor Harness Kit design/showcase copy
 rules. Do not copy external phrasing wholesale.
 
 ## Pattern Families

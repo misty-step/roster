@@ -4,17 +4,17 @@ Apply when `/harness-engineering` is improving first-party skills, creating a
 new skill, or auditing the catalog after external skill-system research.
 
 Source prompt: Anthropic's "Lessons from building Claude Code: How we use
-skills" (2026-06-03), adapted to Harness Kit's cross-harness filesystem-first
+skills" (2026-06-03), adapted to Roster's cross-harness filesystem-first
 contract.
 
 ## Translate External Principles
 
-| Principle | Harness Kit rule |
+| Principle | Roster rule |
 |---|---|
 | Skill is a folder | Prefer `references/`, `scripts/`, `examples/`, `assets/`, `templates/`, and `evals/` over long inline prose. |
 | Clean category | Each skill owns one workflow category; multi-category skills compose other skills or split. |
 | Verification skills matter | Verification behavior gets a real system: driver, grader, evidence packet, and cadence before extra prose. |
-| Do not state the obvious | Delete generic SWE advice unless it names a Harness Kit-specific failure mode. |
+| Do not state the obvious | Delete generic SWE advice unless it names a Roster-specific failure mode. |
 | Gotchas carry signal | Add gotchas from observed failures, receipts, audits, or failing gates; avoid speculative warnings. |
 | Progressive disclosure | `SKILL.md` routes; references hold depth; scripts and assets hold repeatable mechanics. |
 | Avoid railroading | Give constraints, choices, and oracles; do not force one procedure when repo evidence should choose. |
