@@ -20,9 +20,11 @@ See mint's own `VISION.md` before assuming a capability beyond what ships today.
 
 - Only the egress HTTP proxy mode exists — no typed-action broker, no
   secretless protocol proxy (both declared in VISION.md, neither built).
-- Backing stores today: the macOS keychain (local) and env-var custody for
-  the deployed broker (`MINT_SECRET_*`, root-only env file on the droplet).
-  1Password/OpenBao are still future work.
+- Backing stores today: the macOS keychain for local development and one
+  service-private file per alias in production, delivered through systemd
+  `LoadCredentialEncrypted=` on the dedicated DigitalOcean node. The broker's
+  ordinary request path does not call 1Password and does not carry raw
+  `MINT_SECRET_*` values in its environment. OpenBao remains future work.
 - Deployed auth is tailnet-whois (mint-924): your identity is your machine's
   tailnet peer address. Shared-secret capability auth survives only for
   loopback dev `mint serve`. There is NO auth path yet for non-tailnet

@@ -61,11 +61,19 @@ curl -H "Authorization: Bearer __mint.openrouter.default__" \
   sit inside a *forwarded header*. mint swaps in the real secret after the
   request leaves your sandbox — you never hold the value. It is the
   resolvable form of the operator-facing alias `secret://<service>/<name>`.
-- **Live aliases** (policy-gated per caller identity; deploy/policy.yaml in
-  the mint repo is the source of truth): `openrouter.default`
-  (openrouter.ai), `powder.default` (Powder on the bastion box),
-  `canary.default` (canary-obs). Fleet `tag:server` boxes and the operator's
-  own devices (`phrazzld@github`) hold rules today.
+- **Live placeholders** (policy-gated per caller identity; `deploy/policy.yaml`
+  in the mint repo is the source of truth):
+  `__mint.openrouter.default__`, `__mint.openrouter.management__`,
+  `__mint.powder.default__`, `__mint.powder.bitterblossom__`,
+  `__mint.canary.default__`, `__mint.canary.read__`,
+  `__mint.canary.roster-mcp__`, `__mint.context7.default__`,
+  `__mint.exa.default__`, `__mint.cairn.default__`,
+  `__mint.firecrawl.default__`, `__mint.habitat.default__`, and
+  `__mint.supabase.read__`. The production broker resolves them from systemd
+  encrypted credential files on the dedicated DigitalOcean `mint` node. Brave
+  Search is intentionally absent and revoked. Fleet tags and the operator's
+  own tailnet identity (`phrazzld@github`) receive only their declared host,
+  method, path, alias, and budget rules.
 - **`X-Mint-Capability`** is dev/loopback-only since mint-924 (local `mint
   serve` smoke) — it is not the deployed agent path and mint refuses it from
   anywhere but 127.0.0.1.

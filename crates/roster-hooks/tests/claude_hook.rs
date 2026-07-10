@@ -10,6 +10,17 @@ fn hooks_cmd() -> Command {
 }
 
 #[test]
+fn redact_stream_redacts_secret_shaped_input() {
+    hooks_cmd()
+        .arg("redact-stream")
+        .write_stdin("Authorization: Bearer sk-proj-not-a-real-secret\n")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Authorization: Bearer [REDACTED]"))
+        .stdout(predicate::str::contains("sk-proj-not-a-real-secret").not());
+}
+
+#[test]
 fn permission_auto_approve_smoke() {
     hooks_cmd()
         .args(["claude-hook", "permission-auto-approve"])
