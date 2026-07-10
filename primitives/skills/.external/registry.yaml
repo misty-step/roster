@@ -81,8 +81,8 @@ sources:
     alias_prefix: "misty-"
 
   - repo: misty-step/bitterblossom
-    ref: b017458d21d13d4f6f435a9e9307c575b6694b1f
-    pin: b017458d21d13d4f6f435a9e9307c575b6694b1f
+    ref: 8fbd40117322124c3f1d9203d60cce1aa1e5359a
+    pin: 8fbd40117322124c3f1d9203d60cce1aa1e5359a
     layout: flat
     skills_path: skills
     alias_prefix: "misty-"

@@ -1,6 +1,6 @@
 # Integration Guide
 
-Harness Kit integrations that reach external systems should default to this
+Roster integrations that reach external systems should default to this
 order:
 
 1. MCP server for the external-system boundary.
@@ -9,9 +9,9 @@ order:
 
 This guide is for external systems: SaaS APIs, internal services,
 authenticated data stores, design tools, calendars, mailboxes, issue trackers,
-CI providers, and production systems. Internal Harness Kit tooling such as
-`bootstrap.sh`, `scripts/generate-index.sh`, local Dagger gates, and one-repo
-maintenance helpers do not need MCP-ification.
+CI providers, and production systems. Internal Roster tooling such as
+`roster sync`, `roster check`, and one-repo maintenance helpers does not need
+MCP-ification.
 
 ## Reach For MCP
 
@@ -40,7 +40,7 @@ Use a simpler shape when the work is local and single-purpose:
 - **One-off script:** a migration, cleanup, report, or data transform that will
   run once or a few times.
 - **Inner-loop only:** a repository-local test, formatter, index generator,
-  Dagger gate, or bootstrap helper.
+  Dagger gate, or projection helper.
 - **Local-dev-only:** a command whose value is direct terminal feedback and
   whose inputs are local files.
 - **No external trust boundary:** the code does not cross auth, user-consent,
@@ -48,7 +48,7 @@ Use a simpler shape when the work is local and single-purpose:
 - **One operation, one repo:** a shell or Python helper is clearer than a
   protocol server.
 
-Do not turn internal Harness Kit scripts into MCP servers just because MCP
+Do not turn internal Roster commands into MCP servers just because MCP
 exists. Protocol surface is a liability unless it hides a real integration
 boundary.
 
@@ -76,17 +76,11 @@ when multiple harnesses or repos need the integration.
 
 ## Work Source Receipts
 
-When a work item, acceptance oracle, review, or operator prompt originates
-outside local `backlog.d/`, record its identity as `work_source_refs` in the
-local ledger, trace, or delegation receipt. These refs are evidence metadata:
-they name `local_backlog`, `local_file`, `mcp_resource`, `cli_resource`, `url`,
-or `manual` sources, plus optional snapshot and closure descriptors.
-
-`work_source_refs` do not fetch, mutate, close, or synchronize external
-systems. MCP servers own authenticated external resources and actions; CLIs
-remain local/debug surfaces. Local `backlog_ref` remains the required
-join/closeout key until a shaped migration replaces the numeric `backlog.d`
-contract.
+Record the originating Powder card, external resource, URL, or manual operator
+prompt in the lane brief and durable receipt. Source refs are evidence metadata;
+they do not fetch, mutate, close, or synchronize external systems. MCP servers
+own authenticated external resources and actions; CLIs remain local/debug
+surfaces. Powder owns join and closeout state.
 
 ## Pointers
 

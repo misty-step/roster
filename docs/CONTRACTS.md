@@ -2,8 +2,8 @@
 
 Two modes of agent work, two planes, one disk surface.
 
-**Mode A (this repo):** ad-hoc, operator-driven sessions. Harness Kit loads
-judgment and context into a session a frontier model drives.
+**Mode A (Roster):** ad-hoc, operator-driven sessions. Roster loads declared
+identity, judgment primitives, and context into a session a frontier model drives.
 
 **Mode B (bitterblossom):** event-driven workflows — code review on
 PR-ready, production error → diagnose/fix/postmortem, scheduled and outer
@@ -11,29 +11,21 @@ loops. CI-native or webhook-triggered, never run by the authoring agent
 (the Cloudflare/Stripe pattern). Every Mode B flow must also be runnable ad
 hoc from a terminal; the platform webhook is just one trigger.
 
-Harness Kit defines these contracts; both planes read and write them.
+Roster defines these contracts; both planes read and write them.
 
-## 1. Backlog
+## 1. Work ledger
 
-- Open work: `backlog.d/NNN-<slug>.md` (bare numeric IDs). Closed:
-  `backlog.d/_done/`.
-- Every active ticket has a Goal and an acceptance Oracle.
-- Either plane may file tickets; only the operator (or an operator-approved
-  flow) deletes them.
+- Powder is the backlog and kanban of record. Every executable card has a goal
+  and acceptance oracle; runs, comments, links, claims, and status changes are
+  durable there.
+- Repo-local `backlog.d/` files are import seeds or drafting space, never a
+  parallel lifecycle.
 
 ## 2. Commit trailers
 
-Recognized backlog keys (`harness-kit-checks backlog trailer-keys`):
-
-- `Closes-backlog: <id>` — closes the ticket (archival intent).
-- `Ships-backlog: <id>` — synonym, closes.
-- `Refs-backlog: <id>` — references without closing.
-
-IDs are bare numerics (`029`, not `BACKLOG-029`). Inject via
-`git interpret-trailers --trailer`, never hand-formatted. Archive the
-ticket file on the shipping ref BEFORE the squash-merge so closure rides
-the merge commit. GitHub squash bodies drop commit trailers — pass the
-trailer block explicitly.
+Use `Agent-Task: <powder-card-id>` to bind a materially agent-authored commit
+to its durable work item. Powder status changes close the card; Git trailers do
+not replace the board.
 
 Agent provenance trailers are advisory, not backlog-closing keys:
 
@@ -62,12 +54,11 @@ also going through Powder `request_input`.
 
 ## 4. Receipts
 
-- Delegation receipts: append-only JSONL at
-  `.harness-kit/traces/delegations.jsonl` (repo-local) — written by
-  `harness-kit-checks record-delegation` / `dispatch-agent`.
-- Sprite-lane receipts: `~/.harness-kit/receipts/sprite-lane/<lane-id>.json`.
-- Mode B runs emit the same receipt shapes; provider output is evidence,
-  not authority.
+- Durable lane receipts: Powder runs, comments, and links on the card the lane
+  informs.
+- Sprite-lane receipts: `~/.roster/receipts/sprite-lane/<lane-id>.json`.
+- Mode B runs retain their native ledger and link material evidence back to
+  Powder; provider output is evidence, not authority.
 
 ## 5. Evidence
 
@@ -99,5 +90,5 @@ First workload: orchestrated code review (the absorbed Cerberus mission) —
 coordinator + specialized reviewers, risk-tiered compute, tiered model
 stack, shared context files, JSONL streaming, incremental re-review.
 Later: monitor/deploy watchers and the unattended outer loop (the retired
-/flywheel). When the review workload is live, Harness Kit's `/code-review`
+/flywheel). When the review workload is live, Roster's `/code-review`
 stays as the ad-hoc dispatch form; the event form belongs to the plane.

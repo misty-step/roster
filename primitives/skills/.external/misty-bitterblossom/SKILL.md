@@ -71,6 +71,10 @@ Autonomous task families ship at less than full authority (read-only,
 report-only, dry-run, PR-only) and climb an authority ladder only on evidence.
 The single reusable scorecard template and promotion doctrine live in
 [`docs/rollout-scorecards.md`](../../docs/rollout-scorecards.md).
+When a task declares `[rollout]` in `task.toml`, inspect `bb --config <plane>
+status --json` or `bb --config <plane> task list --json` for
+`rollout.authority` and `rollout.scorecard`; this field is visibility metadata,
+not permission to promote.
 
 Refuse autonomy expansion from vibes. Do not recommend or take a higher
 authority action (open a branch/PR, merge, deploy, resolve, unpark) for a task
@@ -95,7 +99,7 @@ decision says otherwise.
 | Compare candidate model configs | Run at least three candidate tasks, then `bb --config <plane> run model-eval --payload '<json>' --json` |
 | Inspect ledger | `bb --config <plane> runs list --json`; `bb --config <plane> runs show <id> --json` |
 | Export run telemetry | `bb --config <plane> runs export` (`bb.run_telemetry.v1` JSONL) |
-| Inspect run artifacts | `bb --config <plane> artifacts list <run-id> --json` (top-level artifact files); `bb --config <plane> artifacts read <run-id> REPORT.json` (safe text/JSON read, including known nested relative paths; binary, oversized, and traversal paths refused) |
+| Inspect or export run artifacts | `bb --config <plane> artifacts list <run-id> --json` (top-level artifact files); `bb --config <plane> artifacts read <run-id> REPORT.json` (safe text/JSON read, including known nested relative paths; binary, oversized, and traversal paths refused); `bb --config <plane> artifacts bundle <run-id> --out <dir>` (portable `manifest.json` directory; small text copied, binary/oversized/symlink artifacts manifest-only) |
 | Handle pre-execute failures | `bb --config <plane> dlq list --json`; `bb --config <plane> dlq replay <id> --json`; `bb --config <plane> dlq ack <id> --reason <text> --json` to close a superseded DLQ |
 | Handle notification failures | `bb --config <plane> notify list --json`; `bb --config <plane> notify retry --json`; `bb --config <plane> notify ack <id> --reason <text> --json` |
 | Provision scoped OpenRouter child keys | `bb --config <plane> keys mint <agent> --json`; `bb --config <plane> keys rotate <agent> --json`; `bb --config <plane> keys revoke <agent> --json`; `bb --config <plane> keys list --remote --json`; `bb --config <plane> keys sync --all --check --json` |
@@ -115,8 +119,10 @@ rules and per-task scorecards: [`docs/rollout-scorecards.md`](../../docs/rollout
 - Secrets travel through declared env/secrets and stdin plumbing. Never put
   tokens in argv, task cards, or payload JSON unless the task contract explicitly
   says the value is non-secret.
-- For GitHub-backed runs, prefer `GH_TOKEN=$(gh auth token) bb ...` over copying
-  tokens into shell history.
+- For GitHub-backed operator-dispatch runs, prefer `GH_TOKEN=$(gh auth token) bb ...`
+  over copying tokens into shell history. Cerberus `review` is the exception:
+  it posts with `CERBERUS_REVIEW_GH_TOKEN`, a bot/app or least-privilege
+  machine-user token, per `references/operator-recipes.md`.
 - Reflex triggers must use API-auth agents. Subscription-auth agents belong to
   manual dispatch only.
 - The checked-in `build` task is a manual API-auth OMP/GLM builder lane. Use
@@ -196,22 +202,32 @@ Useful API mirrors:
 - `GET /api/notify`
 - `GET /api/submissions`
 
-## MCP (read-only)
+## MCP (read-only by default, one opt-in mutating tool)
 
-`bb --config <plane> mcp serve` runs a read-only MCP stdio server: JSON-RPC
-2.0 over stdin/stdout, no network listener, no external credentials for
-local-plane inspection. Consume it MCP-first where a host agent supports it;
-fall back to `bb ... --json` for anything the MCP tool table does not yet
-cover. The registered read tools (`bb_status`, `bb_check`, `bb_tasks`,
-`bb_runs_list`, `bb_runs_show`, `bb_artifacts_list`, `bb_artifact_read`,
-`bb_dlq_list`, `bb_preflight`, `bb_gate`) return the same shapes as their
-CLI/API counterparts — MCP is a typed adapter, not a second implementation.
+`bb --config <plane> mcp serve` runs an MCP stdio server: JSON-RPC 2.0 over
+stdin/stdout, no network listener, no external credentials for local-plane
+inspection. Consume it MCP-first where a host agent supports it; fall back to
+`bb ... --json` for anything the MCP tool table does not yet cover. The
+registered read tools (`bb_status`, `bb_check`, `bb_tasks`, `bb_runs_list`,
+`bb_runs_show`, `bb_artifacts_list`, `bb_artifact_read`, `bb_dlq_list`,
+`bb_preflight`, `bb_gate`) return the same shapes as their CLI/API
+counterparts — MCP is a typed adapter, not a second implementation. These ten
+tools are always registered; no environment variable weakens that.
 
-This slice ships read-only tools only. No mutating MCP tool exists; a
-`tools/call` for an unknown or would-be mutating name is rejected with a
-JSON-RPC `-32602` error. Do not expect `bb runs cancel`, `bb dlq replay`,
-`bb run`, or submission/gate mutations over MCP until a separate
-writable-MCP backlog lands its graduation signals.
+`bb_dispatch` (bitterblossom-116) is the one mutating exception, and it is
+opt-in only: set `BB_MCP_ENABLE_DISPATCH=1` on the `bb mcp serve` process to
+enable it. With the env var unset, it is absent from `tools/list` and any
+`tools/call` for it is rejected the same way an unknown tool name is. Enabled,
+it takes `repo`, `prompt`, and optional `model`/`label`/`branch_slug`/
+`base_ref`/`force`, builds the identical `bb.dispatch_job.v1` payload the CLI
+`bb dispatch` command builds, and enqueues it through the same `Ledger::ingest`
+door every other trigger uses. It never merges, deploys, or runs anything
+synchronously — a running `bb serve` drains the enqueued run, exactly as with
+`bb dispatch`. A repeat call with the same `(repo, label, branch_slug,
+base_ref)` is refused (returns the original run id, `duplicate: true`) unless
+`force: true` is set. See `docs/mcp-dispatch-authority.md` for the full
+authority boundary. No other mutating tool exists; `bb runs cancel`,
+`bb dlq replay`, and submission/gate mutations remain CLI/API only.
 
 Routing:
 
@@ -220,11 +236,12 @@ Routing:
 | Decision-ready plane health | MCP `bb_status` | `bb status --json` |
 | Config/task inventory | MCP `bb_check`, MCP `bb_tasks` | `bb check --json`; `bb task list --json` |
 | Runs | MCP `bb_runs_list`, MCP `bb_runs_show` | `bb runs list --json`; `bb runs show <id> --json` |
-| Run artifacts | MCP `bb_artifacts_list`, MCP `bb_artifact_read` | `bb artifacts list <id> --json`; `bb artifacts read <id> <path> --json` |
+| Run artifacts | MCP `bb_artifacts_list`, MCP `bb_artifact_read` | `bb artifacts list <id> --json`; `bb artifacts read <id> <path> --json`; `bb artifacts bundle <id> --out <dir>` |
 | Dead letters | MCP `bb_dlq_list` | `bb dlq list --json` |
 | Pre-dispatch readiness | MCP `bb_preflight` | `bb preflight <task> --json` |
 | Submission gate evaluation | MCP `bb_gate` | `bb gate --change <key> --json` |
 | Submission mutation | (not yet MCP) | `bb submit ... --json` |
+| Ad hoc bounded dispatch | MCP `bb_dispatch` (opt-in: `BB_MCP_ENABLE_DISPATCH=1`) | `bb dispatch --repo <path> --brief <file> [--model] [--label]` |
 
 ## Operator Dispatch Loop
 
@@ -252,9 +269,10 @@ The portable artifact is this whole folder: `skills/bitterblossom/`. Consumers
 should copy or symlink the folder, not just `SKILL.md`, so references and agent
 metadata travel with it.
 
-Harness Kit integration should keep one source of truth. Prefer a source entry,
-bootstrap projection, or explicit symlink from Harness Kit to this folder over a
-manual copied skill that can drift. The durable decision is
+Roster integration keeps one source of truth: vendor this whole folder at a
+pinned Bitterblossom commit in `primitives/skills/.external/registry.yaml`,
+then project it with `roster sync`. Do not maintain a manual copied skill that
+can drift. The original distribution decision is documented in
 `docs/adr/006-skill-projection.md`.
 
 ## Closeout Evidence

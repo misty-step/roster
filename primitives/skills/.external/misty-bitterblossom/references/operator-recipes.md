@@ -68,7 +68,7 @@ cron triggers.
 ```bash
 OPENROUTER_API_KEY=<key> GH_TOKEN=$(gh auth token) bb --config <plane> run build \
   --idempotency-key "build:<backlog-or-packet>:<date>" \
-  --payload '{"repo":"misty-step/bitterblossom","backlog":"backlog.d/060-builder-dispatch-role.md","branch_slug":"builder-dispatch-role"}' \
+  --payload '{"repo":"misty-step/bitterblossom","backlog":"bitterblossom-060","branch_slug":"builder-dispatch-role"}' \
   --json
 ```
 
@@ -140,7 +140,8 @@ does not fan out storm members.
 For a real review comment:
 
 ```bash
-GH_TOKEN=$(gh auth token) bb --config <plane> run review \
+bb --config <plane> keys sync cerberus-reviewer --check --json
+CERBERUS_REVIEW_GH_TOKEN="$CERBERUS_REVIEW_GH_TOKEN" bb --config <plane> run review \
   --payload '{"repo":"owner/repo","pr":123}' \
   --json
 ```
@@ -148,13 +149,17 @@ GH_TOKEN=$(gh auth token) bb --config <plane> run review \
 For measurement without posting:
 
 ```bash
-GH_TOKEN=$(gh auth token) bb --config <plane> run review \
+bb --config <plane> keys sync cerberus-reviewer --check --json
+CERBERUS_REVIEW_GH_TOKEN="$CERBERUS_REVIEW_GH_TOKEN" bb --config <plane> run review \
   --payload '{"repo":"owner/repo","pr":123,"measurement":true}' \
   --json
 ```
 
 Evidence is both the ledger row and the external effect: PR comment for normal
 mode, artifact/result output for measurement mode.
+The GitHub token env must be a bot/app installation token or least-privilege
+machine-user token; do not use `GH_TOKEN=$(gh auth token)` for Cerberus review
+posting.
 
 ## CI Diagnose Workload
 
@@ -215,6 +220,38 @@ gardener variants force dry-run; build variants default to dry-run unless the
 payload explicitly asks for a live branch; storm variants use eval-only verdict
 kinds and do not change gate arithmetic.
 
+## Builder Dispatch
+
+For a groomed backlog item, prefer the checked-in builder recipe over an
+ad-hoc shell wrapper. It validates a JSON payload file before mutation, refuses
+duplicate active work by a deterministic idempotency key unless `--force` is
+explicit, runs `bb preflight <task> --json` before paid execution, dispatches
+with `bb run --payload-file`, and prints a machine-readable receipt plus the
+safe next log command:
+
+```bash
+cat > /tmp/bb-build-payload.json <<'JSON'
+{
+  "repo": "misty-step/bitterblossom",
+  "backlog": "bitterblossom-086",
+  "base_ref": "origin/master",
+  "branch_slug": "operator-recipes",
+  "prompt": "Implement the groomed backlog item. Keep scope to the oracle.",
+  "model": "openrouter/model-slug"
+}
+JSON
+
+scripts/bb-dispatch-build \
+  --config <plane> \
+  --bb "target/debug/bb" \
+  --payload-file /tmp/bb-build-payload.json \
+  --json
+```
+
+Cron supervisors that need runtime secrets must pass the BB secret helper as
+part of `--bb`. The helper keeps secrets in environment, not argv; the prompt
+must stay in the payload file.
+
 ## Submission Gate
 
 Open a submission:
@@ -235,7 +272,7 @@ argv), and prints a machine-readable receipt plus the safe next gate command:
 
 ```bash
 cat > /tmp/bb-storm-payload.json <<'JSON'
-{"repo":"misty-step/bitterblossom","change":"<change-id>","rev":"<git-rev>","backlog":"backlog.d/086-first-class-operator-dispatch-recipes.md","base_ref":"origin/master"}
+{"repo":"misty-step/bitterblossom","change":"<change-id>","rev":"<git-rev>","backlog":"bitterblossom-086","base_ref":"origin/master"}
 JSON
 
 scripts/bb-submit-storm \
@@ -274,6 +311,25 @@ producing a verdict, `gate --json` escalates and the failed member carries
 `safe_next_command`; fix the operator or infrastructure issue, then run that
 clean replacement submission command instead of trying to make a replay count.
 The command includes the plane `--config` path used for the gate evaluation.
+
+A docs-only or tiny-config-only change can waive a required member (e.g. the
+Thermo-Nuclear maintainability lens Cerberus otherwise runs on every
+meaningful implementation diff) instead of leaving the gate pending on a
+member the risk tier says never applies:
+
+```bash
+bb --config <plane> submit waive \
+  --change <change> \
+  --rev <rev> \
+  --kind <kind> \
+  --reason "risk-tier:docs-only"
+```
+
+`reason` must name an explicit tier (`docs-only` or `tiny-config`); the
+waiver applies only to `<rev>` (the next rev needs its own) and never
+overrides a verdict that member already reported this round. The gate
+then reports that member's `status` as `waived` with the reason instead of
+hanging `pending`.
 
 ## Dead Letters and Recovery
 
