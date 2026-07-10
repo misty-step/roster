@@ -144,10 +144,36 @@ servers:
         - cd /Users/phaedrus/Development/mint && exec cargo run --locked -q -p mint-mcp
       env_policy: local_only
 
+  # Overmind's MCP face lets any agent post status updates / evidence to the
+  # fleet feed (agent_post provenance) and read fleet + own-session state.
+  # Writes go HTTP-first through the running serve (POST /api/feed) and fall
+  # back to direct append only when serve is down; loopback only, no secrets.
+  - id: overmind
+    app: Overmind
+    source_repo: misty-step/overmind
+    status: available
+    capabilities:
+      - post status updates and evidence to the fleet feed
+      - report structured agent state
+      - read fleet summary
+      - read own-session snapshot (usage, status, policy state)
+    scope:
+      default_profiles: [global]
+      include_repo_globs: ["*"]
+      exclude_repo_globs: []
+    codex:
+      server_name: overmind
+      command: /Users/phaedrus/Development/overmind/target/release/overmind
+      args:
+        - mcp
+        - --api-base
+        - http://127.0.0.1:4177
+      env_policy: local_only
+
 profiles:
   - id: global
-    description: Every project should use Canary for observability and production debugging.
-    servers: [canary]
+    description: Every project should use Canary for observability and production debugging, and Overmind for fleet-feed posting and self-state.
+    servers: [canary, overmind]
 
   - id: non-adminifi-non-r90
     description: General Misty Step backlog work should use Powder except Adminifi and r90 projects.
