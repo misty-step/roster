@@ -115,8 +115,13 @@ fn install_sync(root: &Path, home: &Path, catalog: Catalog, all_agents: bool) ->
                 relative_path,
                 contents,
             } => {
-                write_managed_file(home, relative_path, contents)?;
-                written_files.push(relative_path.clone());
+                if write_managed_file(home, relative_path, contents)? {
+                    written_files.push(relative_path.clone());
+                } else {
+                    skipped.push(format!(
+                        "{relative_path} already exists and is not managed by roster sync"
+                    ));
+                }
             }
             PlannedEntry::Symlink {
                 relative_path,
@@ -478,16 +483,13 @@ fn managed_markdown(contents: &str) -> String {
     format!("{SYNC_MARKER}\n{contents}")
 }
 
-fn write_managed_file(home: &Path, relative_path: &str, contents: &str) -> Result<()> {
+fn write_managed_file(home: &Path, relative_path: &str, contents: &str) -> Result<bool> {
     let path = safe_home_path(home, relative_path)?;
     if path.exists() && !is_roster_state_path(relative_path) {
         let existing = fs::read_to_string(&path)
             .with_context(|| format!("inspect existing {}", path.display()))?;
         if !existing.contains(SYNC_MARKER) {
-            bail!(
-                "{} already exists and is not managed by roster sync",
-                path.display()
-            );
+            return Ok(false);
         }
     }
 
@@ -495,7 +497,7 @@ fn write_managed_file(home: &Path, relative_path: &str, contents: &str) -> Resul
         fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
     }
     fs::write(&path, contents).with_context(|| format!("write {}", path.display()))?;
-    Ok(())
+    Ok(true)
 }
 
 enum SymlinkOutcome {

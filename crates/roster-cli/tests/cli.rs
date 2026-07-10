@@ -910,6 +910,26 @@ fn sync_all_agents_materializes_every_agent() {
 }
 
 #[test]
+fn sync_all_agents_preserves_unmanaged_agent_with_roster_name() {
+    let home = tempfile::tempdir().expect("temp home");
+    let custom = home.path().join(".claude/agents/simons.md");
+    write_file(&custom, "operator-owned simons declaration");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .arg("--all-agents")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            ".claude/agents/simons.md already exists and is not managed",
+        ));
+
+    assert_eq!(read(custom), "operator-owned simons declaration");
+    assert!(home.path().join(".claude/agents/builder.md").exists());
+}
+
+#[test]
 fn sync_links_pi_skills_only_when_pi_is_present() {
     let home = tempfile::tempdir().expect("temp home");
     // `.pi/settings.json` is pi's own native config file — a marker
