@@ -12,20 +12,16 @@ planes. It is not itself an execution runtime.
   agent directories.
 - `role.yaml` is deterministic input and must reject unknown fields. Model-facing
   instructions stay prose in `instructions.md`.
-- `primitives/skills/skills-index.yaml` tracks P3 phase-1 migration status:
-  13 first-party skill bodies + the vendored `misty-powder` external are
-  physically copied into `primitives/skills/`, byte-identical to their
-  harness-kit source, and every `role.yaml`/index path repoints there.
-  `harness-engineering` remains unreferenced by any agent and stays pointed
-  at harness-kit pending phase 2. harness-kit's own copies are untouched and
-  still bootstrap-serve six harnesses until roster-005's later phases land.
+- `primitives/skills/skills-index.yaml` and
+  `primitives/skills/.external/registry.yaml` are Roster's authoritative
+  primitive catalog and provenance ledger. Agent declarations reference only
+  Roster-owned paths.
 - `roster sync` (crates/roster-cli/src/sync.rs) materializes agent briefs, a
-  skill symlink farm (`--catalog full|curated`), and doctrine links for
-  `AGENTS.md`/`CLAUDE.md`, all through one manifest so `--disable` reverses
-  it; `crates/roster-hooks` carries 5 of harness-kit's claude-hook handlers.
-  Full day-1 cutover parity with harness-kit's bootstrap is proven in a
-  sandboxed `$HOME` (roster-926 phase C) but not yet cut over on the real
-  machine. bb materialization is still a P1 stub.
+  skill symlink farm (`--catalog full|curated`), doctrine links, and installed
+  harness config projections through one reversible manifest.
+  `crates/roster-hooks` owns the live Claude hook surface, including secret
+  read guards and pre-transcript output redaction. Workstation cutover was
+  proven live under roster-926; Harness Kit is a retired predecessor.
 - No secret values in declarations or registries; env refs only.
 
 ## Gate

@@ -72,13 +72,12 @@ routing bench feeds it evidence over time).
 
 ## Phases (this repo's own backlog; P0 is the founding lane)
 
-P0 — repo, VISION, CLI core (list/show/materialize/brief), three seed
-agents, providers.yaml migrated. P1 — bitterblossom consumes roster
-(vendored pin) for one role end-to-end. P2 — `roster sync` initializes the
-lead on this machine, parallel with harness-kit. P3 — primitives migration;
-harness-kit archives. P4 — Cerberus's identity fully in roster; repo
-archives. Parallel-run discipline throughout: harness-kit keeps working
-until each phase proves its replacement.
+P0 — repo, VISION, CLI core (list/show/materialize/brief), three seed agents,
+providers.yaml migrated. P1 — bitterblossom consumes roster for one role
+end-to-end. P2 — `roster sync` initializes the lead on this machine. P3 —
+primitives, hooks, doctrine, and workstation projection migrate; Harness Kit
+retires. P0-P3 completed in the roster-926 cutover. P4 — Cerberus's identity
+fully in roster; its standalone repo archives.
 
 ## Non-goals
 
