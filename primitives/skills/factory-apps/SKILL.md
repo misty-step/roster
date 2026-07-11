@@ -76,5 +76,5 @@ apps, libraries, and non-release support repos.
   `<repo>/skills/<name>/SKILL.md` are for consumers of the app. Repo-local
   `.agents/skills/*` are usually QA/deploy/dogfood runbooks for work inside
   that repo. Do not treat one as a substitute for the other.
-- Mutating Bitterblossom dispatch and run control go through the CLI/API unless
+- Bitterblossom dispatch and run control go through the CLI/API unless
   the product changes.
