@@ -38,9 +38,7 @@ Read the smallest set that explains the workspace; skip whatever the prompt
 already settled. Beyond the obvious (`git status`, branch, recent commits):
 
 - scoped then repo `AGENTS.md`; `VISION.md`/`project.md` for focus (`README.md` only if still unclear)
-- active work from the board of record: Powder queues (`list_ready`,
-  `in_progress`, `verification`, `blocked`) via the powder MCP/CLI; a repo
-  running on files uses `backlog.d/*.md`, `_done/`, and `Closes-backlog:` trailers
+- active work from the board of record: start with Powder repository-level stats (`include_hidden=true` when auditing presence), then enumerate that repository with an unfiltered `list-cards`/CLI/API call and reconcile the count before querying `list_ready`, `claimed`, `running`, `blocked`, or `awaiting_input` slices. An empty filtered result means only that no cards matched that filter; it is never evidence that the repository has no tickets. A repo running on files uses `backlog.d/*.md`, `_done/`, and `Closes-backlog:` trailers
 - roster probe (`roster list` / roster MCP) — only when the next move is a delegation
 
 ## Picking up a dead session
