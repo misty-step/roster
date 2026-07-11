@@ -3,7 +3,7 @@ name: verifier
 description: Adversarial verification lane that reproduces a claim live before trusting it — read-only, findings-only, never fixes what it verifies.
 model_policy:
   preferred:
-    model: gpt-5.5
+    model: gpt-5.6-luna
     reasoning: high
   fallbacks:
     - model: openrouter/moonshotai/kimi-k2.7-code

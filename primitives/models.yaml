@@ -19,9 +19,9 @@
 #   inherits the session model rather than re-selecting Fable explicitly;
 #   fable itself has no OpenRouter form, so bb falls back to the strongest
 #   OpenRouter-rail peer.
-# - gpt-5.5: Claude Code subagents run this identity as Sonnet 5 (roster
-#   operating doctrine); GPT-5.5 has no OpenRouter form either, same bb
-#   fallback.
+# - gpt-5.6-luna: Claude Code subagents run this identity as Sonnet 5; the
+#   Codex-native model has no direct OpenRouter form, so bb uses the same
+#   OpenRouter-rail peer as the prior Codex mapping.
 # - openrouter/deepseek/deepseek-v4-flash: already its own bb token; still
 #   needs a claude translation for agents whose preferred model is this id.
 #
@@ -34,7 +34,7 @@ models:
   claude-fable-5:
     claude: inherit
     bb: openrouter/moonshotai/kimi-k2.7-code
-  gpt-5.5:
+  gpt-5.6-luna:
     claude: sonnet
     bb: openrouter/moonshotai/kimi-k2.7-code
   openrouter/deepseek/deepseek-v4-flash:

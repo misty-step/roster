@@ -11,13 +11,13 @@ providers:
     tier: primary
     kind: cli
     probe: codex --version
-    dispatch: codex exec --dangerously-bypass-approvals-and-sandbox --model gpt-5.5 --config model_reasoning_effort="medium"
+    dispatch: codex exec --dangerously-bypass-approvals-and-sandbox --model gpt-5.6-luna --config model_reasoning_effort="xhigh"
     output: json
-    model: gpt-5.5
-    reasoning: medium
+    model: gpt-5.6-luna
+    reasoning: xhigh
     permissions: dangerous bypass approvals and sandbox
     worktree: recommended
-    smoke: codex exec --dangerously-bypass-approvals-and-sandbox --model gpt-5.5 --config model_reasoning_effort="medium"
+    smoke: codex exec --dangerously-bypass-approvals-and-sandbox --model gpt-5.6-luna --config model_reasoning_effort="xhigh"
     # How a NAMED custom subagent gets selected within this harness (roster-915,
     # evidence: ~/.factory-lanes/campaign/roster-910-report.md). Distinct from
     # `dispatch` above, which is about invoking the harness itself, not a

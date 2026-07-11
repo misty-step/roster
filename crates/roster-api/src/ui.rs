@@ -467,10 +467,10 @@ mod tests {
         let pool = SubagentPool {
             schema_version: "test".to_string(),
             pool: vec![PoolEntry {
-                model: "gpt-5.5".to_string(),
+                model: "gpt-5.6-luna".to_string(),
                 reasoning: None,
             }],
         };
-        assert_eq!(pool_text(&pool), "gpt-5.5");
+        assert_eq!(pool_text(&pool), "gpt-5.6-luna");
     }
 }

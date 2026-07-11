@@ -81,7 +81,7 @@ fn list_prints_seed_agents() {
         .arg("list")
         .assert()
         .success()
-        .stdout(predicate::str::contains("cerberus\tgpt-5.5\txhigh"))
+        .stdout(predicate::str::contains("cerberus\tgpt-5.6-luna\txhigh"))
         .stdout(predicate::str::contains(
             "orchestrator\tclaude-fable-5\thigh",
         ))
@@ -208,7 +208,7 @@ fn materialize_omp_refuses_agents_whose_required_mcps_cannot_be_bound() {
 fn materialize_claude_prints_native_subagent_frontmatter() {
     // Expected models come from primitives/models.yaml's `models` table:
     // orchestrator's preferred concrete id is claude-fable-5 (claude:
-    // inherit), cerberus's is gpt-5.5 (claude: sonnet) -- resolved through
+    // inherit), cerberus's is gpt-5.6-luna (claude: sonnet) -- resolved through
     // the table, not hardcoded per agent.
     for (agent, expected_tools, expected_model) in [
         (

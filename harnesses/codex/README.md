@@ -9,7 +9,7 @@ Codex process/worktree gives useful isolation.
 Use non-interactive exec with the configured model and reasoning effort:
 
 ```sh
-codex exec --dangerously-bypass-approvals-and-sandbox --model gpt-5.5 --config model_reasoning_effort="medium" "Role: critic. Objective: review the changed files. Output: blockers only."
+codex exec --dangerously-bypass-approvals-and-sandbox --model gpt-5.6-luna --config model_reasoning_effort="xhigh" "Role: critic. Objective: review the changed files. Output: blockers only."
 ```
 
 Prepend `roster brief <identity> --card <id>` when dispatching a declared

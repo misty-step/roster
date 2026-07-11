@@ -5,7 +5,7 @@ covers:
   - <source glob this page describes, e.g. src/auth/**>
   - <add one per load-bearing path; keep precise — over-broad globs read stale forever>
 verified: <YYYY-MM-DD of last accuracy-oracle pass>
-model: <generating model + verifier family, e.g. opus-4.8 / verified-by gpt-5.5>
+model: <generating model + verifier family, e.g. opus-4.8 / verified-by gpt-5.6-luna>
 ---
 
 <!--

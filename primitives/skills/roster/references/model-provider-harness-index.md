@@ -1,7 +1,7 @@
 ---
 model_reference_review_due: 2026-08-05
-openai_reference_review_due: 2026-07-09
-last_researched: 2026-07-08
+openai_reference_review_due: 2026-07-18
+last_researched: 2026-07-11
 substrate_reference_review_due: 2026-06-26
 substrate_reference_last_researched: 2026-06-19
 speech_reference_review_due: 2026-06-27
@@ -50,7 +50,7 @@ Source: `primitives/providers.yaml`, with command discovery rechecked on
 
 | Provider target | Harness / CLI | Active model id | Dispatch surface | Local probe status |
 |---|---|---|---|---|
-| `codex` | OpenAI Codex CLI | `gpt-5.5` | `codex exec --model gpt-5.5 --config model_reasoning_effort="medium"` | available |
+| `codex` | OpenAI Codex CLI | `gpt-5.6-luna` | `codex exec --model gpt-5.6-luna --config model_reasoning_effort="xhigh"` | available |
 | `pi` | Pi coding agent via OpenRouter | `openrouter/moonshotai/kimi-k2.7-code` | `pi -p --no-extensions --provider openrouter --model moonshotai/kimi-k2.7-code --thinking xhigh` | available |
 | `goose` | Goose CLI via OpenRouter | `openrouter/moonshotai/kimi-k2.7-code` | `goose run --provider openrouter --model moonshotai/kimi-k2.7-code --text` | available |
 | `opencode` | OpenCode CLI via OpenRouter | `openrouter/moonshotai/kimi-k2.7-code` | `opencode run --model openrouter/moonshotai/kimi-k2.7-code --variant max --format json` | available |
@@ -194,7 +194,7 @@ this table is the scannable catalog snapshot.
 | `x-ai/grok-4.5` | 2026-07-08 | 500,000 | unknown | `$2.00/M` | `$6.00/M` | `$0.50/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning`, `response_format` |
 | `anthropic/claude-sonnet-5` | 2026-06-30 | 1,000,000 | 128,000 | `$2.00/M` | `$10.00/M` | `$0.20/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
 | `z-ai/glm-5.2` | 2026-06-16 | 1,048,576 | 128,000 | `$0.42/M` | `$1.32/M` | `$0.078/M` | text -> text | `tools`, `tool_choice`, `parallel_tool_calls`, `structured_outputs`, `reasoning`, `reasoning_effort` |
-| `moonshotai/kimi-k2.7-code` | 2026-06-12 | 262,144 | 16,384 | `$0.74/M` | `$3.50/M` | `$0.15/M` | text+image -> text | `tools`, `tool_choice`, `parallel_tool_calls`, `structured_outputs`, `reasoning`, `reasoning_effort` |
+| `moonshotai/kimi-k2.7-code` | 2026-06-12 | 262,144 | 262,144 | `$0.72/M` | `$3.50/M` | `$0.15/M` | text+image -> text | `tools`, `tool_choice`, `parallel_tool_calls`, `structured_outputs`, `reasoning`, `reasoning_effort` |
 | `anthropic/claude-fable-5` | 2026-06-09 | 1,000,000 | 128,000 | `$10.00/M` | `$50.00/M` | `$1.00/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
 | `qwen/qwen3.7-plus` | 2026-06-03 | 1,000,000 | 65,536 | `$0.32/M` | `$1.28/M` | `$0.064/M` | text+image -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
 | `minimax/minimax-m3` | 2026-05-31 | 1,048,576 | 512,000 | `$0.30/M` | `$1.20/M` | `$0.06/M` | text+image+video -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
@@ -212,11 +212,10 @@ this table is the scannable catalog snapshot.
 | `openai/gpt-5.3-codex` | 2026-02-24 | 400,000 | 128,000 | `$1.75/M` | `$14.00/M` | `$0.175/M` | text+image+file -> text | `tools`, `tool_choice`, `structured_outputs`, `reasoning` |
 | `qwen/qwen3-coder-next` | 2026-02-04 | 262,144 | 262,144 | `$0.11/M` | `$0.80/M` | `$0.07/M` | text -> text | `tools`, `tool_choice`, `structured_outputs` |
 
-Notable drift since the 2026-06-14 snapshot: `moonshotai/kimi-k2.7-code` max
-completion now lists 16,384 (was 262,144) — verify before long-output lanes;
-`minimax/minimax-m2.7` repriced down ($0.18/$0.72); `z-ai/glm-5.2` supersedes
-5.1 at 1M context for a third the price; OpenRouter `~x-ai/grok-latest`
-tracks `grok-4.5` as of 2026-07-08.
+Live OpenRouter readback on 2026-07-11 confirms `moonshotai/kimi-k2.7-code` at
+262,144 context and max completion, with `$0.72/M` input, `$3.50/M` output,
+and `$0.15/M` cache reads. Treat provider catalog values as expiring evidence;
+refresh before quoting spend or composing long-output lanes.
 
 ## Verified Model Facts
 
@@ -258,10 +257,9 @@ tracks `grok-4.5` as of 2026-07-08.
 - OpenRouter created date: 2026-06-12.
 - OpenRouter context length: 262,144 tokens.
 - OpenRouter max completion tokens: 262,144.
-- OpenRouter API catalog pricing on 2026-07-08: input `$0.74/M`, output
-  `$3.50/M`, cache read `$0.15/M`. Catalog max completion dropped to 16,384
-  on 2026-07-08 (was 262,144 on 2026-06-14) — verify before long-output
-  lanes.
+- OpenRouter API catalog readback on 2026-07-11: input `$0.72/M`, output
+  `$3.50/M`, cache read `$0.15/M`.
+- OpenRouter modalities: text+image input to text output.
 - OpenRouter model page excerpt on 2026-06-14 summarized `$0.95/M` input and
   `$4/M` output. Treat API/page price disagreement as live provider drift and
   verify before quoting spend.
@@ -425,26 +423,23 @@ tracks `grok-4.5` as of 2026-07-08.
 - Source: https://docs.x.ai/developers/models/grok-4 and the OpenRouter
   catalog readback on 2026-07-08.
 
-### OpenAI GPT-5.5 Through Codex
+### OpenAI GPT-5.6 Luna Through Codex
 
-- Active local id: `gpt-5.5`.
-- Local dispatch surface: Codex CLI `codex exec --model gpt-5.5`.
-- Local Codex CLI config runs `gpt-5.5` at `model_reasoning_effort = "xhigh"`
-  (codex-cli 0.142.5, `~/.codex/config.toml` readback 2026-07-08) — the
-  `*-codex` OpenRouter slugs are catalog listings for other harnesses, not
-  what the local surface runs. `gpt-5.3-codex` (2026-02-24) is a dated
-  catalog row kept only for price comparison; do not compose new lanes on it.
-- OpenRouter facts (2026-07-08): 1,050,000 context, `$5.00/M` in,
-  `$30.00/M` out, cache read `$0.50/M`; `gpt-5.5-pro` at `$30/$180`.
-- GPT-5.6 (Sol/Terra/Luna) previewed 2026-07 at `$5/$30`, `$2.50/$15`,
-  `$1/$6` — trusted-partner/Codex access only as of 2026-07-08, with GA
-  expected 2026-07-09 (operator, 2026-07-08). This section's facts expire
-  at that release: `openai_reference_review_due` below fires the
-  `roster check` WARN the day after, forcing a post-GA refresh (exact ids,
-  prices, Codex CLI default, OpenRouter availability) before anyone quotes
-  the 5.5-era rows as current.
-- Sources: OpenRouter catalog readback 2026-07-08;
-  openai.com/index/previewing-gpt-5-6-sol; local `~/.codex/config.toml`.
+- Active local id: `gpt-5.6-luna`.
+- Sibling IDs `gpt-5.6-sol` and `gpt-5.6-terra` are also listed by the local
+  Codex model cache; this roster selects Luna and deliberately does not select
+  Terra.
+- Local dispatch surface: Codex CLI `codex exec --model gpt-5.6-luna` with an
+  explicit `model_reasoning_effort` of `high` or `xhigh`.
+- Local model cache readback on 2026-07-11 (Codex CLI 0.144.1) lists Luna as
+  supported by the API with `low`, `medium`, `high`, `xhigh`, and `max`
+  reasoning levels.
+- Smoke evidence: `codex exec -C /tmp --skip-git-repo-check -s read-only
+  -m gpt-5.6-luna -c model_reasoning_effort=high --ephemeral` returned `READY`.
+- The older Codex model row remains historical provider/catalog evidence only;
+  new lanes must use the current local model cache and an explicit effort.
+- Sources: local `~/.codex/models_cache.json`, local `~/.codex/config.toml`,
+  and the 2026-07-11 Codex smoke transcript.
 
 ### Google Gemini 3.5 Flash Through Antigravity
 

@@ -60,7 +60,7 @@ every plane. Rigid schema exists only where deterministic code branches
 Fable (`claude-fable-5`) identities are reserved for strategy, planning,
 review, and visual intelligence, typically at low-to-medium reasoning,
 rarely high — and spawned sparingly. Implementation lanes default to
-GPT-5.5 at high/xhigh. Claude Code subagents materialize as Sonnet 5 (a
+GPT-5.6 Luna at high/xhigh. Claude Code subagents materialize as Sonnet 5 (a
 harness-level translation, not a role choice). Cheap sweeps ride OpenRouter
 lanes. `role.yaml`'s `model_policy` carries this as a concrete preferred
 model id + reasoning, and concrete fallback ids each with their own

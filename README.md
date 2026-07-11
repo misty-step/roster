@@ -84,19 +84,19 @@ documentation.
 Model policy v2 (roster-924) retired the abstract tier vocabulary
 (`codex-class`/`fable-class`/`openrouter-class`) that `model_policy` used to
 carry. `preferred` and every `fallbacks` entry are now always a CONCRETE,
-invocable model id (`gpt-5.5`, `claude-fable-5`, `claude-opus-4-8`,
+invocable model id (`gpt-5.6-luna`, `claude-fable-5`, `claude-opus-4-8`,
 `openrouter/<provider>/<model>`) paired with its own `reasoning` value — no
 role-level `reasoning` field, no symbol a human has to decode against
 doctrine. What each concrete id is *for* is still doctrine (`VISION.md`:
 `claude-fable-5` → strategy/planning/review, rarely high reasoning;
-`gpt-5.5` → implementation lanes at high/xhigh; the OpenRouter ids → cheap
+`gpt-5.6-luna` → implementation lanes at high/xhigh; the OpenRouter ids → cheap
 sweeps), but rendering never needs to consult that doctrine — the id itself
 is what gets invoked.
 
 Most concrete ids are already the token their target harness needs
 (`openrouter/`-prefixed ids for `bb`; `sonnet`/`opus`/`haiku`/`inherit` for
 `claude`) and resolve with no lookup at all. The handful that need real
-per-harness translation — `claude-fable-5`, `gpt-5.5`, and
+per-harness translation — `claude-fable-5`, `gpt-5.6-luna`, and
 `openrouter/deepseek/deepseek-v4-flash` — go through
 `primitives/models.yaml` (retires `primitives/tiers.yaml`; still a distinct
 concept from the pre-existing `primitives/providers.yaml`, which is an
@@ -107,7 +107,7 @@ for `model_policy.preferred` — never for fallbacks:
 - **`--harness claude`** (`render_claude_agent` / `claude_model` in
   `roster-core/src/lib.rs`): looks `preferred.model` up in `models.yaml`'s
   `models` table for the `claude` column (e.g. `claude-fable-5` → `inherit`,
-  `gpt-5.5` → `sonnet`, `openrouter/deepseek/deepseek-v4-flash` → `haiku`).
+  `gpt-5.6-luna` → `sonnet`, `openrouter/deepseek/deepseek-v4-flash` → `haiku`).
   If `preferred.model` isn't in the table, a small conservative literal-id
   map applies (`claude-opus-4-8` → `opus`, etc.); anything still unrecognized
   falls back to `inherit` (the subagent runs on the session's own model)
@@ -125,11 +125,10 @@ for `model_policy.preferred` — never for fallbacks:
   stripping the prefix (this is how ai-scout and sweep resolve,
   since their `preferred` id is already `openrouter/`-prefixed). Only if
   neither is `openrouter/`-prefixed does it fall through to `models.yaml`'s
-  `bb` column for `preferred.model` (e.g. `claude-fable-5` and `gpt-5.5` both
+  `bb` column for `preferred.model` (e.g. `claude-fable-5` and `gpt-5.6-luna` both
   → `openrouter/moonshotai/kimi-k2.7-code`, prefix stripped the same way —
   this is how incident-hound resolves). If the id isn't in the table either,
-  `render_bb_agent` returns `Err` — it never emits an uninvokable id like
-  `model = "gpt-5.5"` into the generated TOML.
+  `render_bb_agent` returns `Err` — it never emits an uninvokable model id.
 
 ### Default ad hoc subagent pool
 

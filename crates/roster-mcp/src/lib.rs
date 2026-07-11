@@ -386,7 +386,7 @@ name: bad
 description: Bad fixture
 model_policy:
   preferred:
-    model: gpt-5.5
+    model: gpt-5.6-luna
     reasoning: high
   fallbacks: []
 permissions:

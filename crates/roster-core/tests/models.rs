@@ -100,7 +100,7 @@ fn omp_render_produces_valid_writable_agent_for_designer() {
 }
 
 #[test]
-fn cerberus_claude_render_resolves_gpt_5_5_to_sonnet() {
+fn cerberus_claude_render_resolves_gpt_5_6_luna_to_sonnet() {
     let roster = Roster::load(workspace_root()).expect("roster loads");
     let models = Models::load(workspace_root()).expect("models.yaml loads");
     let cerberus = roster.agent("cerberus").expect("cerberus exists");
@@ -111,11 +111,11 @@ fn cerberus_claude_render_resolves_gpt_5_5_to_sonnet() {
 }
 
 #[test]
-fn incident_hound_bb_render_resolves_gpt_5_5_via_models_table() {
+fn incident_hound_bb_render_resolves_gpt_5_6_luna_via_models_table() {
     // incident-hound's only fallback (claude-sonnet-5) is not openrouter/-
     // prefixed, so this is the one seed agent whose bb render depends on
-    // primitives/models.yaml resolving its concrete `preferred` (gpt-5.5)
-    // rather than short-circuiting through an openrouter-prefixed fallback.
+    // primitives/models.yaml resolving its concrete preferred model
+    // (gpt-5.6-luna) rather than short-circuiting through an openrouter-prefixed fallback.
     let roster = Roster::load(workspace_root()).expect("roster loads");
     let models = Models::load(workspace_root()).expect("models.yaml loads");
     let incident_hound = roster
@@ -123,7 +123,7 @@ fn incident_hound_bb_render_resolves_gpt_5_5_via_models_table() {
         .expect("incident-hound exists");
 
     let rendered = render_bb_agent(incident_hound, &models)
-        .expect("gpt-5.5 resolves via the models.yaml table");
+        .expect("gpt-5.6-luna resolves via the models.yaml table");
 
     assert!(
         rendered.contains("model = \"moonshotai/kimi-k2.7-code\""),
@@ -179,7 +179,7 @@ fn subagent_pool_loads_and_carries_the_operator_list() {
         names,
         [
             "claude-sonnet-5",
-            "gpt-5.5",
+            "gpt-5.6-luna",
             "glm-5.2",
             "openrouter/moonshotai/kimi-k2.7-code",
             "minimax-3",
@@ -190,8 +190,8 @@ fn subagent_pool_loads_and_carries_the_operator_list() {
     let gpt = pool
         .pool
         .iter()
-        .find(|entry| entry.model == "gpt-5.5")
-        .expect("gpt-5.5 in pool");
+        .find(|entry| entry.model == "gpt-5.6-luna")
+        .expect("gpt-5.6-luna in pool");
     assert_eq!(gpt.reasoning.as_deref(), Some("low"));
 
     let sonnet = pool

@@ -3,7 +3,7 @@ name: builder
 description: Delivery lane that takes one ticket from a stated goal to a working, gated change — red-green-refactor discipline, live proof, gates never lowered to reach green.
 model_policy:
   preferred:
-    model: gpt-5.5
+    model: gpt-5.6-luna
     reasoning: high
   fallbacks:
     - model: openrouter/moonshotai/kimi-k2.7-code

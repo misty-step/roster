@@ -48,7 +48,7 @@ row is the headless form; add the prompt as the argument or via stdin.
 
 | CLI | Stack | Headless invocation |
 |---|---|---|
-| `codex` | OpenAI Codex (gpt-5.5) | `codex exec "<task>"` (`--model`, `--config model_reasoning_effort=`) |
+| `codex` | OpenAI Codex (gpt-5.6-luna) | `codex exec "<task>"` (`--model`, `--config model_reasoning_effort=`) |
 | `pi` | Pi over OpenRouter (Kimi, DeepSeek, …) | `pi -p --no-extensions --provider openrouter --model <id> "<task>"` |
 | `goose` | Goose over OpenRouter | `goose run --no-session --quiet --provider openrouter --model <id> --text "<task>"` |
 | `opencode` | OpenCode over OpenRouter | `opencode run --model openrouter/<id> --format json "<task>"` |
@@ -120,10 +120,10 @@ not the full bench.
 
 ## Prompting frontier lanes
 
-For Fable/GPT-5.5-class lanes (and the lead's own operation), load
+For Fable and GPT-5.6 Luna lanes (and the lead's own operation), load
 `primitives/shared/references/prompting-frontier.md`: goal-not-steps briefs
 fenced by house rules, executable bars (delegate metric-invention when the
 bar is fuzzy), builder-never-grades verification against the REAL output,
 loop-until-the-bar with a live status artifact, prior traces as fuel, and
 budgets instead of permission-asks. Cheaper models still earn more
-mechanism — tier the prescription to the model.
+mechanism — tune the prescription to the concrete model and reasoning effort.

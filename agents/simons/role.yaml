@@ -6,7 +6,7 @@ model_policy:
     model: claude-fable-5
     reasoning: high
   fallbacks:
-    - model: gpt-5.5
+    - model: gpt-5.6-luna
       reasoning: high
 permissions:
   filesystem: workspace-write

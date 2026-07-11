@@ -7,7 +7,7 @@
 schema_version: roster.subagent-pool.v1
 pool:
   - model: claude-sonnet-5
-  - model: gpt-5.5
+  - model: gpt-5.6-luna
     reasoning: low
   - model: glm-5.2
   - model: openrouter/moonshotai/kimi-k2.7-code

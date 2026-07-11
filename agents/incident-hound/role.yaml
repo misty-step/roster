@@ -3,7 +3,7 @@ name: incident-hound
 description: Live-system incident root cause — production failures, not diff review.
 model_policy:
   preferred:
-    model: gpt-5.5
+    model: gpt-5.6-luna
     reasoning: xhigh
   fallbacks:
     - model: claude-sonnet-5

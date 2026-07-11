@@ -3,7 +3,7 @@ name: cerberus
 description: Code-review master agent that turns available change context into grounded findings, verdicts, and a review artifact without overstating inspected evidence.
 model_policy:
   preferred:
-    model: gpt-5.5
+    model: gpt-5.6-luna
     reasoning: xhigh
   fallbacks:
     - model: openrouter/moonshotai/kimi-k2.7-code

@@ -679,7 +679,7 @@ fn bb_model(role: &Role, models: &Models) -> Result<String, String> {
     // Neither `preferred` nor any fallback is a literal `openrouter/`-prefixed
     // model id. Resolve `preferred` through primitives/models.yaml instead of
     // ever emitting the bare concrete id as-is (a codex-only id like
-    // `gpt-5.5` is not an invocable OpenRouter model, so a bb config carrying
+    // `gpt-5.6-luna` is not an invocable OpenRouter model, so a bb config carrying
     // it verbatim would silently fail at dispatch time rather than at render
     // time).
     models

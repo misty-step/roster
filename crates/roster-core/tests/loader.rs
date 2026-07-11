@@ -46,7 +46,7 @@ fn loads_seed_agents_from_repo() {
     let boss = roster.agent("boss").expect("boss exists");
     assert_eq!(boss.role.model_policy.preferred.model, "claude-fable-5");
     assert_eq!(boss.role.model_policy.preferred.reasoning, "high");
-    assert_eq!(boss.role.model_policy.fallbacks[0].model, "gpt-5.5");
+    assert_eq!(boss.role.model_policy.fallbacks[0].model, "gpt-5.6-luna");
     assert_eq!(boss.role.permissions.filesystem, "read-only");
     assert_eq!(
         boss.role.permissions.mutations,
@@ -58,14 +58,14 @@ fn loads_seed_agents_from_repo() {
     assert!(boss.instructions.contains("zero-context packet"));
 
     let builder = roster.agent("builder").expect("builder exists");
-    assert_eq!(builder.role.model_policy.preferred.model, "gpt-5.5");
+    assert_eq!(builder.role.model_policy.preferred.model, "gpt-5.6-luna");
     assert_eq!(builder.role.permissions.filesystem, "workspace-write");
     assert_eq!(builder.role.mcps, ["powder"]);
     assert!(builder.instructions.contains("favor the pool declared in"));
 
     let cerberus = roster.agent("cerberus").expect("cerberus exists");
     assert!(cerberus.role.description.contains("Code-review master"));
-    assert_eq!(cerberus.role.model_policy.preferred.model, "gpt-5.5");
+    assert_eq!(cerberus.role.model_policy.preferred.model, "gpt-5.6-luna");
     assert_eq!(cerberus.role.model_policy.preferred.reasoning, "xhigh");
     assert!(
         cerberus
@@ -88,7 +88,10 @@ fn loads_seed_agents_from_repo() {
     let incident_hound = roster
         .agent("incident-hound")
         .expect("incident-hound exists");
-    assert_eq!(incident_hound.role.model_policy.preferred.model, "gpt-5.5");
+    assert_eq!(
+        incident_hound.role.model_policy.preferred.model,
+        "gpt-5.6-luna"
+    );
     assert_eq!(
         incident_hound.role.model_policy.preferred.reasoning,
         "xhigh"
@@ -126,7 +129,10 @@ fn loads_seed_agents_from_repo() {
     );
     assert_eq!(orchestrator.role.model_policy.preferred.reasoning, "high");
     assert_eq!(orchestrator.role.model_policy.fallbacks.len(), 1);
-    assert_eq!(orchestrator.role.model_policy.fallbacks[0].model, "gpt-5.5");
+    assert_eq!(
+        orchestrator.role.model_policy.fallbacks[0].model,
+        "gpt-5.6-luna"
+    );
     assert_eq!(
         orchestrator.role.model_policy.fallbacks[0].reasoning,
         "xhigh"
@@ -150,7 +156,7 @@ fn loads_seed_agents_from_repo() {
     let simons = roster.agent("simons").expect("simons exists");
     assert_eq!(simons.role.model_policy.preferred.model, "claude-fable-5");
     assert_eq!(simons.role.model_policy.preferred.reasoning, "high");
-    assert_eq!(simons.role.model_policy.fallbacks[0].model, "gpt-5.5");
+    assert_eq!(simons.role.model_policy.fallbacks[0].model, "gpt-5.6-luna");
     assert_eq!(simons.role.permissions.filesystem, "workspace-write");
     assert_eq!(simons.role.permissions.mutations, "with-explicit-scope");
     assert_eq!(simons.role.mcps, ["robinhood-trading"]);
@@ -187,7 +193,7 @@ name: bad
 description: Bad fixture
 model_policy:
   preferred:
-    model: gpt-5.5
+    model: gpt-5.6-luna
     reasoning: high
   fallbacks: []
 permissions:
@@ -224,7 +230,7 @@ name: bad
 description: Bad fixture
 model_policy:
   preferred:
-    model: gpt-5.5
+    model: gpt-5.6-luna
     reasoning: high
   fallbacks: []
 permissions:
@@ -261,7 +267,7 @@ name: bad
 description: Bad fixture
 model_policy:
   preferred:
-    model: gpt-5.5
+    model: gpt-5.6-luna
     reasoning: high
   fallbacks: []
 permissions:
