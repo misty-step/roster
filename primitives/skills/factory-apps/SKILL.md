@@ -5,8 +5,8 @@ description: |
   auditing, integrating, or operating Canary, Powder, Landmark, Aesthetic,
   Bitterblossom, or mint: production observability, incidents, health
   checks, error logging, backlog/work-card state, release intelligence,
-  UI/UX system adoption, supervised/unsupervised agent dispatch, or routing
-  a credentialed outbound API call through the agent credential broker.
+  UI/UX system adoption, event-triggered agent workflows, or routing a
+  credentialed outbound API call through the agent credential broker.
   Trigger: /factory-apps, /factory-stack.
 argument-hint: "[canary|powder|landmark|aesthetic|bitterblossom|mint|audit]"
 ---
@@ -26,7 +26,7 @@ policy in `primitives/mcps/factory-mcps.yaml`.
 | backlog, issue cards, claims, relations, operator input requests, work status | Powder | Powder MCP from the `non-adminifi-non-r90` profile when configured | `misty-powder`, CLI, API |
 | release intelligence, versions, changelogs, release notes, release kit, fleet adoption | Landmark | `misty-landmark` and `landmark describe --json` / dry-run CLI/action paths | `docs/agent-integration.md`, `docs/fleet-integration-playbook.md` |
 | UI/UX, Misty Step design law, tokens, static design registry, rendered design gate | Aesthetic | `misty-aesthetic`, `@misty-step/aesthetic` package, static API, law gate | `docs/ADOPTING.md`, `DESIGN.md` |
-| ad-hoc supervised dispatch, event-triggered agents, reflex loops, durable runs | Bitterblossom | `misty-bitterblossom`, `bb` CLI, read-only MCP from `factory-ops` profile | product plane config |
+| event-triggered agents, reflex loops, durable runs | Bitterblossom | `misty-bitterblossom`, `bb` CLI/API | product plane config; MCP source exists but is not registered in interactive harnesses |
 | outbound API call needing a credential (API key, token, secret) | mint | `primitives/skills/misty-mint/SKILL.md` — egress proxy contract (`X-Mint-Capability` header + `__mint.<service>.<name>__` placeholders) | `mint policy check`/`mint audit tail`/`mint alias list` CLI (operator-only) |
 
 ## Operating Rule
@@ -50,10 +50,9 @@ Use the owned app first (per the router); the non-obvious constraints:
 
 ## Current Audit
 
-The live 2026-07-03 audit is in
-`references/capability-audit-2026-07-03.md`. Load it when the question is
-"are these configured?" or "what gaps remain?" before changing product repos
-or system config.
+`references/capability-audit-2026-07-03.md` is the historical capability
+audit. For current registration truth, read `primitives/mcps/factory-mcps.yaml`
+and the active harness config before changing product repos or system config.
 
 ## Fleet Integration Standard
 
@@ -70,9 +69,12 @@ apps, libraries, and non-release support repos.
   harness config before claiming MCP availability.
 - Do not add placeholder MCP servers. A broken registered tool is worse than a
   clear CLI/API fallback.
+- Bitterblossom's MCP implementation remains in the product, but its interactive
+  harness registration is disabled. Mode B workloads use the CLI/API and do not
+  depend on a per-thread stdio child.
 - Root product skills (`SKILL.md`) and portable product skills under
   `<repo>/skills/<name>/SKILL.md` are for consumers of the app. Repo-local
   `.agents/skills/*` are usually QA/deploy/dogfood runbooks for work inside
   that repo. Do not treat one as a substitute for the other.
-- Bitterblossom's MCP is read-only in the audited checkout. Mutating dispatch
-  and run control still go through the CLI/API unless the product changes.
+- Bitterblossom dispatch and run control go through the CLI/API unless
+  the product changes.

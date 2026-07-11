@@ -74,25 +74,12 @@ servers:
     source_repo: misty-step/bitterblossom
     source_ref: b017458d21d13d4f6f435a9e9307c575b6694b1f
     product_skill: misty-bitterblossom
-    status: available
+    status: not_applicable
+    reason: Interactive stdio registration is disabled. Mode B workflows use the CLI/API, and Codex leaks completed-subagent MCP transports. Re-enable only with client lifecycle proof and a versioned installed bb binary.
     capabilities:
-      - supervised dispatch agents
       - event-driven workflow agents
       - reflex plane inspection
       - run ledger inspection
-    scope:
-      default_profiles: [factory-ops]
-      include_repo_globs: ["/Users/phaedrus/Development/**"]
-      exclude_repo_globs: []
-    codex:
-      server_name: bitterblossom
-      command: /Users/phaedrus/Development/bitterblossom/target/debug/bb
-      args:
-        - --config
-        - /Users/phaedrus/Development/bitterblossom/plane
-        - mcp
-        - serve
-      env_policy: local_plane
 
   - id: landmark
     app: Landmark
@@ -180,5 +167,5 @@ profiles:
     servers: [powder]
 
   - id: factory-ops
-    description: Factory agent operations, dispatch, reflex, and supervised workflow inspection.
-    servers: [canary, powder, bitterblossom, mint]
+    description: Factory agent operations and inspection. Bitterblossom uses its CLI/API until Codex can prove bounded stdio MCP lifecycle ownership.
+    servers: [canary, powder, mint]
