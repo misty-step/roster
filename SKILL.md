@@ -6,7 +6,7 @@ description: |
   specific harness. Roster is the agent declaration repository for Misty
   Step Factory: `agents/<name>/role.yaml` + `instructions.md` in, prompt-native
   text out. It declares agents; it does not spawn or run them.
-argument-hint: "[list|show|brief|materialize]"
+argument-hint: "[list|show|brief|materialize|sync|doctor]"
 ---
 
 # Roster
@@ -33,19 +33,23 @@ invocation, which takes precedence.
   (`claude`, `codex`, `bb`, or `omp`). This is read-only rendering, not
   installation.
 - Never hand-edit a materialized output (a rendered `.claude/agents/*.md`,
-  `.codex/agents/*.md`, or bb TOML). Fix the source `role.yaml`/
+  Codex role TOML, OMP agent Markdown, or bb TOML). Fix the source `role.yaml`/
   `instructions.md` and re-render.
 - Identity changes (name, model policy, permissions, skills, MCPs) go through
   `role.yaml` + `instructions.md`, then re-materialize — never a direct patch
   to a rendered artifact.
 - `sync` is the one mutating verb and it is opt-in and home-directory-scoped:
-  it writes harness-native agent files and a manifest under the caller's
-  `$HOME` (`.codex/agents/`, `.claude/agents/`, `.pi/agents/`,
-  `.roster/orchestrator/`). Only run it with the operator's awareness of what
-  it will touch on that machine; `sync --disable` rolls back exactly what the
-  manifest recorded. `sync` has intentionally no MCP tool (see
+  it writes manifest-owned files, links, and marker-bounded configuration for
+  Tier 1 Claude Code, Codex, and OMP under the caller's `$HOME`. It preserves
+  auth, sessions, caches, UI preferences, and unmarked local config. Only run
+  it with the operator's awareness of what it will touch on that machine;
+  `sync --disable` rolls back exactly what the manifest recorded. `sync` has
+  intentionally no MCP tool (see
   `crates/roster-mcp/src/lib.rs`) — it is CLI-only because an MCP call has no
   reliable notion of "the caller's home" the way a local CLI invocation does.
+- Use `doctor --json` for the read-only structural report and `doctor --live
+  --json` for bounded runtime/MCP/QMD probes. Doctor never repairs or writes;
+  run `sync` explicitly when its evidence shows drift.
 
 ## Expected MCP Tools
 
@@ -102,6 +106,7 @@ roster materialize cerberus --harness codex
 roster brief cerberus
 roster brief sweep --card roster-012
 roster sync
+roster doctor --live --json
 roster sync --disable
 ```
 

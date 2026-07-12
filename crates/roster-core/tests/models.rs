@@ -178,12 +178,12 @@ fn subagent_pool_loads_and_carries_the_operator_list() {
     assert_eq!(
         names,
         [
-            "claude-sonnet-5",
-            "gpt-5.6-luna",
-            "glm-5.2",
+            "openrouter/z-ai/glm-5.2",
             "openrouter/moonshotai/kimi-k2.7-code",
-            "minimax-3",
-            "gemini-3.5-flash",
+            "openrouter/deepseek/deepseek-v4-pro",
+            "openrouter/minimax/minimax-m3",
+            "gpt-5.6-luna",
+            "openrouter/x-ai/grok-4.5",
         ]
     );
 
@@ -192,14 +192,14 @@ fn subagent_pool_loads_and_carries_the_operator_list() {
         .iter()
         .find(|entry| entry.model == "gpt-5.6-luna")
         .expect("gpt-5.6-luna in pool");
-    assert_eq!(gpt.reasoning.as_deref(), Some("low"));
+    assert_eq!(gpt.reasoning.as_deref(), Some("xhigh"));
 
-    let sonnet = pool
+    let glm = pool
         .pool
         .iter()
-        .find(|entry| entry.model == "claude-sonnet-5")
-        .expect("claude-sonnet-5 in pool");
-    assert_eq!(sonnet.reasoning, None);
+        .find(|entry| entry.model == "openrouter/z-ai/glm-5.2")
+        .expect("glm-5.2 in pool");
+    assert_eq!(glm.reasoning, None);
 }
 
 fn unresolvable_model_agent() -> Agent {

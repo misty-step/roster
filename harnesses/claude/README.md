@@ -3,6 +3,10 @@
 Claude Code is a primary Roster lane. Use it for independent
 dynamic delegation when the lead is not already Claude.
 
+Claude Code is Tier 1: sync installs native agent files and the composed
+`~/.claude/CLAUDE.md` doctrine link, while doctor verifies their effective
+presence. `~/.claude/settings.json` remains a harness-local merge surface.
+
 ## Dispatch Shape
 
 Use print mode with permissions bypassed and pass one bounded commission as the

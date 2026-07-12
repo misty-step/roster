@@ -12,20 +12,22 @@ cargo install --locked --path crates/roster-cli     # `roster`
 cargo install --locked --path crates/roster-mcp     # `roster-mcp` (MCP face)
 cargo install --locked --path crates/roster-api     # `roster-api` (HTTP face)
 cargo install --locked --path crates/roster-hooks   # `roster-hooks` (Claude hooks)
-roster sync --catalog full --all-agents             # the machine is now roster-managed
-```
-
+roster sync                                          # converge the managed Tier 1 core
 # Third-party harness integrations roster does not own (run once, idempotent):
 herdr integration install claude   # SessionStart hook counterspell needs to bind panes
 ```
 
-`roster sync` installs everything declared here: the full skill catalog
-(symlinked into every detected harness), every agent identity
-(`~/.claude/agents/`, `~/.codex/agents/`, `~/.pi/agents/`), and the composed
-**home doctrine** — shared operating doctrine + the orchestrator identity +
-its skill/MCP bindings — as the global instructions file for Claude, Codex,
-pi/omp, and OpenCode. Result: any agent you launch in any harness boots as
-the declared orchestrator and dispatches other roster agents ad hoc.
+`roster sync` exposes the full skill catalog through symlinks, installs the
+declared `orchestrator` as the default identity, and composes the **home
+doctrine** — shared operating doctrine + orchestrator identity + its
+skill/MCP bindings. Claude Code, Codex, and OMP are Tier 1 projections. Other
+agents remain available through `roster brief` and `roster materialize`; use
+`--all-agents` only when native installation of every identity is useful.
+
+Sync owns only manifest-recorded files, links, and marker-bounded config
+blocks. Harness authentication, sessions, caches, UI preferences, and
+unmarked local configuration remain harness/user-owned. `roster sync
+--disable` removes only the managed projection.
 Hook wiring for Claude lives in `harnesses/claude/settings.json` (merge into
 `~/.claude/settings.json`). Everything sync writes is marker-tracked and
 reversible: `roster sync --disable`.
@@ -34,6 +36,7 @@ Verified-live check:
 
 ```sh
 roster check                      # catalog gate: frontmatter, paths, index, markers
+roster doctor --live --json       # read-only effective Tier 1 state + bounded live probes
 roster list                       # all agents parse
 claude -p "state your session identity per your loaded instructions"
 # → "Session Identity: orchestrator (roster)"
@@ -112,12 +115,10 @@ for `model_policy.preferred` — never for fallbacks:
   map applies (`claude-opus-4-8` → `opus`, etc.); anything still unrecognized
   falls back to `inherit` (the subagent runs on the session's own model)
   rather than guessing.
-- **`--harness codex`** and **`brief`** (`render_brief`): print
-  `preferred`/`fallbacks` as literal `model (reasoning: x)` text under
-  `## Model Policy`. No table resolution happens here — codex materializes
-  straight from the declaration; nothing in this repo yet targets the
-  `~/.codex/roles/<name>.toml` shape the roster-910 dispatch-matrix research
-  found on this machine.
+- **`--harness codex`** (`render_codex_agent`): emits the native per-role TOML
+  layer registered by `roster sync` in `~/.codex/config.toml`. **`brief`**
+  remains the prompt-native cross-harness packet and prints the literal model
+  policy without table translation.
 - **`--harness bb`** (`render_bb_agent` / `bb_model`): required-MCP agents fail
   before rendering because BB has no MCP binding surface. MCP-free agents
   resolve to the first

@@ -14,6 +14,7 @@ path = "src/main.rs"
 anyhow.workspace = true
 chrono = { version = "0.4.41", default-features = false, features = ["clock"] }
 clap.workspace = true
+libc.workspace = true
 roster-canary.workspace = true
 roster-core.workspace = true
 serde_json.workspace = true

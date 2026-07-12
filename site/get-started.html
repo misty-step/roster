@@ -91,21 +91,20 @@ cargo install --locked --path crates/roster-cli     # `roster`
 cargo install --locked --path crates/roster-mcp     # `roster-mcp` (MCP face)
 cargo install --locked --path crates/roster-api     # `roster-api` (HTTP face)
 cargo install --locked --path crates/roster-hooks   # `roster-hooks` (Claude hooks)
-roster sync --catalog full --all-agents             # the machine is now roster-managed</code></pre>
+roster sync                                          # converge the managed Tier 1 core</code></pre>
             <p class="ae-dim">
-              <code>roster sync</code> installs the full skill catalog
-              (symlinked into every detected harness), every agent identity
-              (<code>~/.claude/agents/</code>, <code>~/.codex/agents/</code>,
-              <code>~/.pi/agents/</code>), and the composed home doctrine as
-              the global instructions file for Claude, Codex, Pi/OMP, and
-              OpenCode. Everything it writes is marker-tracked and reversible
-              with <code>roster sync --disable</code>.
+              <code>roster sync</code> exposes the full skill catalog and
+              installs the orchestrator through native Tier 1 projections for
+              Claude Code, Codex, and OMP. Other identities remain explicitly
+              materializable. Every managed file, link, or config block is
+              reversible with <code>roster sync --disable</code>.
             </p>
           </section>
 
           <section class="msk-release">
             <h2>Verify it went live</h2>
             <pre><code>roster check                      # catalog gate: frontmatter, paths, index, markers
+roster doctor --live --json       # read-only Tier 1 state + bounded live probes
 roster list                       # all agents parse
 claude -p "state your session identity per your loaded instructions"
 # → "Session Identity: orchestrator (roster)"</code></pre>

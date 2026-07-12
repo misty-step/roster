@@ -1,8 +1,8 @@
 #![forbid(unsafe_code)]
 
 use roster_core::{
-    Models, Roster, render_bb_agent, render_brief, render_claude_agent, render_omp_agent,
-    render_show,
+    Models, Roster, render_bb_agent, render_brief, render_claude_agent, render_codex_agent,
+    render_omp_agent, render_show,
 };
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
@@ -15,8 +15,8 @@ pub struct ToolDef {
 }
 
 // `sync` (the CLI's other mutating verb) intentionally has no MCP tool. It
-// writes managed files across the CALLER'S `$HOME` (`.codex/agents/`,
-// `.claude/agents/`, `.pi/agents/`, `.roster/orchestrator/`) with an install/disable
+// writes managed files across the CALLER'S `$HOME` (`.codex/config.toml`,
+// `.claude/agents/`, `.omp/agent/`, `.roster/orchestrator/`) with an install/disable
 // lifecycle tied to that specific filesystem. An MCP call has no reliable
 // notion of "the caller's home" the way a locally-run CLI invocation does,
 // and remote/arbitrary MCP callers writing harness config files on whatever
@@ -186,7 +186,7 @@ fn materialize_agent(args: &Value) -> Result<Value, String> {
     let harness = required_str(args, "harness")?;
     let text = match harness {
         "claude" => render_claude_agent(agent, &load_models(args)?)?,
-        "codex" => render_brief(agent, &[], &[], None),
+        "codex" => render_codex_agent(agent),
         "bb" => render_bb_agent(agent, &load_models(args)?)?,
         "omp" => render_omp_agent(agent)?,
         other => {
@@ -333,9 +333,10 @@ mod tests {
             &json!({"root": root, "agent": "cerberus", "harness": "codex"}),
         )
         .unwrap();
+        assert!(text(&codex).contains("model = \"gpt-5.6-luna\""));
+        assert!(text(&codex).contains("sandbox_mode = \"read-only\""));
+        assert!(text(&codex).contains("developer_instructions = "));
         assert!(text(&codex).contains("# Roster Brief: cerberus"));
-        assert!(text(&codex).contains("Read:"));
-        assert!(text(&codex).contains("Code-review master"));
         assert_eq!(codex["structuredContent"]["harness"], "codex");
 
         let bb = call_tool(

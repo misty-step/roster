@@ -23,6 +23,16 @@ planes. It is not itself an execution runtime.
   read guards and pre-transcript output redaction. Workstation cutover was
   proven live under roster-926; Harness Kit is a retired predecessor.
 - No secret values in declarations or registries; env refs only.
+- Claude Code, Codex, and OMP are Tier 1 harnesses. Their native projections
+  require live doctor evidence; every other harness is a compatibility target.
+- `agents/orchestrator/` is the workstation composition root. Default sync
+  installs that identity while exposing the full skill catalog for discovery;
+  `--all-agents` is explicit expansion.
+- `primitives/mcps/registry.yaml` is the only MCP catalog. Agent declarations
+  reference its ids directly; no parallel profile policy may decide bindings.
+- `roster sync` is the only workstation convergence mutator. It preserves
+  harness auth, sessions, caches, UI preferences, and unmarked local config.
+  `roster doctor` is strictly read-only.
 
 ## Gate
 

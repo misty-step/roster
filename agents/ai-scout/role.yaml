@@ -28,7 +28,6 @@ mcps: []
 mcps_contextual:
   - exa
   - firecrawl
-  - context7
 subagent_rights:
   may_dispatch: false
   may_spawn_subagents: true

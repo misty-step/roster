@@ -10,9 +10,15 @@ subagent execution, and Powder owns durable receipts.
 compaction, memory, advisor. The global config is user-owned and shared across
 all repos.
 
-**Roster source (`harnesses/omp/`).** Keep portable OMP-specific notes and
-projection inputs here. Operator-local `.omp/` files remain user-owned unless a
-shaped ticket proves a managed projection is worth adding.
+**Roster-managed projection.** When OMP is installed, `roster sync` links the
+composed doctrine to `~/.omp/agent/AGENTS.md`, exposes the skill catalog under
+`~/.omp/agent/skills/`, and may install independently materializable agent
+files under `~/.omp/agent/agents/`.
+
+**Harness-local state.** `~/.omp/agent/config.yml`, `mcp.json`, authentication,
+sessions, databases, caches, extensions, and UI choices remain user-owned.
+Roster observes these surfaces through `roster doctor`; it does not copy or
+replace them.
 
 ## Model Composition
 

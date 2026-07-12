@@ -58,7 +58,7 @@ rationale.
 - `subagent_rights` stays the roster-native, dispatch-agnostic signal for
   "may this agent spawn anything at all."
 
-# Decision: defer the Codex `config.toml` render upgrade (roster-915)
+# Decision: Codex native role projection (roster-915, superseded 2026-07-11)
 
 roster-915's fourth acceptance criterion: upgrade `materialize --harness
 codex` from `render_brief`'s plain text to the live `[agents.<name>]` +
@@ -66,18 +66,23 @@ codex` from `render_brief`'s plain text to the live `[agents.<name>]` +
 actual working config shape on this machine, or explicitly defer with
 reason.
 
-## Decision: defer
+## Decision: implemented
 
-Not implemented in this pass.
+The earlier deferral was resolved by the workstation-consolidation contract.
+`roster materialize --harness codex` now emits a native TOML role layer, and
+`roster sync` maintains marker-bounded `[agents.<name>]` registrations in the
+real `~/.codex/config.toml` while preserving every unmarked local setting and
+custom role. The inert `.codex/agents/*.md` projection is retired.
 
-## Rationale
+## Historical rationale for the original deferral
 
-1. **`sync.rs` currently writes `.codex/agents/<name>.md`, and the receipt's
+1. **At the time of the original deferral, `sync.rs` wrote
+   `.codex/agents/<name>.md`, and the receipt's
    own Codex section says the standalone-file mechanism Codex documents
    expects TOML there, not Markdown.** That means today's materialized
    Codex output may already be inert (never read by Codex's actual dispatch
    path), which makes this a real, evidenced bug worth fixing — but also
-   means fixing it correctly requires re-examining what `roster sync`
+   meant fixing it correctly required re-examining what `roster sync`
    writes to `.codex/agents/`, not just what `roster materialize --harness
    codex` prints to stdout for a human to read.
 
@@ -92,7 +97,7 @@ Not implemented in this pass.
    this machine's live Codex setup already depends on for genuinely
    unrelated custom agents.
 
-3. **This deserves its own scoped card**, not a rushed addition inside a
+3. **This deserved its own scoped card**, not a rushed addition inside a
    four-item roadmap ticket: it needs (a) a decision on whether roster
    writes directly into `~/.codex/config.toml` at all, versus emitting a
    separate role TOML plus documented manual config wiring, and (b) real
@@ -100,10 +105,8 @@ Not implemented in this pass.
    the way `roster-928`'s bastion deploy was verified against sibling apps
    before calling it safe.
 
-## What to do next
+## Resolution
 
-Card this as its own roster ticket: "Codex materialize target: emit the
-live `config.toml [agents.<name>]` + role-TOML pattern, verified against
-this machine's actual Codex config." Until then, `materialize --harness
-codex` keeps rendering `render_brief`'s plain text — a known-stale format,
-now documented as such rather than silently assumed correct.
+The scoped work is complete: `materialize --harness codex` emits native role
+TOML, `roster sync` owns only a marker-bounded registration block, and live
+Codex doctor/config parsing verifies the installed shape.

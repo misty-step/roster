@@ -117,12 +117,10 @@
                 <code>instructions.md</code> directly — no separate database.
               </li>
               <li>
-                <code>roster sync</code> installs the default lead agent's
-                harness-native files (<code>.codex/agents/lead.md</code>,
-                <code>.claude/agents/lead.md</code>,
-                <code>.pi/agents/lead.md</code>) without overwriting existing
-                harness-kit bootstrap globals; <code>--disable</code> rolls
-                it back via the same manifest.
+                <code>roster sync</code> installs the default orchestrator
+                through native Claude Code, Codex, and OMP projections while
+                preserving unmarked harness-local state; <code>--disable</code>
+                rolls it back via the same manifest.
               </li>
             </ul>
           </section>

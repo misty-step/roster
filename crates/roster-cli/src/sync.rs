@@ -7,10 +7,13 @@
 
 use anyhow::{Context, Result, anyhow, bail};
 use clap::ValueEnum;
-use roster_core::{Agent, Models, Roster, render_brief, render_claude_agent, render_home_doctrine};
+use roster_core::{
+    Agent, Models, Roster, render_brief, render_claude_agent, render_codex_agent,
+    render_home_doctrine, render_omp_agent,
+};
 use serde_json::{Value, json};
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fs,
     path::{Component, Path, PathBuf},
 };
@@ -21,6 +24,9 @@ pub const DEFAULT_AGENT: &str = "orchestrator";
 const SYNC_MARKER: &str = "<!-- roster-sync:orchestrator:v1 -->";
 const SYNC_DIR_REL: &str = ".roster/orchestrator";
 const MANIFEST_REL: &str = ".roster/orchestrator/manifest.json";
+const CODEX_CONFIG_REL: &str = ".codex/config.toml";
+const CODEX_BLOCK_START: &str = "# >>> roster sync: codex agents v1";
+const CODEX_BLOCK_END: &str = "# <<< roster sync: codex agents v1";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum Catalog {
@@ -82,6 +88,12 @@ enum PlannedEntry {
         relative_path: String,
         target: PathBuf,
     },
+    ManagedBlock {
+        relative_path: String,
+        start_marker: &'static str,
+        end_marker: &'static str,
+        contents: String,
+    },
 }
 
 fn install_sync(root: &Path, home: &Path, catalog: Catalog, all_agents: bool) -> Result<()> {
@@ -90,9 +102,13 @@ fn install_sync(root: &Path, home: &Path, catalog: Catalog, all_agents: bool) ->
     let models = Models::load(root)?;
 
     let prior = read_manifest(home)?;
-    let prior_symlinks: BTreeSet<String> = prior
+    let prior_symlink_targets = prior
         .as_ref()
-        .map(|manifest| manifest.symlinks.clone())
+        .map(|manifest| manifest.symlink_targets.clone())
+        .unwrap_or_default();
+    let prior_created_blocks = prior
+        .as_ref()
+        .map(|manifest| manifest.created_blocks.clone())
         .unwrap_or_default();
 
     let plan = build_plan(
@@ -107,6 +123,9 @@ fn install_sync(root: &Path, home: &Path, catalog: Catalog, all_agents: bool) ->
 
     let mut written_files = Vec::new();
     let mut written_symlinks = Vec::new();
+    let mut written_symlink_targets = BTreeMap::new();
+    let mut written_blocks = Vec::new();
+    let mut created_blocks = Vec::new();
     let mut skipped = Vec::new();
 
     for entry in &plan {
@@ -126,21 +145,51 @@ fn install_sync(root: &Path, home: &Path, catalog: Catalog, all_agents: bool) ->
             PlannedEntry::Symlink {
                 relative_path,
                 target,
-            } => match sync_symlink(home, relative_path, target, &prior_symlinks)? {
-                SymlinkOutcome::Applied => written_symlinks.push(relative_path.clone()),
+            } => match sync_symlink(home, relative_path, target, &prior_symlink_targets)? {
+                SymlinkOutcome::Applied => {
+                    written_symlinks.push(relative_path.clone());
+                    written_symlink_targets
+                        .insert(relative_path.clone(), target.display().to_string());
+                }
                 SymlinkOutcome::Skipped(note) => skipped.push(note),
             },
+            PlannedEntry::ManagedBlock {
+                relative_path,
+                start_marker,
+                end_marker,
+                contents,
+            } => {
+                let existed_before = fs::symlink_metadata(safe_home_path(home, relative_path)?)
+                    .ok()
+                    .is_some_and(|metadata| metadata.is_file());
+                if write_managed_block(home, relative_path, start_marker, end_marker, contents)? {
+                    written_blocks.push(relative_path.clone());
+                    if !existed_before || prior_created_blocks.contains(relative_path) {
+                        created_blocks.push(relative_path.clone());
+                    }
+                } else {
+                    skipped.push(format!(
+                        "{relative_path} is not a regular file; roster sync left it in place"
+                    ));
+                }
+            }
         }
     }
 
-    cleanup_stale(home, prior.as_ref(), &written_files, &written_symlinks)?;
+    cleanup_stale(
+        home,
+        prior.as_ref(),
+        &written_files,
+        &written_symlinks,
+        &written_blocks,
+    )?;
 
     let mut managed_paths = written_files.clone();
     managed_paths.extend(written_symlinks.iter().cloned());
     managed_paths.push(MANIFEST_REL.to_string());
 
     let manifest = serde_json::to_string_pretty(&json!({
-        "schema_version": "roster.sync.v1",
+        "schema_version": "roster.sync.v3",
         "managed_by": "roster sync",
         "agent": orchestrator.role.name,
         "mode": "parallel-run",
@@ -149,6 +198,9 @@ fn install_sync(root: &Path, home: &Path, catalog: Catalog, all_agents: bool) ->
         "disable_command": "roster sync --disable",
         "files": managed_paths,
         "symlinks": written_symlinks,
+        "symlink_targets": written_symlink_targets,
+        "managed_blocks": written_blocks,
+        "created_blocks": created_blocks,
         "preserved_harness_kit_files": [
             ".codex/CLAUDE.md",
             ".pi/settings.json"
@@ -218,6 +270,7 @@ fn build_plan(
     } else {
         vec![orchestrator]
     };
+    let mut codex_registrations = Vec::new();
     for agent in agents {
         let name = &agent.role.name;
         let is_orchestrator = name == &orchestrator.role.name;
@@ -232,10 +285,6 @@ fn build_plan(
             render_claude_agent(agent, models).map_err(anyhow::Error::msg)?
         };
         plan.push(PlannedEntry::File {
-            relative_path: format!(".codex/agents/{name}.md"),
-            contents: managed_markdown(&brief_rendered),
-        });
-        plan.push(PlannedEntry::File {
             relative_path: format!(".claude/agents/{name}.md"),
             contents: managed_markdown(&claude_rendered),
         });
@@ -243,7 +292,26 @@ fn build_plan(
             relative_path: format!(".pi/agents/{name}.md"),
             contents: managed_markdown(&brief_rendered),
         });
+        let codex_role_path = format!("{SYNC_DIR_REL}/codex-roles/{name}.toml");
+        plan.push(PlannedEntry::File {
+            relative_path: codex_role_path.clone(),
+            contents: render_codex_agent(agent),
+        });
+        codex_registrations.push(codex_registration(agent, &home.join(&codex_role_path)));
+
+        if let Ok(omp_rendered) = render_omp_agent(agent) {
+            plan.push(PlannedEntry::File {
+                relative_path: format!(".omp/agent/agents/{name}.md"),
+                contents: managed_markdown(&omp_rendered),
+            });
+        }
     }
+    plan.push(PlannedEntry::ManagedBlock {
+        relative_path: CODEX_CONFIG_REL.to_string(),
+        start_marker: CODEX_BLOCK_START,
+        end_marker: CODEX_BLOCK_END,
+        contents: codex_registrations.join("\n"),
+    });
 
     // Skill symlink farm.
     let skill_dirs = match catalog {
@@ -290,6 +358,10 @@ fn build_plan(
             target: doctrine_target.clone(),
         });
     }
+    plan.push(PlannedEntry::Symlink {
+        relative_path: ".omp/agent/AGENTS.md".to_string(),
+        target: doctrine_target.clone(),
+    });
     if opencode_present(home) {
         // opencode's own docs: "You can also have global rules in a
         // `~/.config/opencode/AGENTS.md` file. This gets applied across all
@@ -312,15 +384,10 @@ fn build_plan(
         }
     }
 
-    // Retire the predecessor's remaining config-file symlinks when those
-    // harnesses are installed. These are copied source templates, not the
-    // primary mutable live configs.
-    if home.join(".codex/config").is_dir() {
-        plan.push(PlannedEntry::Symlink {
-            relative_path: ".codex/config/config.toml".to_string(),
-            target: root.join("harnesses/codex/config.toml"),
-        });
-    }
+    // Keep pi's source template projection for compatibility. Codex's old
+    // `.codex/config/config.toml` link is intentionally not reproduced:
+    // current Codex reads `$CODEX_HOME/config.toml`, where the managed role
+    // block above coexists with local settings.
     if pi_present(home) {
         plan.push(PlannedEntry::Symlink {
             relative_path: ".pi/settings.json".to_string(),
@@ -409,11 +476,25 @@ fn detect_skill_harness_dirs(home: &Path) -> Vec<String> {
     if pi_present(home) {
         dirs.push(".pi/skills".to_string());
     }
+    dirs.push(".omp/agent/skills".to_string());
     if gemini_present(home) {
         dirs.push(".gemini/config/skills".to_string());
         dirs.push(".gemini/antigravity-ide/skills".to_string());
     }
     dirs
+}
+
+pub(crate) fn codex_registration(agent: &Agent, config_path: &Path) -> String {
+    format!(
+        "[agents.{}]\ndescription = {}\nconfig_file = {}\n",
+        toml_string(&agent.role.name),
+        toml_string(&agent.role.description),
+        toml_string(&config_path.to_string_lossy()),
+    )
+}
+
+fn toml_string(value: &str) -> String {
+    serde_json::to_string(value).expect("JSON strings are valid TOML basic strings")
 }
 
 fn skills_index_json(agent: &roster_core::Agent) -> Result<String> {
@@ -459,14 +540,15 @@ For a staged install root, pass the same home used during install:
 roster sync --home <path> --disable
 ```
 
-The disable path removes only files and symlinks recorded in
+The disable path removes only files, symlinks, and marker-bounded config
+blocks recorded in
 `.roster/orchestrator/manifest.json`. It leaves anything roster sync
 declined to touch (unmanaged real files, foreign symlinks) untouched.
 "#
     )
 }
 
-fn managed_markdown(contents: &str) -> String {
+pub(crate) fn managed_markdown(contents: &str) -> String {
     // Claude Code agent files require frontmatter at byte 0 — a marker line
     // before the opening `---` makes the harness silently ignore the agent
     // (found live: fresh sessions listed no roster agents). When the content
@@ -500,6 +582,103 @@ fn write_managed_file(home: &Path, relative_path: &str, contents: &str) -> Resul
     Ok(true)
 }
 
+fn write_managed_block(
+    home: &Path,
+    relative_path: &str,
+    start_marker: &str,
+    end_marker: &str,
+    contents: &str,
+) -> Result<bool> {
+    let path = safe_home_path(home, relative_path)?;
+    let existing = match fs::symlink_metadata(&path) {
+        Ok(metadata) if metadata.is_file() => fs::read_to_string(&path)
+            .with_context(|| format!("inspect existing {}", path.display()))?,
+        Ok(_) => return Ok(false),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(error) => return Err(error).with_context(|| format!("inspect {}", path.display())),
+    };
+    let mut merged = strip_managed_block(&existing, start_marker, end_marker)?;
+    if !merged.is_empty() {
+        // The separator belongs to the managed block. Always adding exactly
+        // two newlines lets removal restore the pre-sync bytes precisely,
+        // regardless of the file's original trailing-newline shape.
+        merged.push_str("\n\n");
+    }
+    merged.push_str(start_marker);
+    merged.push('\n');
+    merged.push_str(contents.trim_end());
+    merged.push('\n');
+    merged.push_str(end_marker);
+    merged.push('\n');
+
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).with_context(|| format!("create {}", parent.display()))?;
+    }
+    if merged != existing {
+        fs::write(&path, merged).with_context(|| format!("write {}", path.display()))?;
+    }
+    Ok(true)
+}
+
+fn strip_managed_block(existing: &str, start_marker: &str, end_marker: &str) -> Result<String> {
+    let start = existing.find(start_marker);
+    let end = existing.find(end_marker);
+    match (start, end) {
+        (None, None) => Ok(existing.to_string()),
+        (Some(_), None) | (None, Some(_)) => bail!(
+            "managed block in config is incomplete; expected both {start_marker:?} and {end_marker:?}"
+        ),
+        (Some(start), Some(end)) if end < start => {
+            bail!("managed block end marker precedes its start marker")
+        }
+        (Some(start), Some(end)) => {
+            let after_marker = end + end_marker.len();
+            let after = if existing[after_marker..].starts_with('\n') {
+                after_marker + 1
+            } else {
+                after_marker
+            };
+            let managed_start = if existing[..start].ends_with("\n\n") {
+                start - 2
+            } else {
+                start
+            };
+            let mut stripped = String::with_capacity(existing.len());
+            stripped.push_str(&existing[..managed_start]);
+            stripped.push_str(&existing[after..]);
+            Ok(stripped)
+        }
+    }
+}
+
+fn remove_managed_block(
+    home: &Path,
+    relative_path: &str,
+    start_marker: &str,
+    end_marker: &str,
+    remove_if_empty: bool,
+) -> Result<bool> {
+    let path = safe_home_path(home, relative_path)?;
+    let Ok(metadata) = fs::symlink_metadata(&path) else {
+        return Ok(false);
+    };
+    if !metadata.is_file() {
+        return Ok(false);
+    }
+    let existing = fs::read_to_string(&path)
+        .with_context(|| format!("inspect existing {}", path.display()))?;
+    let stripped = strip_managed_block(&existing, start_marker, end_marker)?;
+    if stripped == existing {
+        return Ok(false);
+    }
+    if stripped.is_empty() && remove_if_empty {
+        fs::remove_file(&path).with_context(|| format!("remove {}", path.display()))?;
+    } else {
+        fs::write(&path, stripped).with_context(|| format!("write {}", path.display()))?;
+    }
+    Ok(true)
+}
+
 enum SymlinkOutcome {
     Applied,
     Skipped(String),
@@ -513,7 +692,7 @@ fn sync_symlink(
     home: &Path,
     relative_path: &str,
     target: &Path,
-    prior_symlinks: &BTreeSet<String>,
+    prior_symlink_targets: &BTreeMap<String, String>,
 ) -> Result<SymlinkOutcome> {
     let path = safe_home_path(home, relative_path)?;
 
@@ -525,13 +704,17 @@ fn sync_symlink(
         Ok(meta) if meta.file_type().is_symlink() => {
             let existing_target = fs::read_link(&path)
                 .with_context(|| format!("read existing symlink {}", path.display()))?;
-            if existing_target == target {
+            if resolve_symlink_target(&path, &existing_target) == target {
                 return Ok(SymlinkOutcome::Applied);
             }
-            let dangling = !existing_target.exists();
             let into_harness_kit = existing_target.to_string_lossy().contains("harness-kit");
-            let previously_managed = prior_symlinks.contains(relative_path);
-            if dangling || into_harness_kit || previously_managed {
+            let previously_managed =
+                prior_symlink_targets
+                    .get(relative_path)
+                    .is_some_and(|prior_target| {
+                        resolve_symlink_target(&path, &existing_target) == Path::new(prior_target)
+                    });
+            if into_harness_kit || previously_managed {
                 fs::remove_file(&path)
                     .with_context(|| format!("remove stale symlink {}", path.display()))?;
                 create_symlink(home, &path, target)?;
@@ -562,6 +745,14 @@ fn sync_symlink(
     }
 }
 
+fn resolve_symlink_target(path: &Path, target: &Path) -> PathBuf {
+    if target.is_absolute() {
+        target.to_path_buf()
+    } else {
+        path.parent().unwrap_or_else(|| Path::new(".")).join(target)
+    }
+}
+
 #[cfg(unix)]
 fn create_symlink(_home: &Path, path: &Path, target: &Path) -> Result<()> {
     if let Some(parent) = path.parent() {
@@ -579,6 +770,9 @@ fn create_symlink(_home: &Path, _path: &Path, _target: &Path) -> Result<()> {
 struct ManifestInfo {
     files: BTreeSet<String>,
     symlinks: BTreeSet<String>,
+    symlink_targets: BTreeMap<String, String>,
+    managed_blocks: BTreeSet<String>,
+    created_blocks: BTreeSet<String>,
 }
 
 fn read_manifest(home: &Path) -> Result<Option<ManifestInfo>> {
@@ -602,7 +796,49 @@ fn read_manifest(home: &Path) -> Result<Option<ManifestInfo>> {
                 .collect()
         })
         .unwrap_or_default();
-    Ok(Some(ManifestInfo { files, symlinks }))
+    let managed_blocks = value
+        .get("managed_blocks")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(ToOwned::to_owned)
+                .collect()
+        })
+        .unwrap_or_default();
+    let symlink_targets = value
+        .get("symlink_targets")
+        .and_then(Value::as_object)
+        .map(|targets| {
+            targets
+                .iter()
+                .filter_map(|(path, target)| {
+                    target
+                        .as_str()
+                        .map(|target| (path.clone(), target.to_string()))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let created_blocks = value
+        .get("created_blocks")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(ToOwned::to_owned)
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(Some(ManifestInfo {
+        files,
+        symlinks,
+        symlink_targets,
+        managed_blocks,
+        created_blocks,
+    }))
 }
 
 /// Removes anything the previous run managed that this run did not
@@ -616,6 +852,7 @@ fn cleanup_stale(
     prior: Option<&ManifestInfo>,
     written_files: &[String],
     written_symlinks: &[String],
+    written_blocks: &[String],
 ) -> Result<()> {
     let Some(prior) = prior else {
         return Ok(());
@@ -635,7 +872,15 @@ fn cleanup_stale(
             continue;
         };
         if prior.symlinks.contains(relative_path) {
-            if meta.file_type().is_symlink() {
+            let still_owned = meta.file_type().is_symlink()
+                && prior
+                    .symlink_targets
+                    .get(relative_path)
+                    .zip(fs::read_link(&path).ok())
+                    .is_some_and(|(target, current)| {
+                        resolve_symlink_target(&path, &current) == Path::new(target)
+                    });
+            if still_owned {
                 fs::remove_file(&path)
                     .with_context(|| format!("remove stale managed symlink {}", path.display()))?;
             }
@@ -645,6 +890,18 @@ fn cleanup_stale(
                 fs::remove_file(&path)
                     .with_context(|| format!("remove stale managed file {}", path.display()))?;
             }
+        }
+    }
+    let current_blocks: BTreeSet<&str> = written_blocks.iter().map(String::as_str).collect();
+    for relative_path in &prior.managed_blocks {
+        if !current_blocks.contains(relative_path.as_str()) {
+            remove_managed_block(
+                home,
+                relative_path,
+                CODEX_BLOCK_START,
+                CODEX_BLOCK_END,
+                prior.created_blocks.contains(relative_path),
+            )?;
         }
     }
     Ok(())
@@ -676,9 +933,56 @@ fn disable_sync(home: &Path) -> Result<()> {
                 .collect()
         })
         .unwrap_or_default();
+    let symlink_targets: BTreeMap<String, String> = manifest
+        .get("symlink_targets")
+        .and_then(Value::as_object)
+        .map(|targets| {
+            targets
+                .iter()
+                .filter_map(|(path, target)| {
+                    target
+                        .as_str()
+                        .map(|target| (path.clone(), target.to_string()))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let managed_blocks: Vec<String> = manifest
+        .get("managed_blocks")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(ToOwned::to_owned)
+                .collect()
+        })
+        .unwrap_or_default();
+    let created_blocks: BTreeSet<String> = manifest
+        .get("created_blocks")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(ToOwned::to_owned)
+                .collect()
+        })
+        .unwrap_or_default();
 
     let mut removed = Vec::new();
     let mut skipped = Vec::new();
+    for relative_path in managed_blocks {
+        if remove_managed_block(
+            home,
+            &relative_path,
+            CODEX_BLOCK_START,
+            CODEX_BLOCK_END,
+            created_blocks.contains(&relative_path),
+        )? {
+            removed.push(format!("{relative_path} (managed block)"));
+        }
+    }
     for relative_path in files
         .iter()
         .filter(|relative_path| !is_roster_state_path(relative_path))
@@ -690,8 +994,19 @@ fn disable_sync(home: &Path) -> Result<()> {
 
         if symlink_set.contains(relative_path) {
             if meta.file_type().is_symlink() {
-                fs::remove_file(&path).with_context(|| format!("remove {}", path.display()))?;
-                removed.push(relative_path.clone());
+                let current = fs::read_link(&path)
+                    .with_context(|| format!("read symlink {}", path.display()))?;
+                let still_owned = symlink_targets.get(relative_path).is_some_and(|target| {
+                    resolve_symlink_target(&path, &current) == Path::new(target)
+                });
+                if still_owned {
+                    fs::remove_file(&path).with_context(|| format!("remove {}", path.display()))?;
+                    removed.push(relative_path.clone());
+                } else {
+                    skipped.push(format!(
+                        "{relative_path} (symlink target changed after sync; left in place)"
+                    ));
+                }
             } else {
                 skipped.push(format!(
                     "{relative_path} (expected roster-managed symlink, found real path; left in place)"

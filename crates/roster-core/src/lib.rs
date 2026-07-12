@@ -8,6 +8,7 @@ use std::{
 #[derive(Debug)]
 pub struct Roster {
     agents: Vec<Agent>,
+    mcp_registry: McpRegistry,
 }
 
 impl Roster {
@@ -36,8 +37,13 @@ impl Roster {
 
         agents.sort_by(|left, right| left.role.name.cmp(&right.role.name));
         validate_unique_names(&agents)?;
+        let mcp_registry = McpRegistry::load(root)?;
+        validate_mcp_references(&agents, &mcp_registry)?;
 
-        Ok(Self { agents })
+        Ok(Self {
+            agents,
+            mcp_registry,
+        })
     }
 
     pub fn agents(&self) -> &[Agent] {
@@ -46,6 +52,132 @@ impl Roster {
 
     pub fn agent(&self, name: &str) -> Option<&Agent> {
         self.agents.iter().find(|agent| agent.role.name == name)
+    }
+
+    pub fn mcps(&self) -> &[Mcp] {
+        &self.mcp_registry.mcps
+    }
+
+    pub fn mcp(&self, id: &str) -> Option<&Mcp> {
+        self.mcps().iter().find(|mcp| mcp.id == id)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct McpRegistry {
+    pub schema_version: String,
+    pub provenance: String,
+    pub mcps: Vec<Mcp>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Mcp {
+    pub id: String,
+    pub status: String,
+    #[serde(default)]
+    pub transport: Option<String>,
+    #[serde(default)]
+    pub command: Option<String>,
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub env_refs: Vec<String>,
+    #[serde(default)]
+    pub app: Option<String>,
+    #[serde(default)]
+    pub source_repo: Option<String>,
+    #[serde(default)]
+    pub source_ref: Option<String>,
+    #[serde(default)]
+    pub product_skill: Option<String>,
+    #[serde(default)]
+    pub capabilities: Vec<String>,
+    #[serde(default)]
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub notes: Option<String>,
+}
+
+impl McpRegistry {
+    pub fn load(root: impl AsRef<Path>) -> Result<Self, RosterError> {
+        let path = root.as_ref().join("primitives/mcps/registry.yaml");
+        let text = fs::read_to_string(&path).map_err(|source| RosterError::Io {
+            path: path.clone(),
+            source,
+        })?;
+        let registry: Self = serde_yaml::from_str(&text).map_err(|source| RosterError::Yaml {
+            path: path.clone(),
+            source,
+        })?;
+
+        if registry.schema_version != "roster.mcp_registry.v1" {
+            return Err(RosterError::Validation(format!(
+                "{} has unsupported schema_version {:?}",
+                path.display(),
+                registry.schema_version
+            )));
+        }
+        require_non_empty(&registry.provenance, "provenance", &path)?;
+
+        let mut ids = BTreeSet::new();
+        for mcp in &registry.mcps {
+            require_non_empty(&mcp.id, "mcps[].id", &path)?;
+            require_non_empty(&mcp.status, "mcps[].status", &path)?;
+            require_one_of(
+                &mcp.status,
+                "mcps[].status",
+                &["available", "external", "disabled", "not_applicable"],
+                &path,
+            )?;
+            if !ids.insert(&mcp.id) {
+                return Err(RosterError::Validation(format!(
+                    "{} has duplicate MCP id {:?}",
+                    path.display(),
+                    mcp.id
+                )));
+            }
+            if let Some(reason) = &mcp.reason {
+                require_non_empty(reason, "mcps[].reason", &path)?;
+            }
+            for env_ref in &mcp.env_refs {
+                require_non_empty(env_ref, "mcps[].env_refs[]", &path)?;
+            }
+            match mcp.status.as_str() {
+                "available" => match mcp.transport.as_deref() {
+                    Some("stdio") => require_non_empty(
+                        mcp.command.as_deref().unwrap_or_default(),
+                        "mcps[].command",
+                        &path,
+                    )?,
+                    Some("http") => require_non_empty(
+                        mcp.url.as_deref().unwrap_or_default(),
+                        "mcps[].url",
+                        &path,
+                    )?,
+                    transport => {
+                        return Err(RosterError::Validation(format!(
+                            "{} MCP {:?} is available but has unsupported transport {:?}",
+                            path.display(),
+                            mcp.id,
+                            transport
+                        )));
+                    }
+                },
+                "disabled" | "not_applicable" => require_non_empty(
+                    mcp.reason.as_deref().unwrap_or_default(),
+                    "mcps[].reason",
+                    &path,
+                )?,
+                "external" => {}
+                _ => unreachable!("status was validated above"),
+            }
+        }
+
+        Ok(registry)
     }
 }
 
@@ -292,6 +424,39 @@ tools: {tools}
     ))
 }
 
+/// Codex custom agents are native config layers referenced from
+/// `[agents.<name>]` in `$CODEX_HOME/config.toml`. The prompt-native brief is
+/// carried as additive developer instructions; `roster brief` remains the
+/// standalone dispatch-packet surface.
+pub fn render_codex_agent(agent: &Agent) -> String {
+    let role = &agent.role;
+    let mut lines = vec!["# Generated from a Roster agent declaration.".to_string()];
+    if let Some(model) = std::iter::once(&role.model_policy.preferred)
+        .chain(role.model_policy.fallbacks.iter())
+        .find(|entry| entry.model.starts_with("gpt-"))
+    {
+        lines.push(format!("model = {}", toml_string(&model.model)));
+        lines.push(format!(
+            "model_reasoning_effort = {}",
+            toml_string(&model.reasoning)
+        ));
+    }
+    let sandbox = match role.permissions.filesystem.as_str() {
+        "read-only" => "read-only",
+        _ => "workspace-write",
+    };
+    lines.push(format!("sandbox_mode = {}", toml_string(sandbox)));
+    lines.push(format!(
+        "developer_instructions = {}",
+        toml_string(&render_brief(agent, &[], &[], None))
+    ));
+    format!("{}\n", lines.join("\n"))
+}
+
+fn toml_string(value: &str) -> String {
+    serde_json::to_string(value).expect("JSON strings are valid TOML basic strings")
+}
+
 /// Composes the single doctrine file `roster sync` points every harness's
 /// global doctrine link at: the shared operating doctrine verbatim, then
 /// `agent`'s identity (instructions, skills, MCP bindings), so any default
@@ -482,7 +647,6 @@ side_effect_policy = "kill"
 /// this needs no `Models` lookup.
 pub fn render_omp_agent(agent: &Agent) -> Result<String, String> {
     let role = &agent.role;
-    require_no_mcps("omp", role)?;
     let alias = omp_model_alias(&role.model_policy.preferred.reasoning);
     let tools = omp_tools(role);
 
@@ -497,12 +661,27 @@ tools: {tools}
 # {name}
 
 {instructions}
+
+## Skills To Read
+
+{skills}
+
+## MCP Servers
+
+{mcp_servers}
+
+## Evidence Expectations
+
+{evidence}
 "#,
         name = role.name,
         description = role.description,
         alias = alias,
         tools = tools,
         instructions = agent.instructions.trim(),
+        skills = render_skills(&role.skills, &[]),
+        mcp_servers = render_mcp_servers(&role.mcps, &role.mcps_contextual, &[]),
+        evidence = bullet_list(&role.evidence_expectations),
     ))
 }
 
@@ -533,6 +712,13 @@ fn omp_tools(role: &Role) -> String {
     }
     if role.permissions.network == "allowed" {
         tools.push("web_search");
+    }
+    if !role.mcps.is_empty() || !role.mcps_contextual.is_empty() {
+        // OMP task agents inherit the parent MCP manager. An explicit tools
+        // list otherwise hides MCP tools, so expose OMP's native discovery
+        // tool and let the declaration's required/contextual server ids guide
+        // model selection without hard-coding server tool names here.
+        tools.push("search_tool_bm25");
     }
     format!("[{}]", tools.join(", "))
 }
@@ -873,6 +1059,38 @@ fn validate_unique_names(agents: &[Agent]) -> Result<(), RosterError> {
             )));
         }
     }
+    Ok(())
+}
+
+fn validate_mcp_references(agents: &[Agent], registry: &McpRegistry) -> Result<(), RosterError> {
+    let statuses = registry
+        .mcps
+        .iter()
+        .map(|mcp| (mcp.id.as_str(), mcp.status.as_str()))
+        .collect::<BTreeMap<_, _>>();
+
+    for agent in agents {
+        for (kind, mcps) in [
+            ("mcps", agent.role.mcps.as_slice()),
+            ("mcps_contextual", agent.role.mcps_contextual.as_slice()),
+        ] {
+            for mcp in mcps {
+                let Some(status) = statuses.get(mcp.as_str()) else {
+                    return Err(RosterError::Validation(format!(
+                        "agent {:?} references unknown MCP {:?} in {kind}",
+                        agent.role.name, mcp
+                    )));
+                };
+                if matches!(*status, "disabled" | "not_applicable") {
+                    return Err(RosterError::Validation(format!(
+                        "agent {:?} references MCP {:?} with non-bindable status {:?} in {kind}",
+                        agent.role.name, mcp, status
+                    )));
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 

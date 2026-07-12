@@ -17,7 +17,7 @@ MCP-ification.
 
 Use MCP first when the integration has one or more of these symptoms:
 
-- **Multi-harness use:** Claude, Codex, Pi, Antigravity, and future clients
+- **Multi-harness use:** Tier 1 Claude Code, Codex, OMP, and future clients
   should all call the same capability without bespoke wrappers.
 - **Multi-repo reuse:** more than one downstream repo needs the same external
   system.

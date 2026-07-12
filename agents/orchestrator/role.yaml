@@ -50,7 +50,6 @@ mcps:
 mcps_contextual:
   - qmd
   - todoist
-  - bitterblossom
   - glass
 subagent_rights:
   may_dispatch: true

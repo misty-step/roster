@@ -3,17 +3,41 @@
 Roster makes agents the first-class citizens of the factory. It is the single
 place where every agent we run is DECLARED — its role, system prompt,
 capabilities, model policy, permitted skills and MCP servers, evidence
-expectations — and the machinery that turns a declaration into a running
-agent on any plane: this laptop's harnesses, bitterblossom's remote runners,
-or whatever substrate comes next.
+expectations — and the machinery that compiles a declaration into the native
+configuration or briefing a plane consumes. Harnesses and Bitterblossom run
+agents; Roster never does.
 
 It succeeds harness-kit by inverting the sync model. Harness-kit synced the
-entire pack of primitives to every harness on every machine — overkill that
-made every session carry every skill. Roster syncs ONE default orchestrator
-agent (the lead) with a curated subset of primitives; the rest of the roster
-is exposed through the five faces (CLI, MCP, API, SDK, skill) and discovered
-ad hoc. The lead sees the other agents, and dispatches them with exactly the
-context they need — no more, no less.
+entire pack as eagerly loaded context. Roster instead exposes the full catalog
+as cheap filesystem discovery while composing ONE default orchestrator agent
+(the lead). Other identities remain independently materializable through the
+CLI, MCP, API, and skill faces. Availability is broad; loaded context stays
+narrow.
+
+## Workstation contract (operator-ratified 2026-07-11)
+
+- **One managed core.** Roster owns agent declarations, skills, MCP
+  definitions, model/policy defaults, and the generated portions of harness
+  configuration. Harnesses own authentication, sessions, caches, UI
+  preferences, and explicitly local additions.
+- **One composition root.** `orchestrator` is the default workstation agent.
+  Other agents are selected and materialized explicitly; installing every
+  identity is an opt-in expansion, not the default session shape.
+- **Three Tier 1 harnesses.** Claude Code, Codex, and OMP receive native
+  projections and live doctor coverage. Other materializers are compatibility
+  targets: useful, tested where practical, but not equal support claims.
+- **One MCP catalog.** `primitives/mcps/registry.yaml` is the declaration;
+  `role.yaml` references server ids directly. There is no second profile or
+  policy system. `available` means Roster carries a complete launch shape;
+  `external` means the consumer runtime supplies the binding; `disabled`
+  means doctor rejects any active effective registration. Required servers
+  must resolve before dispatch; contextual servers bind only when present.
+- **One mutator.** `roster sync` is the explicit, reversible convergence
+  command. It may replace only manifest-owned files, links, or marked config
+  blocks. `roster doctor` is read-only and reports effective-state drift.
+- **Thin consumers.** Bitterblossom and other applications consume the same
+  declarations and materializations through CLI/MCP/API surfaces. Runtime
+  scheduling, credentials, sessions, and execution remain theirs.
 
 ## The shape (operator-ratified 2026-07-04)
 
@@ -24,7 +48,7 @@ context they need — no more, no less.
   rights, evidence expectations) and `instructions.md` (the system prompt).
   Optional `tools/` for bespoke tooling. The declaration is data + prose,
   never framework code.
-- **`primitives/`** — the curated library beneath the agents: `skills/`
+- **`primitives/`** — the catalog beneath the agents: `skills/`
   (first-party skills migrated from harness-kit over time, vendored external
   skills — Anthropic official, OpenAI official, Matt Pocock's — under
   `skills/.external/`), `mcps/` (MCP server registry: name, launch, env
@@ -34,13 +58,13 @@ context they need — no more, no less.
   model ids that need one), `subagent-pool.yaml` (the default ad hoc
   subagent pool every agent favors).
 - **`roster` CLI (Rust)** — the operational face: `list`, `show <agent>`,
-  `materialize <agent> --harness <claude|codex|pi|bb>` (emit the
+  `materialize <agent> --harness <claude|codex|omp|bb>` (emit the
   harness-native form of a declaration), `brief <agent> [--card <id>]
   [--add-skill X] [--add-mcp Y]` (emit a ready lane-brief header: role
   prompt + skill file paths to read + MCP selection + evidence contract —
-  the DYNAMIC COMPOSITION seam), `sync` (install the default agent + its
-  curated subset to this machine's harnesses — the harness-kit bootstrap
-  successor, initially opt-in and parallel).
+  the DYNAMIC COMPOSITION seam), `sync` (converge the managed workstation
+  projection), and `doctor` (inspect effective Tier 1 state without
+  mutation).
 
 ## Dynamic composition (the critical design consideration)
 
@@ -76,15 +100,19 @@ P0 — repo, VISION, CLI core (list/show/materialize/brief), three seed agents,
 providers.yaml migrated. P1 — bitterblossom consumes roster for one role
 end-to-end. P2 — `roster sync` initializes the lead on this machine. P3 —
 primitives, hooks, doctrine, and workstation projection migrate; Harness Kit
-retires. P0-P3 completed in the roster-926 cutover. P4 — Cerberus's identity
-fully in roster; its standalone repo archives.
+retires. P0-P3 completed in the roster-926 cutover. P4 — close effective-state
+convergence: native Tier 1 projections, one MCP catalog, and read-only doctor
+evidence. P5 — Cerberus's identity fully in roster; its standalone repo
+archives.
 
 ## Non-goals
 
 - Not an execution runtime: roster declares and materializes; planes run.
 - Not a framework: no SDK-lock, no build step for agent definitions.
 - No secret values in declarations — env refs only.
-- No big-bang migration: nothing existing breaks in any phase.
+- No ownership of harness auth, sessions, caches, UI state, or unmarked local
+  configuration.
+- No equal-support fiction: compatibility targets do not inherit Tier 1 claims.
 
 ## What excellent looks like (3 months)
 

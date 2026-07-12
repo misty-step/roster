@@ -5,7 +5,7 @@ use std::{
     fs,
     io::{Read, Write},
     net::TcpListener,
-    path::PathBuf,
+    path::{Path, PathBuf},
     thread::{self, JoinHandle},
 };
 
@@ -102,20 +102,24 @@ fn show_prints_agent_detail() {
         ))
         .stdout(predicate::str::contains("MCPs: powder"))
         .stdout(predicate::str::contains(
-            "Contextual MCPs: qmd, todoist, bitterblossom, glass",
+            "Contextual MCPs: qmd, todoist, glass",
         ))
         .stdout(predicate::str::contains("Evidence Expectations"));
 }
 
 #[test]
-fn materialize_codex_prints_brief_header() {
+fn materialize_codex_prints_native_role_config() {
     roster_cmd()
         .args(["materialize", "cerberus", "--harness", "codex"])
         .assert()
         .success()
-        .stdout(predicate::str::contains("# Roster Brief: cerberus"))
-        .stdout(predicate::str::contains("Read:"))
-        .stdout(predicate::str::contains("Code-review master"));
+        .stdout(predicate::str::contains("model = \"gpt-5.6-luna\""))
+        .stdout(predicate::str::contains(
+            "model_reasoning_effort = \"xhigh\"",
+        ))
+        .stdout(predicate::str::contains("sandbox_mode = \"read-only\""))
+        .stdout(predicate::str::contains("developer_instructions = "))
+        .stdout(predicate::str::contains("# Roster Brief: cerberus"));
 }
 
 #[test]
@@ -188,20 +192,20 @@ fn materialize_omp_maps_filesystem_and_command_permissions() {
         .assert()
         .success()
         .stdout(predicate::str::contains(
-            "tools: [read, grep, glob, web_search]",
+            "tools: [read, grep, glob, web_search, search_tool_bm25]",
         ))
         .stdout(predicate::str::contains("bash").not());
 }
 
 #[test]
-fn materialize_omp_refuses_agents_whose_required_mcps_cannot_be_bound() {
+fn materialize_omp_exposes_mcp_discovery_for_required_servers() {
     roster_cmd()
         .args(["materialize", "boss", "--harness", "omp"])
         .assert()
-        .failure()
-        .stderr(predicate::str::contains(
-            "omp cannot bind required MCP servers for agent \"boss\": powder",
-        ));
+        .success()
+        .stdout(predicate::str::contains("name: boss"))
+        .stdout(predicate::str::contains("search_tool_bm25"))
+        .stdout(predicate::str::contains("powder"));
 }
 
 #[test]
@@ -478,8 +482,11 @@ fn sync_installs_orchestrator_and_curated_primitives_without_touching_harness_ki
     assert!(claude_agent.contains("model: inherit"));
     assert!(claude_agent.contains("tools: Read, Write, Edit, Grep, Glob, Bash, WebSearch"));
 
-    let codex_agent = read(home.path().join(".codex/agents/orchestrator.md"));
-    assert!(codex_agent.contains("<!-- roster-sync:orchestrator:v1 -->"));
+    let codex_agent = read(
+        home.path()
+            .join(".roster/orchestrator/codex-roles/orchestrator.toml"),
+    );
+    assert!(codex_agent.contains("model = \"gpt-5.6-luna\""));
     assert!(codex_agent.contains("# Roster Brief: orchestrator"));
 
     let pi_agent = read(home.path().join(".pi/agents/orchestrator.md"));
@@ -502,10 +509,15 @@ fn sync_installs_orchestrator_and_curated_primitives_without_touching_harness_ki
     );
 
     let manifest = read(home.path().join(".roster/orchestrator/manifest.json"));
-    assert!(manifest.contains("\"schema_version\": \"roster.sync.v1\""));
-    assert!(manifest.contains("\".codex/agents/orchestrator.md\""));
+    assert!(manifest.contains("\"schema_version\": \"roster.sync.v3\""));
+    assert!(manifest.contains("\"symlink_targets\""));
+    assert!(manifest.contains("\"created_blocks\""));
+    assert!(manifest.contains("\".roster/orchestrator/codex-roles/orchestrator.toml\""));
+    assert!(!manifest.contains("\".codex/agents/orchestrator.md\""));
     assert!(manifest.contains("\".claude/agents/orchestrator.md\""));
     assert!(manifest.contains("\".pi/agents/orchestrator.md\""));
+    assert!(manifest.contains("\"managed_blocks\""));
+    assert!(manifest.contains("\".codex/config.toml\""));
 
     let rollback = read(home.path().join(".roster/orchestrator/ROLLBACK.md"));
     assert!(rollback.contains("roster sync --disable"));
@@ -598,10 +610,11 @@ fn sync_disable_removes_only_roster_managed_files() {
         .stdout(predicate::str::contains(
             "Disabled roster orchestrator sync",
         ))
-        .stdout(predicate::str::contains(".codex/agents/orchestrator.md"));
+        .stdout(predicate::str::contains(
+            ".codex/config.toml (managed block)",
+        ));
 
     assert!(!home.path().join(".roster/orchestrator").exists());
-    assert!(!home.path().join(".codex/agents/orchestrator.md").exists());
     assert!(!home.path().join(".claude/agents/orchestrator.md").exists());
     assert!(!home.path().join(".pi/agents/orchestrator.md").exists());
     assert_eq!(
@@ -612,6 +625,7 @@ fn sync_disable_removes_only_roster_managed_files() {
         fs::read_to_string(&unrelated_agent).expect("unrelated agent"),
         "operator-owned"
     );
+    assert!(!home.path().join(".codex/config.toml").exists());
 }
 
 #[test]
@@ -677,7 +691,7 @@ fn sync_full_catalog_links_first_party_and_external_skills() {
 }
 
 #[test]
-fn sync_rehomes_installed_pi_and_gemini_surfaces_from_harness_kit() {
+fn sync_rehomes_installed_pi_and_gemini_surfaces_without_claiming_legacy_codex_config() {
     let home = tempfile::tempdir().expect("temp home");
     let predecessor = home.path().join("fake-harness-kit");
     write_file(
@@ -730,9 +744,12 @@ fn sync_rehomes_installed_pi_and_gemini_surfaces_from_harness_kit() {
         fs::read_link(home.path().join(".pi/settings.json")).unwrap(),
         workspace_root().join("harnesses/pi/settings.json")
     );
+    // Current Codex reads ~/.codex/config.toml. The legacy nested config is
+    // not a valid projection target and remains untouched when no prior
+    // roster manifest proves ownership.
     assert_eq!(
         fs::read_link(home.path().join(".codex/config/config.toml")).unwrap(),
-        workspace_root().join("harnesses/codex/config.toml")
+        predecessor.join("harnesses/codex/config.toml")
     );
     for path in [
         ".gemini/config/skills/orient",
@@ -847,6 +864,198 @@ fn sync_is_idempotent_on_second_run() {
 }
 
 #[test]
+fn sync_registers_native_codex_agent_and_preserves_local_config() {
+    let home = tempfile::tempdir().expect("temp home");
+    let config = home.path().join(".codex/config.toml");
+    let original = "model = \"local-model\"\n\n[agents.custom]\ndescription = \"local role\"\nconfig_file = \"custom.toml\"\n";
+    write_file(&config, original);
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+
+    let first = read(&config);
+    assert!(first.contains("model = \"local-model\""));
+    assert!(first.contains("[agents.custom]"));
+    assert!(first.contains("# >>> roster sync: codex agents v1"));
+    assert!(first.contains("[agents.\"orchestrator\"]"));
+    assert!(first.contains("# <<< roster sync: codex agents v1"));
+    let role = read(
+        home.path()
+            .join(".roster/orchestrator/codex-roles/orchestrator.toml"),
+    );
+    assert!(role.contains("model = \"gpt-5.6-luna\""));
+    assert!(role.contains("model_reasoning_effort = \"xhigh\""));
+    assert!(role.contains("developer_instructions = "));
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+    let second = read(&config);
+    assert_eq!(first, second);
+    assert_eq!(
+        second.matches("# >>> roster sync: codex agents v1").count(),
+        1
+    );
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .arg("--disable")
+        .assert()
+        .success();
+    let disabled = read(&config);
+    assert_eq!(disabled, original, "disable must restore exact local bytes");
+}
+
+#[test]
+fn sync_disable_removes_codex_config_created_only_for_roster() {
+    let home = tempfile::tempdir().expect("temp home");
+    let config = home.path().join(".codex/config.toml");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+    assert!(config.is_file());
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .arg("--disable")
+        .assert()
+        .success();
+    assert!(!config.exists());
+}
+
+#[test]
+fn sync_disable_preserves_preexisting_empty_codex_config() {
+    let home = tempfile::tempdir().expect("temp home");
+    let config = home.path().join(".codex/config.toml");
+    write_file(&config, "");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .arg("--disable")
+        .assert()
+        .success();
+
+    assert!(config.is_file());
+    assert_eq!(read(config), "");
+}
+
+#[test]
+fn sync_preserves_valid_unmanaged_relative_symlink() {
+    let home = tempfile::tempdir().expect("temp home");
+    let claude_dir = home.path().join(".claude");
+    write_file(&claude_dir.join("custom-doctrine.md"), "local doctrine\n");
+    std::os::unix::fs::symlink("custom-doctrine.md", claude_dir.join("CLAUDE.md"))
+        .expect("create relative doctrine symlink");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unmanaged symlink"));
+
+    assert_eq!(
+        fs::read_link(claude_dir.join("CLAUDE.md")).unwrap(),
+        Path::new("custom-doctrine.md")
+    );
+}
+
+#[test]
+fn sync_preserves_unmanaged_dangling_relative_symlink() {
+    let home = tempfile::tempdir().expect("temp home");
+    let claude_dir = home.path().join(".claude");
+    fs::create_dir_all(&claude_dir).expect("create claude dir");
+    std::os::unix::fs::symlink("missing-local-doctrine.md", claude_dir.join("CLAUDE.md"))
+        .expect("create dangling relative doctrine symlink");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unmanaged symlink"));
+
+    assert_eq!(
+        fs::read_link(claude_dir.join("CLAUDE.md")).unwrap(),
+        Path::new("missing-local-doctrine.md")
+    );
+}
+
+#[test]
+fn resync_and_disable_preserve_user_replacement_for_managed_symlink() {
+    let home = tempfile::tempdir().expect("temp home");
+    let doctrine = home.path().join(".claude/CLAUDE.md");
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+
+    fs::remove_file(&doctrine).expect("remove managed doctrine link");
+    write_file(&home.path().join(".claude/local-doctrine.md"), "local\n");
+    std::os::unix::fs::symlink("local-doctrine.md", &doctrine)
+        .expect("install user replacement link");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unmanaged symlink"));
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .arg("--disable")
+        .assert()
+        .success();
+
+    assert_eq!(
+        fs::read_link(doctrine).unwrap(),
+        Path::new("local-doctrine.md")
+    );
+}
+
+#[test]
+fn sync_projects_doctrine_and_skills_to_installed_omp_without_touching_config() {
+    let home = tempfile::tempdir().expect("temp home");
+    let config = home.path().join(".omp/agent/config.yml");
+    write_file(&config, "models:\n  slow: local\n");
+
+    roster_cmd()
+        .args(["sync", "--home"])
+        .arg(home.path())
+        .assert()
+        .success();
+
+    assert_eq!(read(&config), "models:\n  slow: local\n");
+    assert_eq!(
+        fs::read_link(home.path().join(".omp/agent/AGENTS.md")).unwrap(),
+        home.path().join(".roster/orchestrator/home-doctrine.md")
+    );
+    assert!(
+        fs::symlink_metadata(home.path().join(".omp/agent/skills/orient"))
+            .unwrap()
+            .is_symlink()
+    );
+}
+
+#[test]
 fn sync_disable_removes_skill_farm_and_doctrine_symlinks() {
     let home = tempfile::tempdir().expect("temp home");
     // Present pi and opencode so this run also plants their doctrine links,
@@ -854,6 +1063,7 @@ fn sync_disable_removes_skill_farm_and_doctrine_symlinks() {
     // always-on claude/codex pair.
     write_file(&home.path().join(".pi/settings.json"), "{}");
     write_file(&home.path().join(".config/opencode/opencode.json"), "{}");
+    write_file(&home.path().join(".omp/agent/config.yml"), "models: {}\n");
 
     roster_cmd()
         .args(["sync", "--home"])
@@ -869,6 +1079,7 @@ fn sync_disable_removes_skill_farm_and_doctrine_symlinks() {
     );
     assert!(home.path().join(".pi/agent/AGENTS.md").exists());
     assert!(home.path().join(".config/opencode/AGENTS.md").exists());
+    assert!(home.path().join(".omp/agent/AGENTS.md").exists());
 
     roster_cmd()
         .args(["sync", "--home"])
@@ -887,9 +1098,11 @@ fn sync_disable_removes_skill_farm_and_doctrine_symlinks() {
     );
     assert!(!home.path().join(".pi/agent/AGENTS.md").exists());
     assert!(!home.path().join(".config/opencode/AGENTS.md").exists());
+    assert!(!home.path().join(".omp/agent/AGENTS.md").exists());
     // opencode's own config file is not roster-managed; disable must not
     // touch it.
     assert!(home.path().join(".config/opencode/opencode.json").exists());
+    assert!(home.path().join(".omp/agent/config.yml").exists());
 }
 
 #[test]
@@ -905,7 +1118,10 @@ fn sync_all_agents_materializes_every_agent() {
 
     let cerberus_claude = read(home.path().join(".claude/agents/cerberus.md"));
     assert!(cerberus_claude.contains("<!-- roster-sync:orchestrator:v1 -->"));
-    let cerberus_codex = read(home.path().join(".codex/agents/cerberus.md"));
+    let cerberus_codex = read(
+        home.path()
+            .join(".roster/orchestrator/codex-roles/cerberus.toml"),
+    );
     assert!(cerberus_codex.contains("# Roster Brief: cerberus"));
 }
 

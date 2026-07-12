@@ -934,6 +934,7 @@ dependencies = [
  "assert_cmd",
  "chrono",
  "clap",
+ "libc",
  "predicates",
  "roster-canary",
  "roster-core",
@@ -948,6 +949,7 @@ name = "roster-core"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "serde_yaml",
  "tempfile",
  "thiserror",

@@ -121,7 +121,7 @@ fn loads_seed_agents_from_repo() {
     assert_eq!(orchestrator.role.mcps, ["powder"]);
     assert_eq!(
         orchestrator.role.mcps_contextual,
-        ["qmd", "todoist", "bitterblossom", "glass"]
+        ["qmd", "todoist", "glass"]
     );
     assert_eq!(
         orchestrator.role.model_policy.preferred.model,
@@ -145,10 +145,7 @@ fn loads_seed_agents_from_repo() {
     );
     assert_eq!(ai_scout.role.model_policy.preferred.reasoning, "high");
     assert!(ai_scout.role.mcps.is_empty());
-    assert_eq!(
-        ai_scout.role.mcps_contextual,
-        ["exa", "firecrawl", "context7"]
-    );
+    assert_eq!(ai_scout.role.mcps_contextual, ["exa", "firecrawl"]);
     assert!(!ai_scout.role.subagent_rights.may_dispatch);
     assert!(ai_scout.role.subagent_rights.may_spawn_subagents);
     assert!(ai_scout.instructions.contains("probe the cheap tier"));

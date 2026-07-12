@@ -1,11 +1,12 @@
 mod check;
+mod doctor;
 mod sync;
 
 use anyhow::{Context, Result, anyhow};
 use clap::{Parser, Subcommand, ValueEnum};
 use roster_core::{
     Models, PowderCardSnapshot, PowderClaim, Roster, render_bb_agent, render_brief,
-    render_claude_agent, render_omp_agent, render_show,
+    render_claude_agent, render_codex_agent, render_omp_agent, render_show,
 };
 use serde_json::Value;
 use std::path::PathBuf;
@@ -54,6 +55,16 @@ enum Command {
     /// Gate the primitives catalog: frontmatter shape, referenced-path
     /// existence, skills-index/disk parity, conflict markers.
     Check,
+    /// Inspect Tier 1 harness projections without changing the machine.
+    Doctor {
+        #[arg(long)]
+        home: Option<PathBuf>,
+        #[arg(long)]
+        json: bool,
+        /// Run bounded external runtime/MCP/QMD/process/disk probes.
+        #[arg(long)]
+        live: bool,
+    },
 }
 
 #[derive(Clone, Debug, ValueEnum)]
@@ -118,7 +129,7 @@ fn run(cli: Cli) -> Result<()> {
                         render_claude_agent(agent, &models).map_err(|error| anyhow!(error))?
                     );
                 }
-                Harness::Codex => print!("{}", render_brief(agent, &[], &[], None)),
+                Harness::Codex => print!("{}", render_codex_agent(agent)),
                 Harness::Bb => {
                     let models = Models::load(&cli.root)?;
                     print!(
@@ -165,6 +176,19 @@ fn run(cli: Cli) -> Result<()> {
                 roster_canary::report_error(
                     "roster.check.failed",
                     "roster check reported violations",
+                );
+                roster_canary::flush();
+                std::process::exit(1);
+            }
+        }
+        Command::Doctor { home, json, live } => {
+            if !doctor::run(&cli.root, home, json, live)? {
+                // Like `check`, doctor emits its machine/human report before
+                // returning the failure status. Flush telemetry explicitly
+                // because process::exit bypasses main's post-run path.
+                roster_canary::report_error(
+                    "roster.doctor.failed",
+                    "roster doctor reported failures",
                 );
                 roster_canary::flush();
                 std::process::exit(1);
