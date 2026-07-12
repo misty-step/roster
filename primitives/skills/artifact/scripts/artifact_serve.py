@@ -31,7 +31,7 @@ POWDER_BASE = "https://sanctum.tail5f5eb4.ts.net:10001"
 class Handler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache")
-        # The Bridge page is mirrored on other tailnet hosts (Sanctum/bastion)
+        # The Bridge page is mirrored on the Sanctum tailnet host.
         # but the answer relay lives only here; cross-origin POSTs are
         # tailnet-private, so a permissive origin is acceptable.
         self.send_header("Access-Control-Allow-Origin", "*")

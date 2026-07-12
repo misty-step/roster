@@ -15,7 +15,7 @@ still apply without the file layout.
 
 ## Source Signals
 
-- In-house exemplar: `~/Development/bastion/apps/cairn` ships web, JSON API,
+- In-house exemplar: `~/Development/sanctum/vendor/cairn` ships web, JSON API,
   CLI, and MCP from one Rust app. The useful shape is: domain functions behind
   one state boundary; API and web call those functions; CLI and MCP share a
   client surface.
