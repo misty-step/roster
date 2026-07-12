@@ -1,163 +1,102 @@
 ---
 name: deliver
 description: |
-  Take one ticket or idea from raw intent to merge-ready (or shipped, when
-  asked): context-first, docs→tests→code, live QA, refactor at three
-  altitudes, semantic commits, diverse-provider review, adversarial pre-ship
-  thinking. Use for "deliver this", "build this ticket", "make it
-  merge-ready", "take this end to end". Trigger: /deliver.
-argument-hint: "[backlog-item|description]"
+  Deliver one routed ticket end to end: make the contract executable, build
+  the smallest coherent change, prove the live outcome, review it, and leave
+  it merge-ready or ship when explicitly asked. Use for "deliver this",
+  "build this ticket", "make it merge-ready", "take this end to end".
+  Trigger: /deliver.
+argument-hint: "[ticket|description]"
 ---
 
 # /deliver
 
-One piece of work, end to end, done the way we'd be proud of. This skill is
-judgment checkpoints, not phase machinery — you own the decomposition, and
-even the best model skips some of these steps unprompted. Don't.
+Take one work card from intent to durable proof. `/deliver` is the composer;
+the specialist skills own shaping, verification, review, CI, and closeout.
 
-## Context first
+## Contract
 
-Before writing anything: read the ticket and the live code it touches; build
-real product understanding (who uses this, what breaks if it's wrong);
-`/research` best practices when the design has open questions; and
-**pre-factor** — if the change lands in messy ground, clean the ground first
-as its own commit. If the ticket has no goal or acceptance oracle, run
-`/shape` (or write the oracle yourself for small work) before building.
-For product direction, positioning, long-lived workflow, or project-identity
-changes: read root VISION.md when present; if missing or stale, route to
-`/vision` before building.
-If the goal is still in the user's head, interrogate before shaping with the
-interrogate-first lens (`primitives/shared/references/interrogate-first.md`); one
-good question beats a guessed plan.
-Building without an oracle yields plausible garbage. For public API, CLI, UI,
-performance, compatibility, migration, or operator workflow changes, load
-`primitives/shared/references/works-critique.md` before pre-ship review. Before
-adding surface for automation, optimization, or refactor pressure, see
-`primitives/shared/references/delete-first.md` (Ponytail:
-`primitives/skills/.external/dietrich-ponytail/SKILL.md`).
+- Read the routed card, current code, repository contracts, and existing proof
+  surface. The card's goal, acceptance oracle, relations, and status outrank
+  remembered thread state.
+- Name the observable outcome and falsifier before editing. No executable
+  oracle means write the small one or route to `/shape`; no oracle means no
+  delivery.
+- Reuse the repository's existing seam. If the target is too tangled to change
+  safely, make the smallest behavior-preserving pre-factor as a separate
+  reviewable unit.
+- Identify the live verification driver that can prove the change to a future
+  reviewer. If the outcome needs live proof and no driver exists, establish
+  that driver before the feature.
 
-For non-trivial execution, work from the shape HTML plan when one exists — read
-the published page; never auto-open a browser (operator ruling 2026-07-04). If
-none exists, `/shape` authors it before code the same way (publish to the
-Sanctum shelf, attach to the card). The plan stands alone for the executor:
-hero as the work contract, support for alternatives/tradeoffs, acceptance,
-verification, cadence, stop conditions, and adversarial review. Layer the
-quality system onto it (`primitives/shared/references/quality-system.md`):
-standards, proof methods, critic topology, stop rules. Skip only for trivial
-mechanical fixes or an explicit operator waiver.
+## Compose only what the work needs
 
-**Verification system first** (shared AGENTS.md, Layer 1): locate the
-repo's live-verification harness — the one command that exercises a change
-against the running thing and emits reviewable evidence. If none exists,
-building it is the ticket's first milestone, not a detour; every milestone
-after ships through it. The harness-before-feature session catches the
-bugs unit tests structurally cannot. For evals, benchmarks, QA paths, agent
-behavior, performance, or unclear proof loops, load
-`primitives/shared/references/verification-system-first.md` and name the
-claim, falsifier, driver, grader, evidence packet, and cadence before edits.
+| Signal | Route |
+|---|---|
+| Goal, acceptance, or tradeoff is unresolved | `/shape` |
+| External facts would change the design | `/research` |
+| Product identity or long-lived direction is unsettled | `/vision` |
+| Running behavior needs proof | `/qa` |
+| Non-trivial diff needs fresh-context judgment | `/code-review` |
+| The repository gate is absent, weak, or red | `/ci` |
+| Independent heavy lanes materially shorten the critical path | `/sprites` |
+| Delivery exposed a reusable repo-technical lesson | `/compound` after proof |
 
-## Docs → tests → code
+Do not invoke a specialist as ceremony. Invoke it when its oracle is needed.
 
-Write the documentation first: what will be true when this works (README
-section, doc comment, API doc — whatever the repo's convention is). Then
-failing tests that encode it. Then code to green. After green, loop back and
-sync all three — docs, tests, and code must agree at the end, not just the
-start. Work on a feature branch; never commit to the default branch.
+## Execute the contract
 
-Lenses, when judgment is contested: Ousterhout (deep modules, small
-interfaces — the invocable vocabulary lives in the vendored
-`primitives/skills/.external/mattpocock-codebase-design/SKILL.md`), Carmack
-(shippability — what can be cut), Kent C. Dodds (test what users do, not
-implementation), Uncle Bob (leave it cleaner than found).
+1. Make the cheapest credible check fail on the missing behavior: a test,
+   replay, benchmark, browser path, consumer build, or acceptance assertion.
+2. Implement the smallest coherent change that makes it pass. Delete obsolete
+   paths and migrate callers cleanly; no compatibility shadow unless the card
+   requires one.
+3. Exercise the live driver after each meaningful milestone. A narrow unit
+   check cannot substitute for the user or operator path named by the card.
+4. When implementation reveals an off-plan edge, choose the conservative
+   option and record the changed contract or risk coordinate in the shape/card.
+   If it invalidates the outcome or oracle, stop and re-shape rather than
+   rationalizing drift.
+5. Once it works, refactor at three altitudes: simplify the diff, improve or
+   remove the seam it exposed, and card only larger product moves that do not
+   belong in this delivery.
 
-## Deviations
+For disputed proof loops, load
+`primitives/shared/references/verification-system-first.md`. For public API,
+CLI, UI, performance, compatibility, migration, or operator-workflow changes,
+load `primitives/shared/references/works-critique.md` before pre-ship review.
 
-The plan will be wrong somewhere — live code always holds unknowns the shape
-didn't map. When an edge case forces an off-plan choice that doesn't break
-the shape itself: pick the conservative option, log it in a **Deviations**
-section of the plan artifact (site, what forced it, what you chose), and
-keep going. If the deviation invalidates the shape, that's the re-shaping
-stop (Gotchas), not a ledger entry.
+## Prove and land
 
-The ledger is routed, not private notes: reviewers get the deviation sites
-as risk coordinates (locations, never your justifications — that stays the
-reasoning-trail rule), `/qa` drives them as the edges most plausibly broken,
-and each entry is a discovered unknown that feeds the shape or backlog after
-landing.
-
-## QA the live thing
-
-`/qa` routes by app shape (browser, API, CLI, library, MCP) and owns the
-"tests pass is not verification" claim. Run it through the verification
-harness you located or built in Context first. Leave an evidence packet —
-screenshots, transcripts, request/response pairs, a verdict — where the repo
-keeps its receipts, so the claim is checkable after you're gone.
-
-## Refactor at three altitudes
-
-With working code in hand, ask at each level — and act on what you find. When
-the refactor must prove it changed *nothing observable* and the target has no
-characterization tests, "unit tests pass" cannot see the seam a lift most
-often breaks — reach for the live-diff pattern in
-`primitives/shared/references/verification-system-first.md` (diff the local
-branch against the deployed/pre-refactor build over the same backing store).
-
-1. **The diff.** Would we write it this way from scratch? Duplicate code to
-   DRY out? Conditionals to collapse? Slop to delete (unnecessary comments,
-   defensive try/catch, casts, dead branches)?
-2. **The codebase.** Is there a cleaner seam? Does this change reveal an
-   abstraction that should exist — or one that should die?
-3. **The backlog.** Does what you learned change what the product should do
-   next? File tickets for the bigger moves; don't smuggle them into this
-   branch.
-
-For non-trivial code, add the synced
-`thermo-nuclear-code-quality-review` skill
-(`primitives/skills/.external/cursor-thermo-nuclear-code-quality-review/SKILL.md`) as
-the harsh maintainability pass before declaring the diff clean. julius-caveman
-for interim synthesis only; findings, code, commits, and final artifacts stay
-normal English.
-
-## Land it
-
-- **Semantic conventional commits**, push: classify, split by concern,
-  why-shaped bodies.
-- **Review by diverse providers — never only yourself.** `/code-review` fans
-  out fresh-context reviewers across model families; fix blockers, re-review
-  until clean. Iterate until CI is green *and rigorous* — if the gate
-  wouldn't have caught the likely failure, strengthening it is part of this
-  ticket (`/ci`). Respond to every review finding: fix, ticket, or rejected
-  with a stated reason.
-- **Think adversarially before shipping.** If this breaks in production,
-  what breaks first? How would we know — which log line, metric, or alert?
-  If the answer is "we wouldn't," add the logging/alerting now, not after
-  the incident. Dependency upgrades ride as one curated, risk-assessed
-  commit — never a pile of unexamined bumps.
-- **Default stop: merge-ready.** Squash-merge to the default branch
-  (backlog-closure trailers per `docs/CONTRACTS.md`, injected with
-  `git interpret-trailers`) only when the operator asked for shipped, not just
-  delivered. Then monitor if the repo has a post-ship signal, and ta-da.
+- Run `/qa` against the live shape and retain reviewable evidence where the
+  repository keeps receipts.
+- Run `/code-review` with the diff and oracle, not the author's reasoning
+  trail. Resolve every blocking finding, then re-prove affected behavior.
+- Run the repository gate. Strengthen it only when the likely regression is
+  in scope and the existing gate would miss it.
+- Commit by concern using the repository's convention and push when the
+  workflow requires it. Default stop is merge-ready; merge/deploy only when
+  the operator asked for shipped work.
+- Reconcile the routed card with exact proof links or commands. Chat, a green
+  aggregate, or an unlinked screenshot is not completion evidence.
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence, Closeout) for the
-shared core. `/deliver` adds:
+Apply the Shared Operating Spine (`Prove`; `Durable State and Closeout`). Add:
 
-- Deviation ledger (or "none").
-- Offer `/compound` before the evidence goes stale if the work produced a
-  reusable repo-technical lesson.
+- deviation ledger, or `none`;
+- live path exercised and retained evidence;
+- review and gate dispositions;
+- residual risk; and
+- `/compound` offer when the lesson is reusable.
 
 ## Gotchas
 
-- **Skipping shape.** No oracle → no delivery. Write one or route to
-  `/shape`.
-- **Re-shaping mid-build.** If implementation reveals the shape is wrong,
-  stop and say so — don't spin on a broken spec.
-- **Self-review leniency.** The author's context rationalizes the author's
-  choices. Reviewers get the diff and the oracle, never your reasoning
-  trail.
-- **Stale tickets.** If the item already shipped (closure trailer in
-  history, `_done/` copy), refuse and fix the backlog instead.
-- **Heavy/parallel lanes** route to `/sprites`; quick exploration stays
-  local. Don't pre-shred work into atomic tasks — an outcome-shaped lane
-  owns its own decomposition.
+- **Stale card:** if the outcome already shipped, reconcile the card instead
+  of delivering it twice.
+- **Spec drift:** re-shape when the oracle changed; do not call drift a minor
+  deviation.
+- **Self-review:** fresh critics get the artifact and oracle only (Shared
+  Operating Spine: `Prove`).
+- **Lane confetti:** preserve outcome-shaped ownership. Parallelize independent
+  boundaries, not tiny pre-shredded tasks.

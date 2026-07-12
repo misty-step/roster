@@ -76,7 +76,7 @@ prospect clicked, ran, or asked for proof?
 
 ## Delegation Judgment
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster).
+Delegate per the Shared Operating Spine (`Act`).
 
 Useful lanes:
 
@@ -86,9 +86,8 @@ Useful lanes:
   accessibility, and generic AI tells.
 - Copy critic: remove hype, process leakage, and unsupported assertions.
 
-Critics get the artifact and the oracle only — never the author's reasoning
-trail (shared AGENTS.md: Fresh context beats self-review); here the artifact
-includes the evidence map.
+Critics get the artifact and oracle only — never the author's reasoning trail
+(Shared Operating Spine: `Prove`); here the artifact includes the evidence map.
 
 ## Gotchas
 
@@ -106,8 +105,8 @@ includes the evidence map.
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared evidence
-core. Showcase adds:
+See `primitives/shared/AGENTS.md` (`Prove`) for the shared evidence core.
+Showcase adds:
 
 ```markdown
 ## Showcase Gate

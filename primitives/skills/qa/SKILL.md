@@ -63,7 +63,7 @@ and move on.
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
+See `primitives/shared/AGENTS.md` (Prove) for the shared core.
 `/qa` adds:
 
 - The exact surface exercised (command/URL/route/tool call), what was

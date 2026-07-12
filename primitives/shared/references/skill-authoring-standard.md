@@ -2,19 +2,21 @@
 
 The judgment layer lives in the vendored
 `primitives/skills/.external/mattpocock-writing-great-skills/SKILL.md`
-(predictability, invocation choice, the five failure modes, the no-op test,
-positive framing) and Anthropic's progressive-disclosure guidance
-(`docs/research/roster-926-import-design-brief.md`). This file adds only the
-house conventions those sources leave open. Apply the no-op test to every
-line you add to a skill — including lines from this standard.
+(predictability, invocation choice, the six failure modes, information hierarchy,
+leading words, positive framing, and the no-op test) and Anthropic's
+progressive-disclosure guidance
+(`docs/research/roster-926-import-design-brief.md`). This file resolves their
+frontier-model tension and adds only the house conventions they leave open.
+Apply the no-op test to every line — including lines from this standard.
 
 ## Frontmatter
 
 - `name`, `description`, `argument-hint` — all three, always.
-- Model-invoked skills: description is the trigger — pushy, trigger-phrase
-  dense ("Use when: …. Trigger: /x, /y"). Claude under-triggers by default.
+- Model-invoked skills: description is the trigger. Give each distinct branch
+  one recognizable phrase; start with a compact leading word repeated in the
+  body. Cut identity and procedure already available after invocation.
 - Hand-only skills: `disable-model-invocation: true`; description becomes a
-  one-line human-facing summary.
+  one-line human-facing summary with no autonomous trigger language.
 - `argument-hint` uses bracketed-token form: `"[--foo|--bar] [target]"`.
 
 ## Body shape
@@ -28,22 +30,20 @@ line you add to a skill — including lines from this standard.
 
 ## Canonical section names
 
-- `## Completion Gate` — the single wrap-up header. It delegates to the
-  shared Completion Evidence core (`primitives/shared/AGENTS.md`) first,
-  then adds only phase-specific fields. Retire: Output, Verdict, Completion,
-  Done means, Verification-as-wrap-up.
+- `## Completion Gate` — the single wrap-up header. It points to the Shared
+  Operating Spine (`Prove`; `Durable State and Closeout`) first, then adds only
+  phase-specific fields. Retire: Output, Verdict, Completion, Done means,
+  Verification-as-wrap-up.
 - `## Gotchas` — bespoke traps only. If a frontier model already knows it,
   it fails the no-op test.
 
 ## Shared doctrine: point, never restate
 
-One-line pointers, verbatim, instead of local rewordings:
+One-line pointers instead of local rewordings:
 
-- Critics: `Critics get the artifact and the oracle only — never the
-  author's reasoning trail (shared AGENTS.md: Fresh context beats
-  self-review).`
-- Delegation: `Delegate per the shared Roster contract (shared AGENTS.md:
-  Roster).`
+- Critics: `Critics get the artifact and the oracle only — never the author's
+  reasoning trail (Shared Operating Spine: Prove).`
+- Delegation: `Delegate per the Shared Operating Spine (Act).`
 - Compression: `julius-caveman for interim synthesis only; findings, code,
   commits, and final artifacts stay normal English.`
 - Vision: `Read root VISION.md when present; if missing or stale, route to
@@ -63,20 +63,23 @@ One signal→skill routing table exists, in `/orient`. `/next` and any other
 skill that routes consumes it by pointer and adds only its own framing.
 Never fork the table.
 
-## Fable 5 deltas
+## Frontier-model resolution
 
-From Anthropic Fable 5 prompting guidance (2026-07); apply alongside the no-op
-test, one rule each:
+WGS asks for ordered steps with completion criteria; current frontier-model
+guidance warns that procedural checklists over-constrain capable models. Roster
+targets frontier orchestrators by default, so encode the invariant process,
+boundaries, oracle, and stop condition—not a narrated SDLC. Ordered steps earn
+their place only when tool order is semantically required or `/skill-eval`
+shows that the target model fails without them.
 
-- Deletion is the top rewrite move. Skills built for prior models over-prescribe
-  and degrade Fable output; strip step-by-step enumerations and micromanaged
-  procedure before adding anything.
-- Prefer one intent-level instruction over an enumerated checklist: goal,
-  boundaries, verification hook, and trust the model to structure the work.
-- Never instruct the model to echo or transcribe its internal reasoning as
-  response text — it trips the reasoning-extraction refusal. Hunt
-  "show your thinking"-shaped lines and cut them.
-- A skill that over-fires earns a `Do not use when: …` clause beside its
-  `Use when:`.
-- Completion-reporting skills point at the shared Completion Evidence core for
-  grounded-progress ("report only work a tool result backs") — never restate it.
+Additional Fable 5 deltas (2026-07):
+
+- Deletion is the top rewrite move. Strip prior-model coaching before adding.
+- Never ask the model to expose or transcribe internal reasoning.
+- Over-firing skills need a `Do not use when:` boundary beside `Use when:`.
+- A reference pointer states the condition and intended use; weak “see also”
+  pointers are variance bugs.
+- Pair every prohibition with the target behavior. A bare negation makes the
+  forbidden path more salient.
+- Completion-reporting skills point to the Shared Operating Spine rather than
+  repeating universal evidence prose.

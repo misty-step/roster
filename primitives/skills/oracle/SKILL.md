@@ -57,8 +57,8 @@ verification, and final judgment.
 
 Oracle starts cold. Include the repo goal, relevant commands, exact failure,
 constraints, and desired output shape. Critics get the artifact and the
-oracle only — never the author's reasoning trail (shared AGENTS.md: Fresh
-context beats self-review).
+oracle only — never the author's reasoning trail (Shared Operating Spine:
+Prove).
 
 Good output requests:
 

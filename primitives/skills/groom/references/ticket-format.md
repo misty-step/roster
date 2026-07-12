@@ -1,43 +1,28 @@
 # Ticket Format
 
-`backlog.d/<nnn>-<kebab-slug>.md`, bare numeric IDs.
+Create work in the repository's registry-routed board. Ordinary Misty Step
+repositories use Powder; Adminifi and r90 use Habitat. Never create a local
+ticket file as an unregistered fallback.
 
-```markdown
-<Title as imperative sentence>
+## Required card fields
 
-Priority: P0–P3 · Status: pending|ready|blocked|in-progress|done|shipped|abandoned · Estimate: S–XL
+- **Title:** imperative outcome, not implementation trivia.
+- **Goal/body:** one sentence naming the user or system outcome, followed by
+  constraints and non-goals where needed.
+- **Acceptance:** mechanically verifiable criteria. Rough oracles are better
+  than none, but every active card has one.
+- **Proof plan:** for M+ or ready work, name claim, falsifier, driver, grader,
+  evidence packet, cadence, and known gaps per
+  `primitives/shared/references/verification-system-first.md`.
+- **Lifecycle:** priority P0–P3, estimate S–XL, status, autonomy, repository,
+  labels, and explicit relations (`blocked_by`, `blocks`, `related`).
 
-**Goal**
-<one sentence — outcome, not mechanism>
+Epics are the default strategic emission. Give the epic its own goal and
+acceptance, then model child outcomes as related or blocked cards when they are
+independently runnable. An umbrella with no done criteria is storage, not an
+epic.
 
-**Oracle**
-- [ ] <mechanically verifiable; rough oracles are still oracles>
-
-**Verification System**
-- Claim:
-- Falsifier:
-- Driver:
-- Grader:
-- Evidence packet:
-- Cadence:
-
-**Notes**
-<constraints, prior art, open questions>
-```
-
-The Verification System fields mean what
-`primitives/shared/references/verification-system-first.md` says they mean —
-this template just gives them a home on the ticket; do not redefine them here.
-
-Epics are the default shape for strategic emissions: same file, plus a
-`## Children` section — ordered child outcomes that stay inline until picked
-up, then graduate to their own tickets. An epic still needs a Goal and an
-Oracle for the whole arc; an "umbrella" file with no done criteria is
-storage, not an epic.
-
-Every active ticket has Goal + Oracle; fix or demote anything that doesn't.
-For M+ work or anything promoted to `Status: ready`, fill in the Verification
-System fields. M+ tickets promoted to `Status: ready` also follow `/shape`'s
-`references/prd-ticket-quality.md`; otherwise they stay raw ideas. When
-grooming Roster itself, apply the product lens in
-`references/backlog-doctrine.md`.
+Before moving M+ work to ready, apply `/shape`'s
+`references/prd-ticket-quality.md`. If the card still lacks a bounded outcome,
+executable acceptance, or proof path, keep it in backlog. When grooming Roster,
+also apply `references/backlog-doctrine.md`.

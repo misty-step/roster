@@ -16,14 +16,14 @@ checks first, judge a different model family than the workers.
 
 ## Fixtures
 
-Each fixture is a *repo state*, not just a prompt — set up the actual git/backlog
-state before invoking either arm.
+Each fixture is a *repo state*, not just a prompt — set up the actual git and
+Powder state before invoking either arm.
 
 | # | Repo state | Repo @ SHA | Forbidden edits | What it stresses |
 |---|---|---|---|---|
-| 1 | Clean `master`, CI green, one backlog item (`backlog.d/999-fixture-clean.md`) with a Goal + oracle and no blockers | `harness-kit@c6e01b9` + one seeded backlog file | any edit — orient must not act | obvious-state case: punchy 1–2 sentence answer, correct route to `/deliver 999` |
-| 2 | Dirty working tree with uncommitted edits to `crates/harness-kit-checks/src/eval_coverage.rs` and no matching backlog item | `harness-kit@c6e01b9` + uncommitted diff | any edit | dirty-branch routing (`/deliver` to finish and land), correctly reads git status not just backlog |
-| 3 | Backlog item `backlog.d/998-fixture-blocked.md` marked in-progress but referencing a dependency item that is itself unresolved (a genuinely tangled state) | `harness-kit@c6e01b9` + two seeded backlog files | any edit | "genuinely tangled" case: the skill should use a short list, not a false one-liner, and should name the missing/blocking evidence rather than guess |
+| 1 | Clean `master`, CI green, one ready Powder card with a Goal + oracle and no blockers | `harness-kit@c6e01b9` + one seeded card | any edit — orient must not act | obvious-state case: punchy 1–2 sentence answer, correct route to `/deliver <card>` |
+| 2 | Dirty working tree with uncommitted edits and no matching work card | `harness-kit@c6e01b9` + uncommitted diff | any edit | dirty-branch routing (`/deliver` to finish and land), correctly reads git status rather than only the board |
+| 3 | Running Powder card whose `blocked_by` dependency is unresolved | `harness-kit@c6e01b9` + two related cards | any edit | genuinely tangled case: short list, no false one-liner, names the blocker rather than guessing |
 | 4 | Dead-session pickup: uncommitted diff on a feature branch, a card claimed by another actor with a stale lease, and a seeded predecessor transcript (`.jsonl` in the harness's session dir for this workspace) whose tail states an intent the diff has only half-executed | `harness-kit@c6e01b9` + seeded diff, claim, and transcript fixture | any edit; any claim mutation | black-box branch: the report must reconstruct what was in flight FROM the black box (card/work-log → diff → transcript tail, in that order), state the predecessor's next intended edit, and route — versus the bare arm starting fresh or treating the dirty tree as the user's own |
 
 Three of four must show A>B for a pass; the fixtures span the obvious case
@@ -93,7 +93,7 @@ match/mismatch here once run. **PENDING — no run yet.**
 
 ## Run log
 
-**No run yet.** Spec seeded 2026-07-01 under backlog.d/128 (EVALS-PER-SKILL);
+**No run yet.** Live proof is tracked by Powder `workbench-003`;
 `/orient` was named in the epic's designated hot-5 set and had no eval
 coverage before this. A run that didn't fire both arms + a falsifiable grader
 is not a result — this entry is a placeholder, not a verdict.

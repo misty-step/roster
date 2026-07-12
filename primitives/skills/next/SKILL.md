@@ -31,9 +31,9 @@ Read the smallest useful surface for the scope:
 - current user ask and visible thread context
 - `git status --short --branch --untracked-files=all` when in a repo
 - active branch, upstream, dirty/unpushed state, and recent commits
-- the board of record when work priority is in scope: Powder queues via the
-  powder MCP/CLI (`list_ready`, plus `in_progress`, `verification`, and
-  `blocked`/prerequisite-bearing cards); a file-based repo uses `backlog.d/*.md`
+- the registry-routed board of record when priority is in scope: Powder for
+  ordinary Misty Step repositories; Habitat for Adminifi and r90. Query active,
+  verification, blocked, and prerequisite-bearing work; do not infer from files
 - root `VISION.md` when the next move depends on product direction,
   positioning, project identity, or long-term sequencing
 - current plan, goal, PR, issue, or acceptance oracle when present

@@ -51,7 +51,7 @@ artifact. Use it as a taste/checklist reference, not a template.
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
+See `primitives/shared/AGENTS.md` (`Prove`) for the shared core.
 `/vision` adds:
 
 1. What changed in `VISION.md`.

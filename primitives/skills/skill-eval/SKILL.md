@@ -19,8 +19,8 @@ it — otherwise it is context tax. This skill designs, runs, and maintains that
 proof, and the proof must be able to come back **no-skill won**.
 
 An eval is a *run with a grader*, never a directory shape. Structural eval
-trees were deleted as theater in the 2026-06 consolidation (`backlog.d/103`);
-do not rebuild them. The exemplar to copy is
+trees were deleted as theater in the 2026-06 consolidation; do not rebuild
+them. The exemplar to copy is
 `examples/routing-eval.md` (retired from `/design`, run log intact): an answer key, an objective grader, a
 pass bar a no-op revision fails, a run log. The protocol contract is
 `primitives/skills/harness-engineering/references/mode-eval.md`.

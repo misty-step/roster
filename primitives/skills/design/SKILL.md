@@ -58,7 +58,7 @@ the path to one philosophy's `SKILL.md` ("read it fully; obey it"), and the
 lane output contract (`references/lab-registry.md` § Lane modules). Each lane
 returns 1–3 structurally distinct options. Lanes get the fence and the
 contract only — never each other's output or your reasoning trail (shared
-AGENTS.md: Fresh context beats self-review).
+AGENTS.md: Prove).
 
 For a cheap zero-build holistic system lab, use six blind philosophies and
 require three proposals from each before dedupe. This is an exploration floor,
@@ -143,11 +143,11 @@ synthesized — not concatenated. Presumptive blockers the author must justify:
 
 After visible changes, verify desktop and mobile render and report the
 evidence. Use `/qa` for behavior verification and evidence capture. Delegate
-per the shared Roster contract (shared AGENTS.md: Roster).
+per the Shared Operating Spine (Act).
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core;
+See `primitives/shared/AGENTS.md` (Prove) for the shared core;
 design-specific fields:
 
 ```markdown

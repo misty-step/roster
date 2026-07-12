@@ -148,7 +148,7 @@ probes) live in `references/judge-alignment.md`.
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core. An
+See `primitives/shared/AGENTS.md` (Prove) for the shared core. An
 eval design is done when: the demarcation test passes (decision + fresh output +
 defensible grader); the corpus is class-balanced, real-failure-sourced, and
 carries a reference solution per task; the grader climbs no higher than it must;

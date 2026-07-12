@@ -37,7 +37,7 @@ project vision before ranking work; without one, brainstorming and backlog
 movement collapse into local cleanup.
 
 Read root VISION.md when present; if missing or stale, route to /vision
-(shared AGENTS.md: Vision). Groom's delta: it drafts the smallest durable
+(owned by `/vision`). Groom's delta: it drafts the smallest durable
 vision artifact itself when none exists — prefer root `VISION.md`;
 `docs/product.md`, a roadmap doc, or a named backlog epic only when repo
 evidence says root vision is the wrong fit — and treats that draft as a
@@ -55,8 +55,8 @@ first-class groom emission rather than waiting on a separate `/vision` pass.
 
 ## Tidy (mandatory)
 
-Keep the board of record true — Powder cards, not stale files (shared AGENTS.md:
-Work Ledger; misty-powder skill, powder MCP/CLI). Consume the card store; don't
+Keep the board of record true — Powder cards, not stale files (Shared Operating
+Spine: Durable State and Closeout; misty-powder skill, Powder MCP/CLI). Consume the card store; don't
 hand-roll closure:
 
 - **Close shipped work.** A card whose work merged moves to done/shipped via
@@ -71,22 +71,21 @@ hand-roll closure:
   themes, unfocused small items. Consolidate only when tickets genuinely share
   one outcome; never veto an evidenced emission on an arbitrary item count.
 
-Where a consumer repo runs on `backlog.d/` files with no Powder registration,
-that tree is the fallback board: archive tickets closed by
-`Closes-backlog:`/`Ships-backlog:` trailers into `_done/`, commit
-`chore(backlog): archive shipped tickets swept by /groom`, and emit trailers
-only via `git interpret-trailers` (canon: `docs/CONTRACTS.md`).
+Never promote a discovered `backlog.d/` tree into an active workflow. It is a
+migration/import source only when the repository routing profile explicitly
+declares it. Ordinary Misty Step repositories use Powder; Adminifi and r90 use
+Habitat.
 
 ## Delegation
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster). Strategic
+Delegate per the Shared Operating Spine (Act). Strategic
 grooming is high-stakes by declaration and defaults to the swarm: independent
 lanes for product/value, operator experience, runtime reliability,
 architecture, simplification/deletion, security/privacy, docs/onboarding,
 ops/infra, testing/verification, agent readiness, and external exemplars,
 with the lead keeping final prioritization. Routine grooming — a tidy-only
 pass, a scoped ticket check — scales the bench down to the stakes per the
-Roster contract instead of running the full swarm.
+Shared Operating Spine instead of running the full swarm.
 
 ## Mega Sweep
 
@@ -165,9 +164,9 @@ decorrelate judgment, not to fill a roster.
 
 ## Ticket Format
 
-Every card (or `backlog.d/<nnn>-<slug>.md` file where that's the board) carries
-Goal + Oracle always, plus a Verification System for M+/ready work — full
-template, epic shape, and promotion rules: `references/ticket-format.md`.
+Every card carries Goal + Oracle always, plus a Verification System for
+M+/ready work — full template, epic shape, and promotion rules:
+`references/ticket-format.md`.
 
 ## Audit Mode
 
@@ -186,7 +185,7 @@ Roster deliberately has no semantic telemetry engine.
 - Never skip the swarm on a strategic/mega-sweep groom when subagent, peer
   CLI, or sprite lanes are available — it's high-stakes by declaration; if all
   delegation is blocked, report degraded mode and do the local matrix.
-  Routine grooming may scale the bench down per the Roster contract.
+  Routine grooming may scale the bench down per the Shared Operating Spine.
 
 ## Gotchas
 
@@ -199,7 +198,7 @@ Roster deliberately has no semantic telemetry engine.
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence, Closeout) for the
+See `primitives/shared/AGENTS.md` (Prove; Durable State and Closeout) for the
 shared core; this phase adds:
 
 1. **Tidy diff** — archived, flipped, flagged; by ID, no padding.

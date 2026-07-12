@@ -27,7 +27,7 @@ file:line · impact` — name the lens, no static agent file.
 
 ## Delegation
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster).
+Delegate per the Shared Operating Spine (Act).
 
 - **Default:** spawn at least two roster-backed Explore lanes to gather
   evidence — reproduce, trace data flow, report root cause + evidence +
@@ -124,7 +124,7 @@ Post-fix question: "If we revert in 6 months, does the problem return?" Rank
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core;
+See `primitives/shared/AGENTS.md` (Prove) for the shared core;
 this phase adds:
 - **Root cause:** what's actually wrong, classified ROOT vs SYMPTOM.
 - **Fix:** how it was resolved — one change at a time, then the original

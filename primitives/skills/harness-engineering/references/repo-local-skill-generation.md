@@ -14,19 +14,18 @@ script. No invented process, no generic "run the tests" prose. That skill is
 the proof the pattern works; this reference is how to do it again
 deliberately, with the two things that first pass skipped: a provenance
 header (so a future reader knows this came from generation, not hand
-authorship, and can judge whether it has drifted) and an eval stub (the
-evals-per-skill floor, backlog 128, extended to generated skills).
+authorship, and can judge whether it has drifted) and an eval stub that routes
+the skill's falsifiable claim through `/skill-eval`.
 
 ## Boundary: this is not `/tailor` again
 
-The predecessor Harness Kit tried whole-repo harness generation twice and retired it both
-times (`backlog.d/_done/029-tailor-per-repo-harness-generator.md`,
-`backlog.d/_done/045-harness-pivot-minimal-globals.md`): a manifest schema, an
-A/B eval with automatic rollback, a pre-commit lint hook enforcing a skill
-cap, a planner/critic dialectic loop. The audit that killed it found ~60%
-ceremony where agent judgment was simpler and better. Do not rebuild that
-machinery here. This pattern generates **one to three focused skills**, not a
-harness: no manifest, no killswitch, no lint hook, no state machine. A lead
+The predecessor Harness Kit tried whole-repo harness generation twice and
+retired it both times. The audit found roughly 60% ceremony where agent
+judgment was simpler and better. Do not rebuild that machinery: no manifest
+schema, automatic-rollback A/B harness, skill-cap pre-commit hook, or
+planner/critic dialectic loop without fresh measured evidence.
+This pattern generates **one to three focused skills**, not a harness: no
+manifest, killswitch, lint hook, or state machine. A lead
 agent reads a repo, exercises judgment about what's worth generating, writes
 it, proves it once with a cold-agent smoke. If a repo needs more than a
 handful of bespoke skills, that is a signal to declare a focused Roster
@@ -54,8 +53,8 @@ disagree:
    (see Powder's root `SKILL.md`, written for agents that use Powder as a
    work board). Do not confuse it with a skill for agents *building* the
    repo, and do not duplicate its content.
-6. `backlog.d/` — open debt and priority context that shapes which domain is
-   worth encoding now versus later.
+6. The registry-routed work board — open debt and priority context that shapes
+   which domain is worth encoding now versus later.
 
 ## Pick a domain with a drivable oracle
 
@@ -64,8 +63,7 @@ observe pass/fail, not by topic importance:
 
 - **Verification/QA** is almost always the strongest first domain — every
   repo has a shape and a real command to exercise it (`primitives/skills/qa/SKILL.md`'s
-  shape table: browser app, API/service, CLI, library, MCP, hybrid). This is
-  child 1 of backlog 131 for exactly this reason.
+  shape table: browser app, API/service, CLI, library, MCP, hybrid).
 - **Deploy/release runbooks** are the second-strongest — a real deploy
   command, a real rollback/DR path, usually already written down in
   `docs/*.md` and just needs collecting into agent-executable form.

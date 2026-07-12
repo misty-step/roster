@@ -100,7 +100,7 @@ deterministic-scaffold failure mode.
 
 ## Delegation Judgment
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster).
+Delegate per the Shared Operating Spine (Act).
 This skill is parallel-by-default and a heavy token spender; route
 heavy/long runs to `/sprites`. Lanes:
 
@@ -108,8 +108,7 @@ heavy/long runs to `/sprites`. Lanes:
 - **Page generators** — one per facet, just-enough context, dependency order.
 - **Accuracy skeptics** — fresh-context, **different model family**, prompted to
   *refute* each claim against source. Critics get the artifact and the oracle
-  only — never the author's reasoning trail (shared AGENTS.md: Fresh context
-  beats self-review).
+  only — never the author's reasoning trail (Shared Operating Spine: Prove).
 - **Cold-reader navigator** — sees only the generated docs + a real task; must
   land in the right files. Wrong landing = bad IA.
 
@@ -134,7 +133,7 @@ heavy/long runs to `/sprites`. Lanes:
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
+See `primitives/shared/AGENTS.md` (Prove) for the shared core.
 `/document` adds:
 
 ```markdown

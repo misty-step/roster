@@ -95,13 +95,13 @@ test below — most patterns are prompts, not skills.
 
 ## Delegation Judgment
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster).
+Delegate per the Shared Operating Spine (Act).
 
 Local lane guidance: Use lanes for doctrine critique, runtime compatibility, gate design, and regression risk. Do not treat a missing repo-local roster as a waiver; use the resolver-backed probe.
 
 ## Primitive Test
 
-Before creating or growing anything, classify it (2026-06 audit, backlog 103):
+Before creating or growing anything, classify it (2026-06 audit):
 
 - **Local prompt** — "is this just what the operator would retype to a strong
   model?" Keep it in chat, local scratch, or a skill template only when a skill

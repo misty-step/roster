@@ -92,6 +92,6 @@ Verdict: publish / revise / needs source.
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
+See `primitives/shared/AGENTS.md` (Prove) for the shared core.
 `/human-writing` adds: patterns removed, claims preserved, any weak facts
 flagged, and whether the result is ready to publish or needs source review.

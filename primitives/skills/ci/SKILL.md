@@ -93,7 +93,7 @@ sentinel/split-check design, or skipped workflows leave PRs stuck pending.
 
 ## Delegation Judgment
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster). Each lane
+Delegate per the Shared Operating Spine (Act). Each lane
 states responsibilities, context boundary, output evidence, and lead
 verification; direct work is limited to mechanical repair and emergency
 preservation, and the lead owns synthesis.
@@ -125,7 +125,7 @@ gate and report the exact failing command, path, and likely cause.
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
+See `primitives/shared/AGENTS.md` (Prove) for the shared core.
 `/ci` adds:
 
 - **Audit:** gaps found, severity, substrate choice, what was strengthened or

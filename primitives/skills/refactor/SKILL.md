@@ -66,7 +66,7 @@ secrets or private customer data in `/tmp`.
    do not close a milestone.
 5. **Autoreview the milestone** with fresh-context critique when substantive.
    Critics get the artifact and the oracle only — never the author's reasoning
-   trail (shared AGENTS.md: Fresh context beats self-review); here that's the
+   trail (Shared Operating Spine: Prove); here that's the
    diff + architecture goal + fitness tests. Scale critic topology with
    `primitives/shared/references/quality-system.md`; a risky boundary change
    earns more than one lens. Fix blockers before continuing.
@@ -76,7 +76,7 @@ secrets or private customer data in `/tmp`.
 
 ## Delegation Judgment
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster). Useful
+Delegate per the Shared Operating Spine (Act). Useful
 lanes: an Explore lane to map ownership and coupling before edits, a critic lane
 to attack the goal or a milestone diff, a QA lane to exercise the live surface
 when the lead cannot drive it cheaply.
@@ -111,7 +111,7 @@ Stop and report instead of improvising when:
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence and Closeout) for the
+See `primitives/shared/AGENTS.md` (Prove; Durable State and Closeout) for the
 shared core. `/refactor` adds: the goal stop rule satisfied or explicitly
 blocked; a live-test receipt for every significant step; blocking review
 findings fixed or rejected with a reason; meaningful milestones committed; and

@@ -1,10 +1,10 @@
 # /deliver eval
 
-The oracle for the `/deliver` skill. Tests the one claim an end-to-end delivery
-skill must earn: **given one ticket or raw idea, `/deliver` produces a
-merge-ready change with docs+tests+code in sync, live QA evidence (not just
-"tests pass"), a three-altitude refactor pass, and diverse-provider review
-resolved to zero blockers — that bare "implement this ticket" does not.**
+The oracle for `/deliver`. It tests one claim: **given one routed ticket or raw
+idea, `/deliver` produces the smallest coherent change that satisfies an
+executable contract, proves the live outcome, resolves fresh review, and leaves
+durable closeout evidence—behavior a bare “implement this ticket” prompt does
+not reliably produce.**
 
 This is a `mode-eval` A/B run, not a directory shape. Arms: A = `/deliver`
 installed and invoked; B = raw same-model ("implement this ticket end to end
@@ -14,54 +14,50 @@ model family than the workers. Protocol: `primitives/skills/skill-eval/reference
 
 ## Fixtures
 
-Each fixture is a small, self-contained ticket landed in a scratch repo/branch
-so the arm can actually build, test, and review it end to end.
+Each fixture is a small, self-contained ticket in a seeded scratch repository
+so both arms can build, test, and review it end to end without relying on a
+retired product repository.
 
-| # | Prompt | Repo @ SHA | Forbidden edits | What it stresses |
+| # | Prompt | Fixture | Forbidden edits | What it stresses |
 |---|---|---|---|---|
-| 1 | "Deliver: add a `--since <duration>` flag to `harness-kit-checks telemetry` that filters rows older than the duration (reuse the existing `--since` parser in `skill_invocation_analytics.rs`)." | `harness-kit@c6e01b9` (`crates/harness-kit-checks/src/{main.rs,skill_invocation_analytics.rs}`) | any unrelated crate | docs→tests→code discipline, live CLI QA, review loop on a real small feature |
-| 2 | "Deliver: fix the bug where `check-godfiles` reports a false failure on a file that shrank below the baseline (confirm by writing a failing test first)." | `harness-kit@c6e01b9` (`crates/harness-kit-checks/src/quality_gates.rs`) | any file outside `quality_gates.rs` and its tests | TDD red→green→refactor, three-altitude refactor pass on a bug fix (not a feature) |
-| 3 | "Deliver: the `check-eval-coverage` gate has no CLI flag to list which skills are covered vs missing without failing the process — add a `--report` mode." | seeded fixture repo with a stub gate (no harness-kit SHA) | any file outside the stub gate module | oracle-less ticket (no acceptance criteria given) — tests whether the arm writes one before building, per the skipping-shape gotcha |
+| 1 | "Deliver: add a `--limit <N>` option to the fixture CLI's `recent` command." | seeded Rust CLI with parser, tests, and smoke script | unrelated modules | contract derivation, smallest change, live CLI proof |
+| 2 | "Deliver: fix the parser bug that treats a quoted comma as a delimiter." | seeded parser with a reproducible failure | files outside parser/tests | failing observable check, root-cause fix, regression proof |
+| 3 | "Deliver: add report mode so operators can list covered and missing checks without failing the process." | seeded gate with no acceptance criteria | files outside gate/tests | no-oracle stop, `/shape` composition, closeout discipline |
 
-Two of three must show A>B for a pass; the fixtures span a clean feature, a
-regression fix requiring TDD, and an underspecified ticket that should trigger
-the "no oracle, no delivery" gate.
+Two of three must show A>B. The fixtures span a bounded feature, a regression,
+and an underspecified request that should not be implemented blindly.
 
-## Objective checks (scriptable, pass/fail, ~free — run on every `primitives/skills/deliver/**` edit)
+## Objective checks (scriptable, pass/fail)
 
-- [ ] A failing test existed before the fix/feature landed (visible in commit
-      history: test commit precedes or is paired with the implementation commit).
-- [ ] The change is on a feature branch, not committed directly to the default
-      branch.
-- [ ] Docs (README/doc-comment/CLI usage string) were updated in the same
-      change as the behavior they describe.
-- [ ] A live QA artifact exists: an actual command invocation and its output
-      (not "tests pass" alone) — e.g. the new flag was run once against real
-      data and the output is shown.
-- [ ] Commit message(s) are semantic/conventional and explain why, not just what.
-- [ ] Fixture 3 only: the arm produces or requests an oracle (acceptance
-      criteria) before writing implementation code — does not build blind.
-- [ ] No unrelated files touched (forbidden-edit list respected).
-- [ ] Final state report names exact verification command/output, review
-      findings and resolution, and residual risk — not a bare "done."
+- [ ] The arm names or obtains an executable oracle before implementation.
+- [ ] A credible test, replay, or acceptance driver fails on the missing
+      behavior before the final change and passes after it.
+- [ ] The implementation follows an existing seam and touches no unrelated
+      files; obsolete behavior is removed rather than shadowed.
+- [ ] A live QA artifact records the actual user/operator path and output—not
+      only a unit-test summary.
+- [ ] Fresh-context review is recorded and every blocker is fixed or rejected
+      with an evidence-backed reason.
+- [ ] The repository gate passes after the last review-driven edit.
+- [ ] Closeout names exact proof, card/status disposition, deviation ledger,
+      and residual risk.
+- [ ] Fixture 3 stops for an oracle or routes to `/shape` before code changes.
 
-## Rubric (1–5, blind, one-line justification each — judgment-heavy delta only)
+## Rubric (1–5, blind, one-line justification each)
 
 | Dimension | 5 | 1 |
 |---|---|---|
-| Verification depth | live command run + output shown, not just green test suite | "tests pass," no live evidence |
-| Refactor discipline | diff, codebase, and backlog altitudes all visibly considered | code merged as first draft, no refactor pass |
-| Review rigor | at least one blocking-severity finding surfaced and fixed, or an honest "none found" with reasoning | no review pass, or a rubber-stamp |
-| Oracle discipline (fixture 3) | writes/derives an acceptance oracle before implementing | implements the first plausible interpretation with no stated oracle |
-| Closeout completeness | clean tree, exact evidence cited, residual risk named | vague "should be good to go" |
+| Contract discipline | observable outcome, falsifier, and scope precede edits | first plausible interpretation implemented |
+| Verification depth | live path + retained evidence + regression check | “tests pass” |
+| Change quality | smallest coherent change; old path removed; repo seam reused | workaround, duplicate path, or unrelated cleanup |
+| Review rigor | fresh critic challenges the oracle/diff and dispositions are proven | self-review or rubber stamp |
+| Closeout | routed ledger, exact proof, deviations, and residual risk reconciled | vague “done” |
 
 ## Pass condition
 
-Arm A beats arm B on aggregate rubric **and** ties-or-wins every objective
-check, across **≥2 of 3** fixtures. A no-op "deliver" (equivalent to raw
-prompting) fails because the raw arm reliably stops at "code compiles, tests
-pass" — it skips live QA evidence, the refactor sweep, and the review loop,
-and on fixture 3 it typically builds without ever naming an oracle.
+Arm A beats B on aggregate and ties-or-wins every objective check across at
+least two fixtures. If a current frontier model reaches the same bar unaided,
+adapt or retire `/deliver` rather than lowering the oracle.
 
 ## Human anchor
 
@@ -72,16 +68,14 @@ agent grader here once run. **PENDING — no run yet.**
 
 ## Cadence
 
-- Edit-time: 1-fixture native-subagent smoke (fixture 1) on any
-  `primitives/skills/deliver/**` change.
-- Contract change (the docs→tests→code loop, the review-loop rule, or the
-  closeout bar moves): full A/B, all 3 fixtures, decorrelated families.
-- Major model release: re-audit — a stronger bare model may already default to
-  TDD and live QA, closing `/deliver`'s edge.
+- Edit-time: one paired fixture smoke on changes to `/deliver`.
+- Contract change: all three fixtures with decorrelated workers and blind judge.
+- Major model release: rerun; stronger bare behavior is evidence to shrink or
+  retire the skill.
 
 ## Run log
 
-**No run yet.** Spec seeded 2026-07-01 under backlog.d/128 (EVALS-PER-SKILL);
+**No run yet.** Live proof is tracked by Powder `workbench-003`;
 `/deliver` is the highest-usage first-party skill (36 recorded invocations per
 the 2026-07-01 groom telemetry read) and had no eval coverage before this. A
 run that didn't fire both arms + a falsifiable grader is not a result — this

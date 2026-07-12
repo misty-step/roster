@@ -48,7 +48,7 @@ never ships on its own review — that is the one hard rule.
    is a natural fit — that scale costs tokens, so routine diffs don't get
    it. Reviewers get the diff, the acceptance oracle, and one risk lens each.
    Critics get the artifact and the oracle only — never the author's
-   reasoning trail (shared AGENTS.md: Fresh context beats self-review). When
+   reasoning trail (Shared Operating Spine: Prove). When
    the delivery logged deviations, hand reviewers the deviation *sites* —
    where the plan bent is where plausible-but-wrong concentrates — but never
    the author's justifications for them.

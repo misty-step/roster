@@ -2,25 +2,25 @@
 
 ## Work ledger
 
-| Tier | Location | Purpose | Queue health |
-|------|----------|---------|-----|
-| **Shaped work** | Powder | Ready-to-build cards with goal + oracle + verification system + sequence | Evidence-backed, ordered, actively maintained |
-| **Draft/import seed** | repo-local `backlog.d/` where present | Temporary shaping and import source | Must graduate to Powder before execution |
+| Tier | Board state | Purpose | Queue health |
+|------|-------------|---------|--------------|
+| **Shaped work** | Ready / claimed / running | Goal + oracle + proof plan + sequence | Evidence-backed, ordered, actively maintained |
+| **Raw idea** | Backlog | Preserve a promising outcome before it is shaped | Named owner or reason to keep; no execution claim |
 
-Powder is the canonical work ledger. Repo-local backlog files are not a parallel
-lifecycle.
+Resolve the board through the routing registry: Powder for ordinary Misty Step
+repositories; Habitat for Adminifi and r90. A discovered local backlog tree is a
+migration source only when the profile says so, never an active lifecycle.
 
-Ideas flow between tiers during `/groom` sessions:
-- **Shape:** raw finding → Powder card with goal + oracle + verification system.
-- **Promote:** draft/import seed → Powder card.
-- **Demote:** move the Powder card to backlog with the evidence for deprioritization.
-- **Close:** complete or abandon the Powder card with proof or a successor.
+Ideas move through board states during `/groom`:
+- **Shape:** raw idea → bounded card with goal, acceptance, and proof plan.
+- **Promote:** backlog → ready when dependencies and proof are executable.
+- **Demote:** ready → backlog with evidence for deprioritization.
+- **Close:** done, shipped, abandoned, or superseded with proof or a successor.
 
 ## What the active backlog is for
 
-The active backlog (`backlog.d/`) is the current plan, not storage for every idea.
-A good backlog is ordered, transparent, and actively maintained. It should make the next
-decisions obvious.
+The board is the current plan, not storage for every thought. It stays ordered,
+transparent, and actively maintained so the next decisions are obvious.
 
 ## Roster Product Lens
 
@@ -53,14 +53,13 @@ merge it into a broader reusable effort, or rewrite it until the downstream payo
 - Order work by user value, risk reduction, learning, and enablement.
 - For Roster itself, optimize for downstream leverage first and local convenience second.
 - Keep active work narrow. High WIP destroys prioritization.
-- Ideas that aren't execution-ready live in `.groom/BACKLOG.md`.
+- Ideas that are not execution-ready remain backlog cards with an explicit reason.
 
 ## Closure protocol
 
-Powder is the work ledger of record. Close shipped work on its card with the
-exact proof link or command; repo-local `backlog.d/` files are import seeds and
-drafting space, not a parallel lifecycle. When a legacy seed is represented by
-a Powder card, archive or remove it through that repo's explicit convention.
+Close shipped work on its routed card with the exact proof link or command.
+Supersede duplicates through relations and status; never maintain a second file
+lifecycle.
 
 ## Healthy item shapes
 

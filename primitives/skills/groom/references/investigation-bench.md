@@ -92,8 +92,8 @@ Single Recommendation
 > history and identify where effort is going vs. where it should go.
 >
 > Analyze git history (`git log --oneline -100`, `git log --format="%s"`),
-> the backlog (backlog.d/ files if they exist), and `.groom/review-scores.ndjson`
-> (if it exists — structured review quality scores from /code-review). Assess:
+> the registry-routed board, and `.groom/review-scores.ndjson` (if it exists —
+> structured review quality scores from /code-review). Assess:
 > - **Fix-to-feature ratio**: what fraction of recent commits are fixes vs. new capabilities?
 > - **Churn hotspots**: which files change most often? (high churn = fragile or underdesigned)
 > - **Stalled work**: any reverted commits, abandoned branches, or backlog items stuck >30 days?

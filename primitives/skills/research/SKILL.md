@@ -62,12 +62,12 @@ recommendation with dates on every claim.
 
 ## Delegation Judgment
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster). A lane earns
+Delegate per the Shared Operating Spine (Act). A lane earns
 its spend only by carrying distinct sources, methods, or model families.
 
 ## Completion Gate
 
-See `primitives/shared/AGENTS.md` (Completion Evidence) for the shared core.
+See `primitives/shared/AGENTS.md` (Prove) for the shared core.
 `/research` adds:
 
 - Sources/tools queried and why.

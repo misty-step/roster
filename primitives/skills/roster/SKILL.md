@@ -25,8 +25,7 @@ model family or a genuinely fresh context.
 - **Adversarial critique of your own work.** A reviewer from a different
   model family has decorrelated failure modes and no loyalty to your
   reasoning. Critics get the artifact and the oracle only — never the
-  author's reasoning trail (shared AGENTS.md: Fresh context beats
-  self-review).
+  author's reasoning trail (Shared Operating Spine: Prove).
 - **Second opinion on a contested judgment** — architecture call, risk
   assessment, "is this idiomatic" — where one model's taste shouldn't
   decide alone.

@@ -47,7 +47,7 @@ lanes into synthesis.
 
 Capability lanes do not replace the roster floor. For substantive research,
 also dispatch the provider lanes required by `primitives/shared/AGENTS.md`
-(Roster) unless a documented waiver applies.
+(Act) unless a documented waiver applies.
 
 ## Capability Routing
 

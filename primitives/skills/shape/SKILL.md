@@ -1,207 +1,114 @@
 ---
 name: shape
 description: |
-  Shape a raw idea into something buildable. Product + technical exploration.
-  Spec, design, critique, plan. Output is a context packet.
-  Use when: "shape this", "write a spec", "design this feature",
-  "plan this", "spec out", "context packet", "technical design".
+  Shape an unresolved idea into a decision and executable context packet.
+  Use when: "shape this", "write a spec", "design this feature", "plan this",
+  "spec out", "context packet", "technical design".
   Trigger: /shape, /spec, /plan, /cp.
-argument-hint: "[idea|issue|backlog-item] [--spec-only] [--design-only]"
+argument-hint: "[idea|ticket] [--spec-only|--design-only]"
 ---
 
 # /shape
 
-Turn a raw idea into a **context packet** — the unit of specification that
-`/deliver` consumes. Spec before code, always.
+Turn an unresolved idea into the decision contract `/deliver` can execute.
+Specify the outcome, boundaries, and proof; leave routine implementation
+decomposition to the builder.
 
-## Contract
+## Ready contract
 
-A packet is ready when all of these are true. How you get there is your
-judgment; size the effort to the stakes — a one-file fix needs a paragraph,
-an architecture choice needs the full treatment.
+A shape is ready only when:
 
-- **Premise challenged.** The request is a first-draft framing, not a locked
-  problem. Name the underlying user outcome before designing; the best path
-  may not be the feature asked for. Shaping the wrong problem well is the
-  failure this skill exists to prevent.
-- **Grounded in live repo evidence.** You read the load-bearing source files,
-  tests, and ADRs yourself. Subagent summaries add coverage; they do not
-  replace direct reads of what the builder must understand.
-- **Learnings checked before structuring.** Grep prior repo-technical lessons
-  before locking the shape:
-  `rg -n --glob '*.md' '^(title|tags|applies_when):|<product-term>|<failure-mode-term>' docs/solutions`.
-  Open likely matches and state applies / does-not-apply in the packet.
-- **Vision-aware when strategic.** For product direction, positioning,
-  long-lived workflow, or project-identity choices: read root VISION.md when
-  present; if missing or stale, route to `/vision` or carry an explicit
-  waiver.
-- **Alternatives genuinely explored.** Real alternatives fail differently —
-  include the boring/manual path and one that inverts a load-bearing
-  assumption. Same idea in three outfits is one option. To break out of that,
-  `nous-creative-ideation` is a routed library of named methods (TRIZ for
-  parameter conflicts, premortem-and-inversion, first-principles) that
-  generate options which actually fail differently. Kill the losers on
-  the record and **recommend one**; a menu is not a shape. See
-  `primitives/shared/references/delete-first.md` (Ponytail:
-  `primitives/skills/.external/dietrich-ponytail/SKILL.md`) before choosing
-  the build path; the lazy viable path must be a real alternative, not a
-  throwaway paragraph.
-- **Perceptual criteria prototyped.** When acceptance is taste — design,
-  copy, feel, layout — prose alternatives are the wrong artifact; the
-  operator can't evaluate what they haven't seen. Route through `/design`
-  prototype variations, let the operator react, then lock what the reaction
-  taught. When the operator can't articulate the want at all, hunt a
-  reference artifact instead — source code beats docs beats screenshots —
-  and anchor the packet to it (Repo Anchors carries it).
-- **Scope is fenced.** Goal (outcome, not mechanism), explicit non-goals,
-  and invariants that must survive the change.
-- **Oracle is executable.** "It should work" is not an oracle; "these
-  commands pass, this route returns X" is. If you can't write the oracle,
-  the goal isn't clear yet — go back. See `references/executable-oracles.md`.
-  When you cannot define the measuring stick, delegating its INVENTION is a
-  legal oracle ("figure out how to measure X, then hit it") — and the
-  builder never grades its own work: acceptance is a fresh context pointed
-  at the real output, told to prove it fails
-  (`primitives/shared/references/prompting-frontier.md`).
-- **Verification harness named.** The packet states which live-verification
-  harness will prove the work (the repo's one-command evidence loop) — and
-  when none exists, the packet's first milestone is building it
-  (verification system first, shared AGENTS.md Layer 1), not the feature.
-  Load `primitives/shared/references/verification-system-first.md` for
-  evals, benchmarks, QA paths, performance claims, agent-behavior claims, or
-  any surface whose proof loop is not already obvious.
-- **Deliverable visible up front.** Code, research, docs, or decision — a
-  reader should not have to reach the implementation sequence to find out.
-- **Executable by a stranger.** The packet is consumed without your
-  context — by a remote lane, a different model, or you next month. Include
-  current-state excerpts where the code would surprise, one exemplar file
-  for conventions, commands you actually ran, and stop conditions: the
-  surprises that should halt execution and come back rather than be
-  improvised around.
-- **"Works" has product dimensions.** For public API, CLI, UI, performance,
-  compatibility, migration, or operator-workflow packets, load
-  `primitives/shared/references/works-critique.md` and include the likely
-  review focus.
-- **Loops cross the Mode A/Mode B boundary.** For recurring or unattended
-  workflow ideas, load `primitives/shared/references/loop-readiness.md` and
-  shape a handoff instead of a Roster scheduler.
-- **Premise source named.** The packet cites the artifact that explains why
-  this shape exists (`Premise Source: sha256:<digest> <path-or-url>`) or
-  carries an explicit waiver with residual risk. Voice/raw-transcript
-  premises take the metadata block from
-  `references/voice-transcript-metadata.md`; never store raw audio paths.
-  This is grader-enforced (see Verification).
-- **HTML plan authored.** Non-trivial or contestable shapes get an HTML plan
-  per shared AGENTS.md "Think in HTML for plans" — published to the Sanctum
-  shelf (artifact skill; slug = the Powder card id), attached to the card,
-  never auto-opened; you inspect the rendered page yourself. Shape's delta:
-  start from `templates/html-plan.html`; the hero is the complete work contract
-  (target outcome, chosen design, why it wins, proof surface, stop conditions);
-  order the body by decision volatility — lead with what the operator is most
-  likely to tweak (data model, public interfaces, UX flows), so the plan
-  doubles as an unknown detector — then the stranger-execution support (current
-  state, repo anchors, alternatives, acceptance, verification, cadence, risks,
-  review focus). Generate diagram images only where a labeled
-  architecture/sequence/system map carries what HTML, mermaid, or ASCII cannot
-  (`primitives/shared/references/image-generation.md`). Skip only for trivial
-  shapes, no-browser environments, or operator waiver.
+- **The premise survived challenge.** Name the underlying user or operator
+  outcome; the requested mechanism is only one candidate.
+- **Live evidence anchors it.** Cite the load-bearing code, tests, contracts,
+  prior decisions, and relevant repo learnings. Subagent summaries may widen
+  coverage but do not replace direct reads of the execution seam.
+- **Direction is settled.** For product identity or long-lived direction, read
+  root `VISION.md`; route missing or stale direction to `/vision`.
+- **The choice is real.** When the design is contestable, compare the boring
+  path and alternatives that fail differently, reject the losers, and recommend
+  one. A menu is not a decision.
+- **Taste is made visible.** For layout, copy, feel, or other perceptual
+  acceptance, route to `/design` for artifacts the operator can react to;
+  prose cannot settle an unseen interface.
+- **Scope is fenced.** State the outcome, explicit non-goals, and invariants
+  that must survive.
+- **The oracle is executable.** Name exact commands, routes, observations, or
+  acceptance artifacts plus a falsifier. Pin mutable fixtures or goldens by
+  digest when they carry the contract.
+- **The proof loop exists.** Name driver, grader, evidence packet, cadence, and
+  gaps. If the running outcome needs a driver and the repo has none, building
+  it becomes the first milestone.
+- **A stranger can execute it.** Include the surprising current state, 3–10
+  repo anchors, one convention exemplar, and stop conditions. No hidden chat
+  context or “decide during implementation” placeholders.
+- **The premise source is durable.** Cite `sha256:<digest> <path-or-url>` or an
+  explicit waiver with residual risk.
 
-Interrogate before you design, and lock product direction before technical
-design. For any substantial or contestable shape the default is a
-`grill-me`-style interview: load
-`primitives/shared/references/interrogate-first.md` and walk the operator down
-the decision tree one question at a time, each with your recommended answer and
-what breaks if it's wrong, until the load-bearing product and architecture
-choices are pinned. Explore the repo, vision, and commands to resolve what you
-can; only the operator settles genuine product direction. The guard cuts both
-ways: don't manufacture questions for a shape the evidence already locks — that
-is railroading, not rigor.
+Resolve facts from the repo and tools. Ask the operator only for a product or
+architecture decision the evidence cannot settle: one question at a time,
+with a recommendation and the cost of being wrong. For a substantial unknown,
+load `primitives/shared/references/interrogate-first.md`; do not manufacture an
+interview when the evidence already decides the branch.
 
-## Packet Skeleton
+## Context packet
 
-Sections carry weight or they don't appear. For substantial work, follow the
-PRD shape in `references/prd-ticket-quality.md`; for CLI surfaces, include
-the block from `references/cli-design.md`.
+Sections carry weight or they do not appear. A one-file fix may need a short
+packet; a public interface or architecture choice needs the full contract.
 
 ```markdown
-  # Context Packet: <title>
+# Context Packet: <title>
 
-  ## Goal            — one sentence, outcome not mechanism
-  ## Non-Goals       — scope that stays out, even if tempting
-  ## Constraints     — invariants that must remain true
-  ## Repo Anchors    — the 3–10 files whose patterns must be followed
-  ## Alternatives    — what was considered, how each fails, verdicts
-  ## Design          — chosen shape, surfaces touched, data/control flow,
-                       rejected alternatives and why, ADR decision if any
-  ## Oracle          — executable definition of done
-  ## Premise Source  — sha256 + artifact, or explicit waiver
-  ## HTML Plan       — Sanctum shelf URL attached to the Powder card, or explicit waiver
-  ## Risks + Rollout — how it fails, how to undo it
+## Outcome         — one sentence, not a mechanism
+## Deliverable     — code, research, docs, or decision
+## Non-Goals       — tempting scope that stays out
+## Invariants      — behavior that must survive
+## Repo Anchors    — 3–10 files and one convention exemplar
+## Alternatives    — how credible options fail; chosen verdict
+## Design          — chosen surfaces and data/control flow
+## Oracle          — claim, falsifier, driver, grader, evidence
+## Premise Source  — digest + artifact, or explicit waiver
+## Risks + Rollout — failure, rollback, stop conditions
 ```
 
-When the oracle depends on an acceptance artifact (fixture, golden file,
-contract, screenshot), pin it: `sha256:<digest> <path>`. If implementation
-intentionally changes that artifact, the handoff carries a contract-change
-acknowledgment. High-risk work (money/auth/migrations, expensive-to-detect
-regressions) earns formal examples and a test-strength budget — note it in
-the packet for `/deliver` and `/qa` rather than inflating the packet itself.
+For substantial product work, load `references/prd-ticket-quality.md`; for CLI
+surfaces, `references/cli-design.md`; for disputed proof loops,
+`primitives/shared/references/verification-system-first.md`; for public API,
+UI, performance, compatibility, migration, or operator workflow,
+`primitives/shared/references/works-critique.md`.
 
-## Delegation Judgment
+## Render and critique
 
-Delegate per the shared Roster contract (shared AGENTS.md: Roster).
+Non-trivial or contestable shapes become a standalone HTML plan using
+`templates/html-plan.html`: publish through `/artifact`, slug it with the
+Powder card ID, attach the URL to the card, verify it is reachable, and inspect
+the rendered page without auto-opening it. Lead with the decisions the operator
+is most likely to change; use visual structure for tradeoffs, flow, risk, and
+proof rather than wrapping prose in HTML. Trivial work or an explicit waiver
+may stay text-only.
 
-Local lane guidance: one lane to map repo constraints, one for prior art or
-premise challenge; fresh-context critique of the draft packet when the
-design is contestable.
+When the choice is contestable, give fresh-context critics the packet and
+oracle only (Shared Operating Spine: `Prove`) and ask which production failure
+the shape missed. Resolve blockers before marking the card ready. Delegate per
+the Shared Operating Spine (`Act`).
 
-## Critique
+## Completion Gate
 
-Your own design read is not a review. When the design is contestable, hand
-the draft packet to adversarial fresh-context critique, preferably a
-different model family. Critics get the artifact and the oracle only — never
-the author's reasoning trail (shared AGENTS.md: Fresh context beats
-self-review); ask for the production failure that would embarrass us. Lens
-prompts live in `references/critique-personas.md`. Skip for trivial shapes.
+Apply the Shared Operating Spine (`Prove`; `Durable State and Closeout`). Add:
+
+- chosen design and rejected alternatives;
+- exact executable oracle and retained packet;
+- source digest or waiver;
+- critic dispositions; and
+- Powder card promoted only when dependencies and proof are executable.
 
 ## Gotchas
 
-- **Over-speccing HOW.** Specify WHAT and WHY; let the builder own the how.
-  Detailed pseudocode cascades its own bugs into implementation.
-- **Speccing after building.** That's documentation, not specification.
-- **Ready-but-vague.** A packet is not ready while a load-bearing choice
-  still says "preferably" or "decide during implementation".
-- **50 repo anchors.** If everything is an anchor, nothing is.
-- **HTML as decoration.** A plan page that is just prose in a browser missed
-  the point. Use spatial structure to show sequence, tradeoffs, risk, proof,
-  communication, and critic focus at a glance. A plan page that needs the
-  chat transcript to be understood is not ready for execution.
-- **Editing live shape docs without ripple check.** Files marked
-  `shaping: true` feed other streams; trace consequences after editing.
-
-## Verification
-
-For non-trivial packets, include the verification-system block from
-`primitives/shared/references/verification-system-first.md`: claim, falsifier,
-driver, grader, evidence packet, cadence, and gaps/waiver.
-
-Premise-source discipline splits by seam: the deterministic slice — do the
-files a packet cites actually exist? — is covered by `roster check`'s
-referenced-path gate (`cargo run --locked -p roster-cli -- check`); whether
-those cited premises actually support the packet's claims is semantic
-soundness judgment, not a linter's job — that's critic/reviewer work at the
-milestone gate.
-
-HTML plan artifact — fill the template, publish, attach, verify reachable:
-
-```sh
-cp primitives/skills/shape/templates/html-plan.html /tmp/<card-id>-plan.html
-# fill it, then publish + attach (never `open` it):
-python3 ~/Development/roster/primitives/skills/artifact/scripts/artifact_create.py \
-  --title "<title>" --slug <card-id> --tag "Plan" --html-file /tmp/<card-id>-plan.html
-# attach the printed URL to the Powder card (add_link MCP tool or a comment)
-curl -s -o /dev/null -w '%{http_code}' <printed-url>   # expect 200
-```
-
-Revise after reading the rendered page; keep source links, commands, and
-oracles exact — use the rendered view to make the plan clearer, not less
-precise.
+- **Mechanism lock-in:** shaping the requested feature instead of the outcome
+  preserves the first framing, not the best decision.
+- **Over-specced how:** pseudocode and micro-task lists transfer design errors
+  to the builder. Keep interfaces, invariants, and stop conditions.
+- **Ready-but-vague:** “preferably,” “later,” or “decide during implementation”
+  on a load-bearing choice means the packet is not ready.
+- **Decorative artifact:** a plan page dependent on chat context is not a
+  stranger-executable contract.

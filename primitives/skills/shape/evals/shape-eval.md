@@ -10,43 +10,42 @@ This is a `mode-eval` A/B run, not a directory shape. Arms: A = `/shape`
 installed and invoked; B = raw same-model ("flesh out this spec into something
 buildable", no skill); C = n/a for now (Ponytail is a candidate alternative for
 the simplicity-pressure dimension once A>B is established). Grade blind,
-objective checks first, judge a different model family than the workers. Built
-under `backlog.d/112`; driven per `primitives/skills/skill-eval/references/run-recipe.md`.
+objective checks first, judge a different model family than the workers. Live
+proof is tracked by Powder `workbench-003` and driven per
+`primitives/skills/skill-eval/references/run-recipe.md`.
 
 ## Fixtures
 
-Repo pinned at `harness-kit@3bf0b46`. Each task is **spec-only**: the arm
-outputs a context packet, it does not implement. "Forbidden edits" = no source
-changes; the packet is the artifact.
+Each fixture is spec-only: the arm outputs a context packet and makes no source
+changes. Use live Roster state for fixtures 1–2 and a seeded service for 3.
 
-| # | Prompt | Repo @ SHA | Forbidden edits | What it stresses |
+| # | Prompt | Repo/card evidence | Forbidden edits | What it stresses |
 |---|---|---|---|---|
-| 1 | "Shape adding a `--top <N>` flag to the `telemetry` subcommand that limits the report to the N most-used skills." | `harness-kit@3bf0b46` (`crates/harness-kit-checks/src/{main.rs,skill_invocation_analytics.rs}`) | any `crates/**` edit | Repo Anchors, executable oracle, CLI-design block (`references/cli-design.md`) |
-| 2 | "Shape whether the skill-eval bench needs a Rust runner in `harness-kit-checks` or stays protocol + native-subagent only." | `harness-kit@3bf0b46` (`primitives/skills/skill-eval/**`, `crates/harness-kit-checks/src/lane_harness.rs`) | any source edit | Alternatives that fail differently + a recommendation; ADR-grade decision (the move raw prompting drops) |
-| 3 | "Shape enforcing a refund-permission threshold: refunds above $X require a second approver, in a small seeded Python billing service." | seeded fixture repo (no harness-kit SHA) | any source edit | Formal-spec ladder (high-risk: money/auth), Risks+Rollout, premise challenge |
+| 1 | "Shape a dynamic model/provider catalog for Roster dispatch." | Roster + Powder `roster-model-catalog` | source edits | premise challenge, repo anchors, executable rollout oracle |
+| 2 | "Shape one cross-harness tool-grievance surface without adding another standalone CLI." | Roster + Powder `roster-cross-harness-grievance` | source edits | alternatives that fail differently, boundary placement, attribution invariants |
+| 3 | "Shape enforcing a refund threshold: refunds above $X require a second approver." | seeded Python billing service | source edits | high-risk money/auth, failure/rollback, premise challenge |
 
-One fixture is noise. ≥2 of 3 must show A>B for a pass; the three span repo-
-grounded CLI work, a contestable architecture call, and high-risk behavior.
+At least two fixtures must show A>B; the set spans product infrastructure,
+cross-harness architecture, and high-risk behavior.
 
 ## Objective checks (scriptable, pass/fail, ~free — run on every `primitives/skills/shape/**` edit)
 
 Each can fail on a real artifact; a no-op "shape" that echoes the prompt fails
 here without a judge.
 
-- [ ] All 10 skeleton sections present and non-empty: Goal, Non-Goals,
-      Constraints, Repo Anchors, Alternatives, Design, Oracle, Premise Source,
-      HTML Plan, Risks + Rollout.
-- [ ] Oracle contains a runnable command/route token (`cargo`, `harness-kit-checks`,
-      a test/route invocation) — not "it should work".
-- [ ] Repo Anchors cite 3–10 paths that exist at the SHA (fixtures 1–2).
-- [ ] Alternatives lists ≥2 options, each with a verdict, and names exactly one
-      recommendation (not a menu).
-- [ ] Premise Source line present: `sha256:<digest> <path>` or an explicit waiver.
-- [ ] HTML Plan: a `.html` path is named and the file exists (or explicit
-      trivial-shape waiver).
-- [ ] No forbidden edits — the arm produced a packet, not a source change.
-- [ ] Fixture 1 only: a CLI-design block is present (flags, help text, exit
-      codes per `references/cli-design.md`).
+- [ ] Required packet fields are non-empty: Outcome, Deliverable, Non-Goals,
+      Invariants, Repo Anchors, Alternatives, Design, Oracle, Premise Source,
+      Risks + Rollout.
+- [ ] Oracle contains a runnable command, route, probe, or acceptance artifact—not
+      “it should work.”
+- [ ] Repo Anchors cite 3–10 live paths and one convention exemplar.
+- [ ] Alternatives include at least two options that fail differently and name
+      exactly one recommendation.
+- [ ] Premise Source is `sha256:<digest> <path-or-url>` or an explicit waiver.
+- [ ] Non-trivial fixtures name a reachable HTML plan attached to the Powder
+      card, or carry an explicit waiver.
+- [ ] No forbidden source edits.
+- [ ] Load-bearing choices contain no “preferably” or “decide later.”
 
 ## Rubric (1–5, blind, one-line justification each — judgment-heavy delta only)
 
