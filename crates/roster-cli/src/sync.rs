@@ -316,7 +316,7 @@ fn build_plan(
     // Skill symlink farm.
     let skill_dirs = match catalog {
         Catalog::Full => discover_full_skill_dirs(root)?,
-        Catalog::Curated => curated_skill_dirs(orchestrator),
+        Catalog::Curated => curated_skill_dirs(root, orchestrator),
     };
     for harness_skills_dir in detect_skill_harness_dirs(home) {
         for (skill_name, target) in &skill_dirs {
@@ -434,7 +434,7 @@ fn discover_full_skill_dirs(root: &Path) -> Result<Vec<(String, PathBuf)>> {
     Ok(found)
 }
 
-fn curated_skill_dirs(agent: &Agent) -> Vec<(String, PathBuf)> {
+fn curated_skill_dirs(root: &Path, agent: &Agent) -> Vec<(String, PathBuf)> {
     let mut found: Vec<(String, PathBuf)> = agent
         .role
         .skills
@@ -442,7 +442,7 @@ fn curated_skill_dirs(agent: &Agent) -> Vec<(String, PathBuf)> {
         .filter_map(|skill| {
             let dir = Path::new(&skill.path).parent()?.to_path_buf();
             let name = dir.file_name()?.to_string_lossy().to_string();
-            Some((name, dir))
+            Some((name, root.join(dir)))
         })
         .collect();
     found.sort();
