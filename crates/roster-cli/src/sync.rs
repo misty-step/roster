@@ -442,7 +442,16 @@ fn curated_skill_dirs(root: &Path, agent: &Agent) -> Vec<(String, PathBuf)> {
         .filter_map(|skill| {
             let dir = Path::new(&skill.path).parent()?.to_path_buf();
             let name = dir.file_name()?.to_string_lossy().to_string();
-            Some((name, root.join(dir)))
+            // Agent declarations are workstation-portable prose and may
+            // contain an absolute path from the machine that authored them.
+            // Curated installs must re-anchor the repo-owned `primitives/...`
+            // suffix at the checkout being synchronized (CI, a clone, or the
+            // operator's canonical checkout), never preserve that host prefix.
+            let relative: PathBuf = dir
+                .components()
+                .skip_while(|component| component.as_os_str() != "primitives")
+                .collect();
+            (!relative.as_os_str().is_empty()).then(|| (name, root.join(relative)))
         })
         .collect();
     found.sort();
