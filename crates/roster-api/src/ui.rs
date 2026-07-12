@@ -285,7 +285,7 @@ fn pool_text(pool: &SubagentPool) -> String {
 /// what a `role.yaml` edit on disk actually reflects. Failure is non-fatal
 /// -- an empty sha just means the attribution line omits it, matching this
 /// codebase's established "absent state degrades quietly" convention (see
-/// bastion's `portal.rs` registry/links loaders).
+/// Sanctum's `portal.rs` registry/links loaders).
 fn git_sha(root: &Path) -> String {
     std::process::Command::new("git")
         .args([

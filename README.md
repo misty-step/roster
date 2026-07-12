@@ -377,7 +377,7 @@ console/page errors, no horizontal overflow at 390px, and the per-agent
 `<details>` drill-down works with touch/click at both widths.
 
 Reachable from the Sanctum portal as a supervised box app once vendored into
-`misty-step/bastion` per that repo's established pattern (see `bastion.toml`
+`misty-step/sanctum` per that repo's established pattern (see `sanctum.toml`
 and the `vendor/{cairn,crucible,powder}` precedent) and given a fleet
-directory (`registry.toml`) entry — see `misty-step/bastion`'s own docs for
+directory (`registry.toml`) entry — see `misty-step/sanctum`'s own docs for
 that half of the deploy.

@@ -56,7 +56,7 @@ every claim links to its evidence (the atlas principle applies to pages too).
 
 ## Shelf gotcha
 
-`artifact_create.py` mirrors to the bastion/Sanctum shelf automatically. Files
+`artifact_create.py` mirrors to the Sanctum shelf automatically. Files
 written RAW into `~/artifacts/public/a/<slug>/` serve on the local host only —
 they need the bearer-PUT publish step (see `publish_to_shelf` in
 `~/.factory-lanes/scripts/bridge.py`) or the operator won't find them on
