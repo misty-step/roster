@@ -4,8 +4,8 @@ description: |
   Discover and dispatch the agent fleet. Any Roster agent may commission any
   other agent; there is no declared delegates list. Use when: "delegate this",
   "dispatch an agent", "who can do this", "hand this to a builder/reviewer/
-  verifier", "launch smith/hephaestus/cerberus", or any time work should run
-  in a fresh, independently composed context instead of this one.
+  verifier", "launch a focused agent", or any time work should run in a fresh,
+  independently composed context instead of this one.
   Trigger: /roster, /dispatch.
 argument-hint: "[agent]"
 ---
@@ -48,5 +48,5 @@ oracle — never the author's reasoning trail.
 - One card, one lane: a dispatched agent works one commissioned outcome.
 - Don't chain dispatches to simulate a pipeline the operator didn't ask for;
   each hop loses context and costs attention.
-- If the right agent doesn't exist, that is a finding for the operator (or a
-  card for smith, the agent creator) — not a reason to improvise a role.
+- If the right agent doesn't exist, record an agent-creation gap for the
+  operator — do not improvise a role.
