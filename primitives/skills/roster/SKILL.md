@@ -14,6 +14,11 @@ argument-hint: "[provider] [task]"
 
 # /roster
 
+> **v0.2 migration note:** root `VISION.md` repurposes Roster around primitive
+> composition, resolution, and dispatch. This v0.1 skill still documents the
+> peer-Harness bench; it must be renamed or narrowed when the first-party
+> Roster-CLI skill lands rather than silently defining the new CLI contract.
+
 You are not the only frontier agent on this machine. These CLIs are
 installed and each runs headlessly. They are options, not obligations:
 native subagents remain the default delegation path, and a peer harness

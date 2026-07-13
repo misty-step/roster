@@ -1,38 +1,37 @@
 # Roster Repo Contracts
 
-Roster declares agents and materializes those declarations for execution
-planes. It is not itself an execution runtime.
+Roster curates agent primitives, resolves roles into immutable bundles, and
+hands those bundles to Harness adapters. Read `VISION.md` before changing the
+declaration graph, CLI, adapters, or migration boundary.
 
-## Contracts
+## Current migration
 
-- `VISION.md` is the founding product contract. Read it before changing agent
-  declaration shape, primitive registries, provider routing, or phase scope.
-- Agent declarations live under `agents/<name>/` as `role.yaml` plus
-  `instructions.md`. Keep declarations as data and prose; no framework code in
-  agent directories.
-- `role.yaml` is deterministic input and must reject unknown fields. Model-facing
-  instructions stay prose in `instructions.md`.
+- `VISION.md` is the target contract. The checked-in v0.1 implementation still
+  contains legacy workstation and service machinery; existence is not product
+  authority.
+- The active migration is Powder card `roster-v02-primitives-compiler`.
+- Preserve curated skills, provenance, useful declarations, and all user-owned
+  Harness state. Do not extend a legacy surface without an explicit temporary
+  migration justification.
+- Target semantic composition lives only in roles: name, description, and one
+  additive `include` list. Agent definitions bind role + model + Harness + args;
+  they do not add primitives.
+- Target source identities are source-qualified and have no implicit override
+  semantics. Resolution must remain explainable and provenance-complete.
+- Target Harness adapters may translate and launch an immutable bundle. They may
+  not mutate its meaning or normalize Harness-native model topology.
+- No secret values in declarations, bundles, manifests, fixtures, or logs.
+
+## Source boundaries
+
 - `primitives/skills/skills-index.yaml` and
-  `primitives/skills/.external/registry.yaml` are Roster's authoritative
-  primitive catalog and provenance ledger. Agent declarations reference only
-  Roster-owned paths.
-- `roster sync` (crates/roster-cli/src/sync.rs) materializes agent briefs, a
-  skill symlink farm (`--catalog full|curated`), doctrine links, and installed
-  harness config projections through one reversible manifest.
-  `crates/roster-hooks` owns the live Claude hook surface, including secret
-  read guards and pre-transcript output redaction. Workstation cutover was
-  proven live under roster-926; Harness Kit is a retired predecessor.
-- No secret values in declarations or registries; env refs only.
-- Claude Code, Codex, and OMP are Tier 1 harnesses. Their native projections
-  require live doctor evidence; every other harness is a compatibility target.
-- `agents/orchestrator/` is the workstation composition root. Default sync
-  installs that identity while exposing the full skill catalog for discovery;
-  `--all-agents` is explicit expansion.
-- `primitives/mcps/registry.yaml` is the only MCP catalog. Agent declarations
-  reference its ids directly; no parallel profile policy may decide bindings.
-- `roster sync` is the only workstation convergence mutator. It preserves
-  harness auth, sessions, caches, UI preferences, and unmarked local config.
-  `roster doctor` is strictly read-only.
+  `primitives/skills/.external/registry.yaml` remain the current skill catalog
+  and provenance ledger until the v0.2 source graph replaces them.
+- Unknown or unmarked Harness artifacts are user-owned. Preserve or ask.
+- Powder owns work; Bitterblossom owns workflows and dispatch. Roster may carry
+  primitives for using them but no embedded card or workflow semantics.
+- The retained deterministic core must serve validation, resolution, manifest
+  production, explanation, or thin launch mechanics. Delete before adding.
 
 ## Gate
 

@@ -1,122 +1,260 @@
-# VISION — roster
+# VISION — Roster
 
-Roster makes agents the first-class citizens of the factory. It is the single
-place where every agent we run is DECLARED — its role, system prompt,
-capabilities, model policy, permitted skills and MCP servers, evidence
-expectations — and the machinery that compiles a declaration into the native
-configuration or briefing a plane consumes. Harnesses and Bitterblossom run
-agents; Roster never does.
+Roster is a public library and small compiler for composing agents.
 
-It succeeds harness-kit by inverting the sync model. Harness-kit synced the
-entire pack as eagerly loaded context. Roster instead exposes the full catalog
-as cheap filesystem discovery while composing ONE default orchestrator agent
-(the lead). Other identities remain independently materializable through the
-CLI, MCP, API, and skill faces. Availability is broad; loaded context stays
-narrow.
+It curates opinionated, reusable agent primitives; resolves them from public,
+personal, client, and experimental sources; and produces an inspectable bundle
+that a Harness can run. Roster is for humans and control planes that want to
+answer, precisely: **what role should this agent perform, what guidance and
+tools does that role carry, and what was actually handed to the Harness?**
 
-## Workstation contract (operator-ratified 2026-07-11)
+The factory is Roster's demanding first user, not its product boundary. A
+stranger should be able to adopt Roster without adopting Misty Step's
+workstation, Powder, Bitterblossom, or operating doctrine.
 
-- **One managed core.** Roster owns agent declarations, skills, MCP
-  definitions, model/policy defaults, and the generated portions of harness
-  configuration. Harnesses own authentication, sessions, caches, UI
-  preferences, and explicitly local additions.
-- **One composition root.** `orchestrator` is the default workstation agent.
-  Other agents are selected and materialized explicitly; installing every
-  identity is an opt-in expansion, not the default session shape.
-- **Three Tier 1 harnesses.** Claude Code, Codex, and OMP receive native
-  projections and live doctor coverage. Other materializers are compatibility
-  targets: useful, tested where practical, but not equal support claims.
-- **One MCP catalog.** `primitives/mcps/registry.yaml` is the declaration;
-  `role.yaml` references server ids directly. There is no second profile or
-  policy system. `available` means Roster carries a complete launch shape;
-  `external` means the consumer runtime supplies the binding; `disabled`
-  means doctor rejects any active effective registration. Required servers
-  must resolve before dispatch; contextual servers bind only when present.
-- **One mutator.** `roster sync` is the explicit, reversible convergence
-  command. It may replace only manifest-owned files, links, or marked config
-  blocks. `roster doctor` is read-only and reports effective-state drift.
-- **Thin consumers.** Bitterblossom and other applications consume the same
-  declarations and materializations through CLI/MCP/API surfaces. Runtime
-  scheduling, credentials, sessions, and execution remain theirs.
+## The function
 
-## The shape (operator-ratified 2026-07-04)
+Roster does three things:
 
-- **`agents/<name>/`** — one directory per declared agent (the Eve
-  convention, without the Vercel runtime): `role.yaml` (description, model
-  policy with a concrete preferred {model, reasoning} + fallback
-  {model, reasoning} entries, permissions, skills list, mcps list, subagent
-  rights, evidence expectations) and `instructions.md` (the system prompt).
-  Optional `tools/` for bespoke tooling. The declaration is data + prose,
-  never framework code.
-- **`primitives/`** — the catalog beneath the agents: `skills/`
-  (first-party skills migrated from harness-kit over time, vendored external
-  skills — Anthropic official, OpenAI official, Matt Pocock's — under
-  `skills/.external/`), `mcps/` (MCP server registry: name, launch, env
-  refs), `providers.yaml` (invocation tables per brain: the harness-kit
-  agents.yaml lineage — how to actually invoke codex/claude/pi/etc),
-  `models.yaml` (per-harness token translation for the handful of concrete
-  model ids that need one), `subagent-pool.yaml` (the default ad hoc
-  subagent pool every agent favors).
-- **`roster` CLI (Rust)** — the operational face: `list`, `show <agent>`,
-  `materialize <agent> --harness <claude|codex|omp|bb>` (emit the
-  harness-native form of a declaration), `brief <agent> [--card <id>]
-  [--add-skill X] [--add-mcp Y]` (emit a ready lane-brief header: role
-  prompt + skill file paths to read + MCP selection + evidence contract —
-  the DYNAMIC COMPOSITION seam), `sync` (converge the managed workstation
-  projection), and `doctor` (inspect effective Tier 1 state without
-  mutation).
+1. **Curate a library.** Compositional primitives—skills, MCP declarations,
+   and concise guidance—plus packs, roles, and Harness adapters live in plain
+   files with provenance.
+2. **Resolve composition.** One role expands into a deterministic, explainable
+   set of primitives across explicitly configured source roots.
+3. **Dispatch thinly.** Roster hands an immutable resolved bundle to a selected
+   Harness adapter and gets out of the way.
 
-## Dynamic composition (the critical design consideration)
+Everything else belongs to a neighboring product. Bitterblossom defines
+workflows and dispatches agents. Powder or another selected work system records
+tasks, claims, and evidence. Harnesses own process execution, authentication,
+sessions, caches, UI preferences, and native configuration.
 
-A dispatch must be able to compose an agent's context at dispatch time:
-which skills it reads, which MCP servers it reaches, which model tier runs
-it. The mechanism is prompt-native, because every harness ultimately accepts
-text and file paths: `roster brief` renders the declaration plus overrides
-into a brief header any harness consumes — Claude Code subagents read the
-named skill files and ToolSearch the named MCPs; codex lanes get the same
-header prepended to their task brief; bitterblossom materializes the same
-declaration into its runner config. One declaration, one composition seam,
-every plane. Rigid schema exists only where deterministic code branches
-(role.yaml); everything the model consumes rides as prose.
+## Words matter
 
-## Model policy (operator doctrine, encoded in role.yaml)
+- A **primitive** is a reusable skill, MCP declaration, or guidance fragment.
+- A **pack** is a dumb additive set of primitive references. It has no
+  conditions, inheritance, exclusions, model logic, or hidden precedence.
+- A **role** is the complete Roster-owned semantic composition of primitives.
+  It has a name, description, and one additive `include` list. Packs and roles
+  cannot include Harness adapters.
+- A **model** is the inference engine.
+- A **Harness** is the executable host: Codex, Claude Code, Pi, OpenCode, OMP,
+  or another runtime.
+- An **agent definition** binds `name + role + model + Harness + optional args`.
+  It does not add primitives outside its role.
+- An **agent instance** is that definition running in an environment. Roster
+  does not supervise the instance or own its run history.
 
-Fable (`claude-fable-5`) identities are reserved for strategy, planning,
-review, and visual intelligence, typically at low-to-medium reasoning,
-rarely high — and spawned sparingly. Implementation lanes default to
-GPT-5.6 Luna at high/xhigh. Claude Code subagents materialize as Sonnet 5 (a
-harness-level translation, not a role choice). Cheap sweeps ride OpenRouter
-lanes. `role.yaml`'s `model_policy` carries this as a concrete preferred
-model id + reasoning, and concrete fallback ids each with their own
-reasoning — no abstract tier symbol to decode (model policy v2, roster-924
-retired the `*-class` vocabulary). Every agent may also spawn ad hoc
-subagents from the pool declared once in `primitives/subagent-pool.yaml`.
-The declaration is where routing doctrine lives from now on (crucible's
-routing bench feeds it evidence over time).
+If two agents need different primitives, they have different roles. This keeps
+the effective behavior legible and prevents a second composition language from
+growing inside launch configuration.
 
-## Phases (this repo's own backlog; P0 is the founding lane)
+## The library
 
-P0 — repo, VISION, CLI core (list/show/materialize/brief), three seed agents,
-providers.yaml migrated. P1 — bitterblossom consumes roster for one role
-end-to-end. P2 — `roster sync` initializes the lead on this machine. P3 —
-primitives, hooks, doctrine, and workstation projection migrate; Harness Kit
-retires. P0-P3 completed in the roster-926 cutover. P4 — close effective-state
-convergence: native Tier 1 projections, one MCP catalog, and read-only doctor
-evidence. P5 — Cerberus's identity fully in roster; its standalone repo
-archives.
+The target public source tree is deliberately unsurprising:
+
+```text
+primitives/
+  skills/
+  mcps/
+  guidance/
+packs/
+roles/
+harnesses/
+agents/        # optional examples; active bindings usually live with operator config
+```
+
+Personal and private composition lives outside the repository, normally under
+`~/.roster/`, with the same relevant directories plus `config.yaml`. Client and
+eval roots may be added explicitly. Private roles can compose public primitives
+without copying them into Git or exposing client-specific instructions.
+
+Every item has a source-qualified canonical identity such as
+`core/skill:deliver` or `acme/role:builder`. Shorthand is accepted only when it
+is unambiguous. Two sources may carry the same short name because they remain
+different canonical identities; conflicting exact identities fail. There are
+no implicit overrides. A customized primitive receives a new identity.
+
+YAML is the canonical declaration format. JSON is an optional CLI serialization
+for machine consumers, not an authoring requirement.
+
+## Composition
+
+Roles have one `include` list whose entries may name compositional primitives or
+packs. Resolution is additive set union over canonical identities: duplicates
+collapse, provenance does not. The manifest explains every primitive's source
+and every pack or role that included it. The agent definition's Harness binding
+selects exactly one adapter after semantic resolution; adapters never appear in
+role or pack membership.
+
+The public roles are allowed to have taste. Roster's default SDLC roles prefer
+Powder by explicitly including a Powder work-management pack alongside general
+work-management practice. An operator who prefers Linear composes another role
+from the same general pack plus Linear primitives. Provider preference is
+visible composition, not a privileged schema field and not deterministic card
+logic inside Roster.
+
+Guidance is a first-class primitive for concise, always-loaded philosophy,
+principles, preferences, and practices. Skills remain triggered workflows; MCP
+declarations make tools available. Guidance should not grow into another name
+for a skill or a verbose system prompt.
+
+## The resolved bundle
+
+`roster resolve` produces the canonical intermediate representation:
+
+```text
+AGENTS.md
+skills/
+mcps/
+manifest.yaml
+```
+
+The bundle is immutable after resolution. Its YAML manifest records source
+roots, canonical identities, inclusion provenance, resolved agent binding, file
+digests, and every elicitation adaptation. It contains references and launch
+material, never secret values.
+
+The runtime `AGENTS.md` must tell the model what role it is playing, what
+guidance applies, what skills and tools are available, where they are, and when
+to use them. The resolver should generate the inventory/router from resolved
+metadata so it cannot drift. Roster will evaluate three prompt shapes—authored,
+hybrid, and generated—before declaring one universally superior. The initial
+design favors a hybrid: optional concise role-authored framing around generated
+guidance, skill, and MCP routing sections. Source templates are never mutated.
+
+Bundles are temporary by default. `resolve --output` and `--keep-bundle` make
+them durable for inspection, control-plane handoff, or reproduction.
+
+## Harness adapters
+
+Harness adapters are source-resolved library assets under `harnesses/`. An
+adapter reads the immutable semantic bundle, writes only an ephemeral
+Harness-native projection, selects the primary model, forwards native
+arguments, launches the process, and preserves its exit and signal behavior.
+It may not add primitives, rewrite role guidance, or otherwise change semantic
+composition.
+
+`dispatch` means only resolve plus one selected launch. Roster does not choose
+among eligible agents, route work, retry, supervise, or interpret the result;
+those richer dispatch responsibilities belong to a human or control plane.
+
+This narrow protocol prevents Roster from becoming a lowest-common-denominator
+Harness abstraction. OMP's advisor, smol model, reasoning budgets, and profiles
+remain OMP configuration passed through the agent's arguments. Roster-owned
+agent definitions use native arguments for runtime topology, budgets, sandbox,
+and profile selection—not to append or replace Roster-managed guidance, skills,
+or MCP material. The manifest records the forwarded arguments and profile
+reference, but does not claim to describe opaque Harness-owned configuration.
+Roster needs the primary model only for launch and root elicitation; it does
+not normalize a Harness's internal model topology.
+
+## Model elicitation: evidence before taxonomy
+
+Canonical primitives are written for maximally capable models: concise, clear
+about why the work matters, ambitious, and encouraging curiosity and fun. They
+preserve degrees of freedom instead of restating procedures a frontier model
+already understands. Frontier models receive no elicitation adaptation by
+default.
+
+Smaller models may benefit from more bounded tasks, explicit progress cues,
+examples, or narrower tool surfaces. Roster will not pre-emptively fork every
+skill by model family. Crucible and Bench should first test capability,
+scaffolding need, autonomy horizon, task decomposition, and prompt articulation
+with paired evidence. Only demonstrated adaptations enter Roster.
+
+An elicitation adaptation may append to `AGENTS.md` or modify the articulation
+of a materialized skill copy, but it must preserve the primitive's purpose,
+workflow, authority, and available tool surface. It applies only inside the
+bundle, never to canonical source. The manifest names every target, action,
+source, and before/after digest. A behaviorally distinct articulation receives
+a new canonical primitive identity and enters through the role's `include`
+list. Model-driven primitive inclusion or replacement would intentionally add a
+second semantic composition seam; it is outside v0.2 and requires explicit
+future vision revision plus evidence.
+
+Model labels and capability mappings are review-dated evidence, not ontology.
+Roster may consume a mapping produced elsewhere; it is not the research ledger.
+
+## Epic-shaped work and agent routing
+
+Most meaningful work begins as an ambitious epic suitable for a highly capable
+model. Decomposition converts ambiguity into bounded child contracts that less
+capable models can execute. The parent remains authoritative; children are
+reversible execution projections. Child evidence rolls into an epic-state
+packet rather than a transcript concatenation, allowing a strong model to
+recompose, judge, and integrate the whole.
+
+Roster owns reusable skills and guidance for shaping, decomposition, slice
+execution, recomposition, and integration. It does not own the hierarchy or
+router:
+
+- Powder should represent parent/child work, child acceptance, evidence rollup,
+  and parent-state recomposition.
+- Bitterblossom should own decompose → dispatch → collect → recompose workflows
+  and task-to-agent routing.
+- Crucible should evaluate capability, scaffolding, decomposition, outcome, and
+  dispatch quality.
+- Bench should publish reproducible benchmark families and comparisons.
+
+## Product surface
+
+The intended CLI is small:
+
+- `list` and `show` inspect primitives, packs, roles, agents, and Harnesses.
+- `graph` / `why` explain effective composition and provenance.
+- `validate` rejects invalid, ambiguous, or conflicting declarations.
+- `resolve` emits or retains an immutable bundle.
+- `dispatch` resolves, launches through an adapter, and exits with the Harness.
+
+A first-party Roster skill teaches capable humans and orchestrators how to use
+this surface. Roster does not need a standing MCP server, HTTP API, UI, sync
+daemon, or workstation doctor until real demand proves the filesystem and CLI
+insufficient.
 
 ## Non-goals
 
-- Not an execution runtime: roster declares and materializes; planes run.
-- Not a framework: no SDK-lock, no build step for agent definitions.
-- No secret values in declarations — env refs only.
-- No ownership of harness auth, sessions, caches, UI state, or unmarked local
-  configuration.
-- No equal-support fiction: compatibility targets do not inherit Tier 1 claims.
+Roster is not:
 
-## What excellent looks like (3 months)
+- an execution runtime, agent control plane, workflow engine, router, scheduler,
+  run ledger, task system, or approval plane;
+- a dotfile manager or workstation convergence authority;
+- an owner of Harness authentication, secrets, sessions, caches, health, or
+  unmarked configuration;
+- an SDK framework that consumers must embed;
+- a universal permissions or capability-grant system;
+- a place for Powder-, Bitterblossom-, Canary-, or OMP-specific product logic;
+- a compatibility museum for pre-1.0 experiments.
 
-Every agent in the fleet — the lead session, local subagents, bb runners,
-review lanes — is a `roster show` away from full legibility: one file tree
-answers what it is, what it may do, what it reads, and what runs it. New
-agents are a directory, not a project.
+Roster remains `0.x`. Breaking changes are welcome when they clarify the
+function or delete machinery. Migrations preserve valuable user-authored
+primitives and user-owned Harness state, not obsolete APIs.
+
+## Migration truth
+
+The current implementation predates this contract. Its rich role schema,
+coupled `instructions.md`, `sync`, `doctor`, workstation projections, hooks,
+HTTP/UI/MCP services, card-aware briefs, and Bitterblossom materializer are
+legacy surfaces to delete, extract, or replace through the
+`roster-v02-primitives-compiler` epic. Do not extend them merely because they
+exist. New work must either advance the target or carry an explicit, temporary
+migration justification.
+
+Curated skills, external provenance, and useful plain-file declarations are the
+value to preserve. Deterministic mass must re-earn its place as validation,
+resolution, manifest production, or thin launch mechanics.
+
+## What excellent looks like
+
+In the near term, one private role can compose public primitives, resolve to a
+bundle whose router and provenance are obvious, and launch through Codex and
+OMP without changing permanent Harness configuration.
+
+In the medium term, control planes such as Bitterblossom consume the same
+bundle contract as local dispatch, while eval evidence—not remembered model
+folklore—drives any capability adaptation.
+
+Long term, Roster becomes a small, trustworthy public vocabulary for agent
+composition: opinionated enough to improve the agent, modular enough to fit
+another operator, and simple enough that its declarations matter more than its
+code.

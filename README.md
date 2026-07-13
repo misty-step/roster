@@ -1,5 +1,11 @@
 # roster
 
+> **v0.2 direction reset:** `VISION.md` now defines Roster as a public
+> agent-primitives catalog and dispatch compiler. The workstation convergence,
+> rich role schema, service faces, and commands documented below describe the
+> legacy v0.1 implementation while `roster-v02-primitives-compiler` migrates the
+> repository. Do not treat them as the target product contract.
+
 Roster is the agent declaration repository for Misty Step Factory. It keeps
 agent identities, prompts, model policy, primitive references, and materializers
 in one plain-file tree.

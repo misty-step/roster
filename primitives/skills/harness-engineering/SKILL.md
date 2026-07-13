@@ -15,6 +15,10 @@ argument-hint: "[create|eval|lint|convert|sync|engineer|audit|models] [target]"
 
 Engineer the harness. Keep it thin.
 
+When changing Roster itself, read root `VISION.md` first. Its v0.2 catalog and
+compiler boundary supersedes this skill's historical workstation-sync wording;
+do not extend `sync`, `doctor`, or service faces as target product surfaces.
+
 ## Route
 
 | Need | Load |
@@ -84,8 +88,9 @@ test below — most patterns are prompts, not skills.
   harness-specific skill bridge dirs are `/seed` output for consumer repos.
 - Generated/root `AGENTS.md` is a router, not a manual. Keep non-obvious facts
   only.
-- `roster sync` exposes the first-party skill catalog; repo-local
-  vendoring is exceptional and must earn its complexity.
+- Roster's resolved bundle exposes the selected skill catalog; repo-local
+  vendoring is exceptional and must earn its complexity. The current
+  `roster sync` implementation is legacy migration input, not the target.
 - Provider CLIs are tools. Do not wrap them in semantic orchestration unless a
   shaped ticket explicitly asks.
 - Harness-specific accelerators (e.g. orchestration-workflow templates) may

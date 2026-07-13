@@ -1,0 +1,272 @@
+<style>
+  .contract-grid,
+  .shape-grid,
+  .repo-grid {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .contract-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .shape-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .repo-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  .tile,
+  .flow-node {
+    border: 1px solid var(--line);
+    border-radius: 0.6rem;
+    background: var(--panel);
+    padding: 0.85rem 1rem;
+  }
+
+  .tile h3,
+  .flow-node h3 { margin-top: 0; }
+
+  .flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+    gap: 0.55rem;
+    align-items: stretch;
+    margin: 1rem 0;
+  }
+
+  .flow-node { min-width: 0; }
+  .arrow { align-self: center; color: var(--red); font: 700 1.35rem/1 ui-monospace, monospace; }
+
+  .phase {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr) minmax(12rem, 0.65fr);
+    gap: 1rem;
+    border-top: 1px solid var(--line);
+    padding: 0.9rem 0;
+  }
+
+  .phase:first-child { border-top: 0; }
+  .phase strong { color: var(--red); font-family: ui-monospace, monospace; }
+  .verdict-keep { color: var(--teal); font-weight: 700; }
+  .verdict-cut { color: var(--red); font-weight: 700; }
+  .verdict-move { color: var(--gold); font-weight: 700; }
+
+  @media (max-width: 850px) {
+    .contract-grid,
+    .shape-grid,
+    .repo-grid,
+    .flow,
+    .phase { grid-template-columns: 1fr; }
+    .arrow { transform: rotate(90deg); justify-self: center; }
+  }
+</style>
+
+<p class="label">ROSTER-V02-PRIMITIVES-COMPILER · RATIFIED DIRECTION</p>
+<h1>Make Roster a small public language for composing agents.</h1>
+<p class="lede">The chosen product is a curated filesystem library plus a small compiler and launcher. Roster defines reusable agent primitives and resolves them into inspectable bundles. Harnesses execute those bundles; Bitterblossom defines workflows and dispatches them; Powder records work.</p>
+
+<div class="call">
+  <strong>Chosen design.</strong> Role composition is Roster's only semantic composition seam. An agent binds a role, primary model, Harness, and optional arguments. Resolution produces an immutable bundle; a Harness adapter may translate and launch it but may not change its meaning.
+</div>
+
+<section class="contract-grid" aria-label="Work contract">
+  <article class="tile">
+    <h3>Outcome</h3>
+    <p>A stranger can understand, compose, inspect, and dispatch a focused agent without adopting Misty Step's workstation or control-plane machinery.</p>
+  </article>
+  <article class="tile">
+    <h3>Proof</h3>
+    <p>Resolved bundle provenance, observable CLI fixtures, live Codex and OMP launches, unchanged user-owned Harness state, and the unchanged Rust gate.</p>
+  </article>
+  <article class="tile">
+    <h3>Standard</h3>
+    <p>Deep module, tiny surface. Opinionated primitives; provider-neutral mechanism; frontier-first prose; no hidden composition or override magic.</p>
+  </article>
+  <article class="tile">
+    <h3>Stop if</h3>
+    <p>The design grows a workflow engine, workstation manager, generic patch DSL, model taxonomy without eval evidence, or compatibility layer for v0 experiments.</p>
+  </article>
+</section>
+
+<h2><span class="k">01</span>The product boundary</h2>
+
+<div class="flow" aria-label="Roster resolution and execution flow">
+  <article class="flow-node">
+    <h3>Sources</h3>
+    <p><code>core</code>, <code>~/.roster</code>, client and eval roots. Canonical source-qualified IDs; shorthand only when unambiguous.</p>
+  </article>
+  <div class="arrow" aria-hidden="true">→</div>
+  <article class="flow-node">
+    <h3>Role</h3>
+    <p>One additive <code>include</code> list over skills, MCPs, guidance, and packs. This is the whole Roster-owned semantic composition.</p>
+  </article>
+  <div class="arrow" aria-hidden="true">→</div>
+  <article class="flow-node">
+    <h3>Bundle</h3>
+    <p><code>AGENTS.md</code>, skills, MCP material, and YAML manifest with inclusion and adaptation provenance.</p>
+  </article>
+  <div class="arrow" aria-hidden="true">→</div>
+  <article class="flow-node">
+    <h3>Harness</h3>
+    <p>The agent's Harness binding selects one source-resolved adapter; it creates an ephemeral native projection, launches, and preserves exit/signal behavior.</p>
+  </article>
+</div>
+
+<div class="shape-grid">
+  <article class="tile">
+    <h3>Roster owns</h3>
+    <ul>
+      <li>Compositional primitives: skills, MCP declarations, and guidance.</li>
+      <li>Composition assets: packs and roles; launch assets: Harness adapters.</li>
+      <li>Multi-root discovery, validation, explanation, and provenance.</li>
+      <li>Bundle resolution and thin dispatch.</li>
+      <li>A concise first-party skill explaining the CLI.</li>
+    </ul>
+  </article>
+  <article class="tile">
+    <h3>Roster refuses</h3>
+    <ul>
+      <li>Tasks, claims, workflows, schedules, retries, and run supervision.</li>
+      <li>Workstation convergence, runtime health, secrets, auth, sessions, and caches.</li>
+      <li>HTTP/UI/MCP service faces without separately proven demand.</li>
+      <li>Provider-specific workflow semantics or OMP topology normalization.</li>
+    </ul>
+  </article>
+</div>
+
+<h2><span class="k">02</span>Ontology that stays legible</h2>
+
+<div class="scroll">
+  <table>
+    <thead><tr><th>term</th><th>meaning</th><th>stored where</th><th>important exclusion</th></tr></thead>
+    <tbody>
+      <tr><td>Primitive</td><td>Reusable skill, MCP declaration, or guidance fragment.</td><td>Source roots</td><td>Not a workflow step or Harness adapter.</td></tr>
+      <tr><td>Pack</td><td>Dumb additive set of primitive references.</td><td><code>packs/</code></td><td>No conditions, inheritance, exclusions, or model logic.</td></tr>
+      <tr><td>Role</td><td>Complete Roster-owned semantic composition of primitives.</td><td><code>roles/</code></td><td>No model, Harness, permissions schema, or agent-level extras.</td></tr>
+      <tr><td>Agent definition</td><td><code>name + role + model + Harness + args?</code></td><td>Usually <code>~/.roster/agents/</code></td><td>Cannot include more primitives.</td></tr>
+      <tr><td>Agent instance</td><td>A model in a Harness operating a resolved role in an environment.</td><td>Execution plane</td><td>Roster does not supervise it.</td></tr>
+      <tr><td>Elicitation adaptation</td><td>Evidence-backed, semantics-preserving articulation applied only to materialized bundle copies.</td><td>Resolver manifest</td><td>Never changes primitive identity, purpose, authority, or tool surface.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="k">03</span>Opinion without coupling</h2>
+
+<div class="call gold">
+  <strong>Powder remains the public default, not a core schema field.</strong> Core roles may explicitly include a Powder work-management pack. A private client role includes the same general SDLC pack plus Linear instead. If the primitives differ, the role differs; the agent binding does not hide the difference.
+</div>
+
+<p>Canonical primitive prose targets maximally capable models: concise, ambitious, explicit about why, and encouraging curiosity. Frontier models receive no elicitation overlay by default. Smaller-model scaffolding earns its way in through paired evals; it is not pre-authored as a combinatorial family of skill variants.</p>
+
+<p>Any behaviorally different model variant becomes a newly identified primitive selected by the role. v0.2 adaptations may change articulation in resolved copies, but cannot include, replace, or semantically alter primitives. Harness-native arguments may select topology, budget, sandbox, or an external profile; Roster-owned definitions do not use them to smuggle in prompts, skills, or MCPs.</p>
+
+<h2><span class="k">04</span>Delete-first migration</h2>
+
+<div class="scroll">
+  <table>
+    <thead><tr><th>current surface</th><th>v0.2 verdict</th><th>reason</th></tr></thead>
+    <tbody>
+      <tr><td>Curated skills and external provenance</td><td class="verdict-keep">KEEP</td><td>They are the core library value; audit and simplify rather than rewrite indiscriminately.</td></tr>
+      <tr><td><code>sync</code>, <code>doctor</code>, workstation manifests and projections</td><td class="verdict-cut">DELETE</td><td>They manage a workstation rather than compose an agent.</td></tr>
+      <tr><td>Current role schema and coupled <code>instructions.md</code></td><td class="verdict-move">REPLACE</td><td>Collapse to role metadata plus one include list; generate or hybrid-render the runtime router.</td></tr>
+      <tr><td>HTTP API, UI, MCP server, hooks, Canary integration</td><td class="verdict-cut">DELETE / EXTRACT</td><td>Unproven faces and runtime concerns outside the catalog/compiler boundary.</td></tr>
+      <tr><td>Bitterblossom materializer and Powder card folding</td><td class="verdict-cut">DELETE</td><td>Control-plane and work-ledger semantics belong to their owning products.</td></tr>
+      <tr><td>Model/provider facts</td><td class="verdict-move">NARROW</td><td>Agent bindings name a primary model; capability evidence and routing policy live in eval products and control planes.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p>The interrupted Luna read-only audit did not reach a verdict, so only its proven inventory is admitted: 30 first-party entry files were about 3.4k lines, the then-shared doctrine was 422 lines, and the same ground → shape → oracle → critic → evidence → closeout loop appeared across many skills. That supports generated routing, pointers to shared contracts, and deletion of repetition; it does not justify model-specific primitive forks.</p>
+
+<h2><span class="k">05</span>Execution phases</h2>
+
+<section class="tile" aria-label="Execution phases">
+  <div class="phase">
+    <strong>0 · LOCK</strong>
+    <p>Replace the stale vision and repo router; publish this packet; disposition conflicting cards.</p>
+    <p><small>Proof: reviewed diff, artifact HTTP 200, Powder readback.</small></p>
+  </div>
+  <div class="phase">
+    <strong>1 · RESOLVE</strong>
+    <p>Build source graph, canonical IDs, packs, roles, private roots, manifest, and explanation surfaces.</p>
+    <p><small>Proof: red/green public CLI fixtures and retained bundle inspection.</small></p>
+  </div>
+  <div class="phase">
+    <strong>2 · DISPATCH</strong>
+    <p>Add the stable adapter protocol and first Codex/OMP adapters. Keep native topology outside Roster.</p>
+    <p><small>Proof: live launches plus exit/signal and immutable-bundle checks.</small></p>
+  </div>
+  <div class="phase">
+    <strong>3 · CUT</strong>
+    <p>Remove legacy services, sync/doctor, hooks, and semantic integrations after new dispatch works.</p>
+    <p><small>Proof: deletion audit, unchanged gates, no user-owned config mutation.</small></p>
+  </div>
+  <div class="phase">
+    <strong>4 · LEARN</strong>
+    <p>Run AGENTS-generation and capability/scaffolding evals; adopt only demonstrated adaptations.</p>
+    <p><small>Proof: paired evidence packets with uncertainty and explicit decision thresholds.</small></p>
+  </div>
+</section>
+
+<h2><span class="k">06</span>Cross-repository ownership</h2>
+
+<section class="repo-grid">
+  <article class="tile">
+    <h3>Powder</h3>
+    <p>First-class epic/child relationships, child acceptance, evidence rollup, and a recomposable parent state packet.</p>
+  </article>
+  <article class="tile">
+    <h3>Bitterblossom</h3>
+    <p>Workflow-owned decompose → dispatch → collect → recompose behavior and task-to-agent routing.</p>
+  </article>
+  <article class="tile">
+    <h3>Crucible</h3>
+    <p>Capability, scaffolding, decomposition, recomposition, and dispatch-quality eval execution.</p>
+  </article>
+  <article class="tile">
+    <h3>Bench</h3>
+    <p>Public benchmark family and benchmark-of-benchmarks synthesis for capability-scaled agent work.</p>
+  </article>
+</section>
+
+<h2><span class="k">07</span>Alternatives rejected</h2>
+
+<div class="scroll">
+  <table>
+    <thead><tr><th>alternative</th><th>why it looked attractive</th><th>failure mode</th><th>verdict</th></tr></thead>
+    <tbody>
+      <tr><td>Keep workstation sync as the product</td><td>Immediate convenience and already-built code.</td><td>Roster becomes dotfile management and owns every Harness quirk forever.</td><td>Reject.</td></tr>
+      <tr><td>Agent-level primitive overrides</td><td>Quick provider or client customization.</td><td>Two composition seams; effective role differs from declared role.</td><td>Reject.</td></tr>
+      <tr><td>Model-specific primitive trees now</td><td>Smaller models may need more scaffolding.</td><td>Articulation explosion before evidence; anchors frontier models to stale practice.</td><td>Defer to evals.</td></tr>
+      <tr><td>Normalize every Harness feature</td><td>One apparently uniform agent schema.</td><td>Overfits OMP and leaks runtime topology into role semantics.</td><td>Reject; forward native args/profile.</td></tr>
+      <tr><td>Preserve v0.1 compatibility</td><td>Less immediate churn.</td><td>Permanent translation code for an experiment with no stability promise.</td><td>Reject; migrate valuable authored data only.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="k">08</span>Oracle and review focus</h2>
+
+<div class="shape-grid">
+  <article class="tile">
+    <h3>Executable oracle</h3>
+    <ol>
+      <li>Resolver fixtures prove canonical IDs, ambiguity failures, deduplication, and provenance.</li>
+      <li>Bundle inspection proves generated routing matches included skills/MCPs and every adaptation is enumerated.</li>
+      <li>Live Codex and OMP dispatches prove adapter feasibility without permanent workstation mutation.</li>
+      <li>The unchanged formatting, lint, test, and Roster check gates remain green.</li>
+    </ol>
+  </article>
+  <article class="tile">
+    <h3>Adversarial review</h3>
+    <ul>
+      <li>Find any second semantic composition seam.</li>
+      <li>Find runtime/control-plane concerns masquerading as catalog/compiler work.</li>
+      <li>Find hidden source precedence or unrecorded adaptation.</li>
+      <li>Find model/provider claims that lack dated evidence.</li>
+      <li>Find valuable user-authored bytes the migration would silently discard.</li>
+    </ul>
+  </article>
+</div>
+
+<div class="call red">
+  <strong>Residual risk.</strong> The correct AGENTS generation strategy and capability-adaptation axis remain research questions. v0.2 must make both modular and observable without pretending they are settled.
+</div>
+
+<footer>
+  <p class="mono">Authority: operator-ratified vision/grilling discussion, 2026-07-12–13 · Work ledger: roster-v02-primitives-compiler · Implementation remains unstarted at publication.</p>
+</footer>

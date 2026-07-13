@@ -11,6 +11,12 @@ argument-hint: "[list|show|brief|materialize|sync|doctor]"
 
 # Roster
 
+> **v0.2 migration note:** read root `VISION.md` before using this document as
+> product authority. The declaration schema, MCP/HTTP faces, `materialize`,
+> `brief`, `sync`, and `doctor` below describe the legacy v0.1 implementation.
+> The target skill will teach composition, `resolve`, explanation, and thin
+> `dispatch` once those commands exist.
+
 Roster keeps agent identity in one plain-file tree
 (`agents/<name>/role.yaml` + `agents/<name>/instructions.md`) and renders it as
 prompt-native text for any harness. Treat declarations as the source of truth
