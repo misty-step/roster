@@ -58,7 +58,6 @@ agents:
     reasoning: high
     harness: {harness}
     args: []
-    delegates: []
 "#,
             source_path.display()
         ),
@@ -143,7 +142,6 @@ fn bundle_contains_only_the_resolved_role_primitives() {
     assert_eq!(manifest.mcps[0].identity, "misty/mcp:powder");
     assert_eq!(manifest.reasoning.as_deref(), Some("high"));
     assert!(manifest.args.is_empty());
-    assert!(manifest.delegates.is_empty());
     assert!(!bundle.join("skills/deliver/scripts/__pycache__").exists());
     assert!(bundle.join("skills/deliver/.env.example.tmpl").is_file());
     assert_eq!(manifest.context.len(), 1);
@@ -458,12 +456,8 @@ fn discovery_imports_and_public_metadata_are_observable() {
     source(&source_root, "core", "powder");
     let imported = config_dir.join("base.yaml");
     config(&imported, "core", &source_root, "amos", "codex");
-    let mut body = fs::read_to_string(&imported)
-        .expect("base config")
-        .replace("delegates: []", "delegates: [reviewer]");
-    body.push_str(
-        "  reviewer:\n    description: Independent reviewer\n    role: core/role:orchestrator\n    model: test/model\n    harness: claude\n    args: []\n    delegates: []\nauthority:\n  command: authority-provider\n  args: [request]\n",
-    );
+    let mut body = fs::read_to_string(&imported).expect("base config");
+    body.push_str("authority:\n  command: authority-provider\n  args: [request]\n");
     write(&imported, &body);
     let config_path = config_dir.join("config.yaml");
     write(
@@ -482,9 +476,6 @@ fn discovery_imports_and_public_metadata_are_observable() {
         roster.authority().expect("authority").command,
         "authority-provider"
     );
-    let markdown = roster.resolve("amos").expect("resolve").agents_markdown();
-    assert!(markdown.contains("## Delegation"));
-    assert!(markdown.contains("`reviewer`"));
 }
 
 #[test]
@@ -571,57 +562,43 @@ fn config_and_harness_arguments_fail_closed() {
     let document = |sources: &str, agents: &str| {
         format!("schema_version: roster.config.v1\nsources: {sources}\nagents: {agents}\n")
     };
-    let agent = |description: &str, harness: &str, args: &str, delegates: &str| {
+    let agent = |description: &str, harness: &str, args: &str| {
         format!(
-            "\n  amos:\n    description: {description:?}\n    role: core/role:orchestrator\n    model: test/model\n    harness: {harness}\n    args: {args}\n    delegates: {delegates}\n"
+            "\n  amos:\n    description: {description:?}\n    role: core/role:orchestrator\n    model: test/model\n    harness: {harness}\n    args: {args}\n"
         )
     };
     let sources = format!("\n  core: {}", root.display());
     let cases = [
-        (
-            "{}".to_owned(),
-            agent("lead", "codex", "[]", "[]"),
-            "no sources",
-        ),
+        ("{}".to_owned(), agent("lead", "codex", "[]"), "no sources"),
         (sources.clone(), "{}".to_owned(), "no agents"),
         (
             format!("\n  Unsafe: {}", root.display()),
-            agent("lead", "codex", "[]", "[]"),
+            agent("lead", "codex", "[]"),
             "unsafe source name",
         ),
         (
             sources.clone(),
-            agent("", "codex", "[]", "[]"),
+            agent("", "codex", "[]"),
             "incomplete agent",
         ),
         (
             sources.clone(),
-            agent("lead", "codex", "[]", "[../escape]"),
-            "unsafe delegate name",
-        ),
-        (
-            sources.clone(),
-            agent("lead", "codex", "[]", "[missing]"),
-            "unknown delegate",
-        ),
-        (
-            sources.clone(),
-            agent("lead", "codex", "[--sandbox]", "[]"),
+            agent("lead", "codex", "[--sandbox]"),
             "requires a value",
         ),
         (
             sources.clone(),
-            agent("lead", "codex", "[--sandbox, invalid]", "[]"),
+            agent("lead", "codex", "[--sandbox, invalid]"),
             "invalid --sandbox value",
         ),
         (
             sources.clone(),
-            agent("lead", "claude", "[--model, other]", "[]"),
+            agent("lead", "claude", "[--model, other]"),
             "unsafe or topology-changing",
         ),
         (
             sources.clone(),
-            agent("lead", "omp", "[--model, other]", "[]"),
+            agent("lead", "omp", "[--model, other]"),
             "unsafe or topology-changing",
         ),
     ];

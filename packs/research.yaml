@@ -4,5 +4,6 @@ description: Broad read-only source and repository sweep.
 include:
   - core/guidance:research-sweeper
   - core/skill:orient
+  - core/skill:roster
   - core/skill:research
   - core/skill:diagnose

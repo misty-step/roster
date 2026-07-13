@@ -327,7 +327,6 @@ mod tests {
                 reasoning: Some("high".to_owned()),
                 harness: Harness::Codex,
                 args: Vec::new(),
-                delegates: Vec::new(),
             },
             error: error.map(str::to_owned),
         }

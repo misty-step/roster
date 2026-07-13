@@ -217,7 +217,6 @@ impl Roster {
             reasoning: agent.reasoning.clone(),
             harness: agent.harness,
             args: agent.args.clone(),
-            delegates: agent.delegates.clone(),
             guidance,
             skills,
             mcps,
@@ -313,8 +312,6 @@ pub struct Agent {
     pub harness: Harness,
     #[serde(default)]
     pub args: Vec<String>,
-    #[serde(default)]
-    pub delegates: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -468,7 +465,6 @@ pub struct ResolvedAgent {
     pub reasoning: Option<String>,
     pub harness: Harness,
     pub args: Vec<String>,
-    pub delegates: Vec<String>,
     pub guidance: Vec<ResolvedGuidance>,
     pub skills: Vec<ResolvedSkill>,
     pub mcps: Vec<ResolvedMcp>,
@@ -517,7 +513,6 @@ impl ResolvedAgent {
             reasoning: self.reasoning.clone(),
             harness: self.harness,
             args: self.args.clone(),
-            delegates: self.delegates.clone(),
             config: self.config_path.clone(),
             workspace,
             context,
@@ -571,13 +566,6 @@ impl ResolvedAgent {
                     "\n- `{}`: `skills/{}/SKILL.md`",
                     skill.name, skill.name
                 ));
-            }
-            output.push('\n');
-        }
-        if !self.delegates.is_empty() {
-            output.push_str("\n## Delegation\n\nDispatch these independently resolved Roster agents; their primitives are not loaded here:\n");
-            for delegate in &self.delegates {
-                output.push_str(&format!("\n- `{delegate}`"));
             }
             output.push('\n');
         }
@@ -639,7 +627,6 @@ pub struct BundleManifest {
     pub reasoning: Option<String>,
     pub harness: Harness,
     pub args: Vec<String>,
-    pub delegates: Vec<String>,
     pub config: PathBuf,
     pub workspace: PathBuf,
     pub context: Vec<ManifestContext>,
@@ -841,18 +828,6 @@ fn validate_config(path: &Path, config: &Config) -> Result<(), RosterError> {
         }
         Identity::from_str(&agent.role)?;
         validate_agent_args(name, agent)?;
-        for delegate in &agent.delegates {
-            if !is_slug(delegate) {
-                return Err(RosterError::Validation(format!(
-                    "agent {name:?} has unsafe delegate name {delegate:?}"
-                )));
-            }
-            if !config.agents.contains_key(delegate) {
-                return Err(RosterError::Validation(format!(
-                    "agent {name:?} names unknown delegate {delegate:?}"
-                )));
-            }
-        }
     }
     Ok(())
 }

@@ -5,11 +5,10 @@ agents:
   amos:
     description: Codex orchestrator for broad software work.
     role: core/role:orchestrator
-    model: gpt-5.6-luna
-    reasoning: xhigh
+    model: gpt-5.6-sol
+    reasoning: high
     harness: codex
     args: [--search, --dangerously-bypass-approvals-and-sandbox]
-    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon, smith]
   kaylee:
     description: Claude orchestrator for broad software work.
     role: core/role:orchestrator
@@ -17,15 +16,6 @@ agents:
     reasoning: high
     harness: claude
     args: [--dangerously-skip-permissions]
-    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon, smith]
-  urza:
-    description: OMP orchestrator for broad software work.
-    role: core/role:orchestrator
-    model: claude-fable-5
-    reasoning: high
-    harness: omp
-    args: [--approval-mode, yolo]
-    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon, smith]
   hephaestus:
     description: Builder for one accepted software change.
     role: core/role:builder
@@ -33,7 +23,6 @@ agents:
     reasoning: high
     harness: codex
     args: [--search, --dangerously-bypass-approvals-and-sandbox]
-    delegates: [cerberus, scully]
   cerberus:
     description: Fresh-context adversarial code reviewer.
     role: core/role:code-reviewer
@@ -41,7 +30,6 @@ agents:
     reasoning: xhigh
     harness: codex
     args: [--search, --sandbox, read-only, --ask-for-approval, never]
-    delegates: []
   scully:
     description: Independent live-behavior verifier.
     role: core/role:verifier
@@ -49,7 +37,6 @@ agents:
     reasoning: high
     harness: codex
     args: [--search, --sandbox, read-only, --ask-for-approval, never]
-    delegates: []
   eames:
     description: Render-first product and interface designer.
     role: core/role:designer
@@ -57,7 +44,6 @@ agents:
     reasoning: high
     harness: claude
     args: [--dangerously-skip-permissions]
-    delegates: [scully]
   ripley:
     description: Reproduce-first production incident investigator.
     role: core/role:incident-investigator
@@ -65,23 +51,20 @@ agents:
     reasoning: xhigh
     harness: codex
     args: [--search, --sandbox, read-only, --ask-for-approval, never]
-    delegates: []
   tars:
     description: Empirical AI capability and routing scout.
     role: core/role:ai-capability-scout
-    model: openrouter/deepseek/deepseek-v4-flash
-    reasoning: high
-    harness: omp
-    args: [--approval-mode, write]
-    delegates: []
+    model: gpt-5.6-luna
+    reasoning: xhigh
+    harness: codex
+    args: [--search, --sandbox, workspace-write, --ask-for-approval, never]
   magellan:
     description: Broad read-only research and repository sweeper.
     role: core/role:research-sweeper
-    model: openrouter/deepseek/deepseek-v4-flash
-    reasoning: medium
-    harness: omp
-    args: [--approval-mode, always-ask]
-    delegates: []
+    model: gpt-5.6-luna
+    reasoning: xhigh
+    harness: codex
+    args: [--search, --sandbox, read-only, --ask-for-approval, never]
   solomon:
     description: Evidence-backed decision arbiter.
     role: core/role:decision-arbiter
@@ -89,12 +72,10 @@ agents:
     reasoning: high
     harness: claude
     args: [--permission-mode, plan]
-    delegates: []
   smith:
     description: Agent creator who designs, builds, evaluates, and iterates agents.
     role: core/role:agent-creator
-    model: gpt-5.6-luna
+    model: gpt-5.6-sol
     reasoning: high
     harness: codex
     args: [--search, --dangerously-bypass-approvals-and-sandbox]
-    delegates: [cerberus, scully, tars]

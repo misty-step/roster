@@ -270,10 +270,6 @@ fn print_resolved(agent: &ResolvedAgent) {
     for item in &agent.mcps {
         println!("  - {}", item.identity);
     }
-    println!("delegates:");
-    for delegate in &agent.delegates {
-        println!("  - {delegate}");
-    }
 }
 
 fn init(cwd: &std::path::Path, source: &std::path::Path) -> Result<()> {
@@ -284,7 +280,7 @@ fn init(cwd: &std::path::Path, source: &std::path::Path) -> Result<()> {
     }
     fs::create_dir_all(&directory)?;
     let body = format!(
-        "schema_version: roster.config.v1\nsources:\n  core: {}\nagents:\n  amos:\n    description: Default Codex orchestrator\n    role: core/role:orchestrator\n    model: gpt-5.6\n    reasoning: high\n    harness: codex\n    args: []\n    delegates: []\n",
+        "schema_version: roster.config.v1\nsources:\n  core: {}\nagents:\n  amos:\n    description: Default Codex orchestrator\n    role: core/role:orchestrator\n    model: gpt-5.6\n    reasoning: high\n    harness: codex\n    args: []\n",
         source.display()
     );
     fs::write(&path, body)?;

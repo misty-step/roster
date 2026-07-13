@@ -29,7 +29,8 @@ sessions, caches, preferences, and raw Harness commands remain user-owned.
 - A **pack** is an additive bundle of primitive or pack references.
 - A **role** is the complete semantic composition for a kind of work.
 - An **agent definition** binds a name, description, role, model, Harness,
-  safe native arguments, and names of agents it may delegate to.
+  and safe native arguments. Any agent may dispatch any other agent; the
+  `roster` skill teaches the CLI mechanics.
 - An **agent instance** is that definition running in a workspace.
 
 Agents do not add primitives outside their role. If two agents need different
@@ -51,11 +52,10 @@ agents:
   amos:
     description: Codex orchestrator for broad software work.
     role: core/role:orchestrator
-    model: gpt-5.6-luna
-    reasoning: xhigh
+    model: gpt-5.6-sol
+    reasoning: high
     harness: codex
     args: [--search, --dangerously-bypass-approvals-and-sandbox]
-    delegates: [hephaestus, cerberus, scully]
 ```
 
 Private roles and primitives can live beside a private config and compose the
@@ -87,7 +87,7 @@ manifest.yaml
 ```
 
 The generated `AGENTS.md` identifies the role and routes the model to exactly
-the selected guidance, skills, MCPs, and delegates. `manifest.yaml` records
+the selected guidance, skills, and MCPs. `manifest.yaml` records
 source-qualified identities, inclusion chains, workspace-context sources and
 digests, file digests, model, Harness, and safe launch arguments. Runtime bundles are deleted by default;
 `dispatch --keep-bundle` retains one for inspection.
