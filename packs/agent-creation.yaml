@@ -1,0 +1,16 @@
+schema_version: roster.pack.v1
+name: agent-creation
+description: Design, build, evaluate, and iterate agent definitions.
+include:
+  - core/pack:engineering-core
+  - core/pack:work-ledger-powder
+  - core/guidance:agent-creator
+  - core/guidance:delegation
+  - core/skill:harness-engineering
+  - core/skill:writing-great-skills
+  - core/skill:skill-eval
+  - core/skill:eval-design
+  - core/skill:mcp-design
+  - core/skill:peer-harnesses
+  - core/skill:research
+  - core/mcp:crucible

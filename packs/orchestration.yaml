@@ -6,11 +6,17 @@ include:
   - core/pack:work-ledger-powder
   - core/guidance:orchestrator
   - core/guidance:delegation
+  - core/skill:vision
   - core/skill:shape
-  - core/skill:project-engineering
   - core/skill:groom
+  - core/skill:grilling
+  - core/skill:next
+  - core/skill:council
+  - core/skill:research
+  - core/skill:project-engineering
   - core/skill:sprites
+  - core/skill:eval-design
+  - core/skill:document
+  - core/skill:human-writing
   - core/skill:artifact
   - core/skill:showcase
-  - core/skill:research
-  - core/skill:eval-design

@@ -65,6 +65,25 @@ mcps:
     status: external
     notes: Contextual MCP referenced by the Simons role.
 
+  - id: crucible
+    status: available
+    app: Crucible
+    source_repo: misty-step/crucible
+    capabilities:
+      - eval spec design and execution
+      - judge calibration and verdict reading
+      - config and model comparison reports
+      - run ledger inspection
+    transport: stdio
+    command: crucible
+    args:
+      - mcp
+    env_refs:
+      - OPENROUTER_API_KEY
+    notes: >-
+      Model-backed runs require OPENROUTER_API_KEY in the process environment;
+      spec design, report reading, and ledger inspection work without it.
+
   - id: exa
     status: external
     transport: http

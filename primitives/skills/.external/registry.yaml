@@ -348,7 +348,7 @@ sources:
   # LICENSE: MIT.
   - repo: mattpocock/skills
     ref: main
-    pin: d574778f94cf620fcc8ce741584093bc650a61d3
+    pin: 66898f60e8c744e269f8ce06c2b2b99ce7660d5f
     layout: multi-root
     skills_path: skills
     alias_prefix: "mattpocock-"

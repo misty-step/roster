@@ -9,7 +9,7 @@ agents:
     reasoning: xhigh
     harness: codex
     args: [--search, --dangerously-bypass-approvals-and-sandbox]
-    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon]
+    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon, smith]
   kaylee:
     description: Claude orchestrator for broad software work.
     role: core/role:orchestrator
@@ -17,7 +17,7 @@ agents:
     reasoning: high
     harness: claude
     args: [--dangerously-skip-permissions]
-    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon]
+    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon, smith]
   urza:
     description: OMP orchestrator for broad software work.
     role: core/role:orchestrator
@@ -25,7 +25,7 @@ agents:
     reasoning: high
     harness: omp
     args: [--approval-mode, yolo]
-    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon]
+    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon, smith]
   hephaestus:
     description: Builder for one accepted software change.
     role: core/role:builder
@@ -90,3 +90,11 @@ agents:
     harness: claude
     args: [--permission-mode, plan]
     delegates: []
+  smith:
+    description: Agent creator who designs, builds, evaluates, and iterates agents.
+    role: core/role:agent-creator
+    model: gpt-5.6-luna
+    reasoning: high
+    harness: codex
+    args: [--search, --dangerously-bypass-approvals-and-sandbox]
+    delegates: [cerberus, scully, tars]
