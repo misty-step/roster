@@ -8,9 +8,10 @@ and Landmark integration surfaces.
 
 Every active project must have a Powder representation:
 
-- Repos with `backlog.d` import active backlog files into Powder under the
-  full repo label, for example `misty-step/canary`.
-- Repos without a local backlog root get a Powder seed card titled
+- Repository-local ticket and Kanban ledgers are forbidden. Misty Step work
+  lives in Powder under the full repo label, for example
+  `misty-step/canary`; R90 work lives in Habitat.
+- Repos without an existing Powder card get a seed card titled
   `Adopt Canary, Powder, and Landmark factory stack`.
 - Open GitHub issues are imported or mirrored as Powder cards so agents do not
   have to discover durable work from GitHub alone.
@@ -88,7 +89,7 @@ A waiver is allowed only when the project is not an active runtime or release
 surface. The waiver must live as a Powder card or repo file and say:
 
 - why Canary uptime/health/error logging does not apply;
-- where backlog state lives in Powder;
+- where work state lives in Powder;
 - how Landmark release intelligence is intentionally deferred or not
   applicable.
 

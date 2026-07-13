@@ -16,8 +16,7 @@ status rows. Real card data belongs in a deployed instance database, not in the
 product repository. Read `VISION.md` before changing Powder's product scope,
 card/run model, runner boundary, or self-hosting assumptions.
 
-For local MCP use, set `POWDER_DB_PATH` to the instance SQLite database. A
-`POWDER_BACKLOG_DIR` value imports markdown into that database on startup. To
+For local MCP use, set `POWDER_DB_PATH` to the instance SQLite database. To
 reach a deployed instance instead, set `POWDER_API_BASE_URL` (and
 `POWDER_API_KEY`). One of these two must be set — MCP refuses to start
 otherwise; there is no ephemeral in-memory mode, since claims and completions
@@ -68,7 +67,6 @@ must never silently evaporate on process exit.
 
 ```sh
 powder init-db --db ./data/powder.db --show-secret
-powder import backlog.d --db ./data/powder.db
 powder list-ready --db ./data/powder.db --limit 10
 powder claim 001 --db ./data/powder.db --agent codex
 powder heartbeat 001 --db ./data/powder.db --run run-id
@@ -95,5 +93,6 @@ cargo test --workspace
 ## Red Lines
 
 - Do not import from Gradient or Hermes `kanban.db`.
+- Do not create or consume a repository-local ticket directory.
 - Do not add personal or operator backlog data to the Powder repository.
 - Do not treat exit zero as completion without a status update and audit trail.

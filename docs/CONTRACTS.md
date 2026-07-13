@@ -18,8 +18,8 @@ Roster defines these contracts; both planes read and write them.
 - Powder is the backlog and kanban of record. Every executable card has a goal
   and acceptance oracle; runs, comments, links, claims, and status changes are
   durable there.
-- Repo-local `backlog.d/` files are import seeds or drafting space, never a
-  parallel lifecycle.
+- Repository-local ticket directories are forbidden. Misty Step work lives in
+  Powder; R90 work lives in Habitat.
 
 ## 2. Commit trailers
 
