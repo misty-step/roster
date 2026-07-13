@@ -32,7 +32,7 @@ do not extend `sync`, `doctor`, or service faces as target product surfaces.
 | sync externals | `references/mode-sync.md` |
 | engineer doctrine/gates/hooks | `references/mode-engineer.md` |
 | measure skill usage/health/staleness | `references/mode-audit.md` |
-| current model/provider/harness facts | `primitives/skills/roster/references/model-provider-harness-index.md` |
+| current model/provider/harness facts | `primitives/skills/peer-harnesses/references/model-provider-harness-index.md` |
 | open-model defaults | `references/open-model-roster.md` |
 | preferred stack / infrastructure defaults | `references/preferred-stack.md` |
 | adopt or audit a repo engineering fitness function | `../project-engineering/SKILL.md` |
@@ -78,8 +78,8 @@ test below — most patterns are prompts, not skills.
 - Treat a skill as a folder, not a markdown file. Use scripts, references,
   examples, templates, assets, evals, or append-only data when prose would
   make the agent reconstruct repeatable work.
-- Model/provider/harness selection facts live in the roster skill
-  (`primitives/skills/roster/references/model-provider-harness-index.md`). Keep that
+- Model/provider/harness selection facts live in the peer-harnesses skill
+  (`primitives/skills/peer-harnesses/references/model-provider-harness-index.md`). Keep that
   file factual: model ids, context, price, latency/smoke evidence, tool
   support, benchmark sources, deprecations, and freshness. Do not encode
   role-fit policy there; the lead agent composes task-specific teams from
@@ -90,7 +90,7 @@ test below — most patterns are prompts, not skills.
   only.
 - Roster's resolved bundle exposes the selected skill catalog; repo-local
   vendoring is exceptional and must earn its complexity. The current
-  `roster sync` implementation is legacy migration input, not the target.
+  retired workstation-synchronizer code is legacy migration input, not the target.
 - Provider CLIs are tools. Do not wrap them in semantic orchestration unless a
   shaped ticket explicitly asks.
 - Harness-specific accelerators (e.g. orchestration-workflow templates) may

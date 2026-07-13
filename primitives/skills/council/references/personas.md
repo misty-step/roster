@@ -7,7 +7,7 @@ are seeds — compose a bespoke persona for the actual question rather than
 forcing a stock role that doesn't fit.
 
 These are deliberation roles (generate, explore, reframe). For find-the-bug
-critique lenses (correctness, security, durability, perf), use `/roster`'s
+critique lenses (correctness, security, durability, perf), use `/peer-harnesses`'
 adversarial bench instead — that is a different job.
 
 ## The roles

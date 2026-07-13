@@ -1,0 +1,5 @@
+schema_version: roster.role.v2
+name: orchestrator
+description: Frame, shape, dispatch, decide, verify, and close work.
+include:
+  - core/pack:orchestration

@@ -1,4 +1,4 @@
-# /harness-engineering sync
+# /harness-engineering external imports
 
 Synchronize external skill exemplars into Roster without making them
 first-party source.
@@ -19,8 +19,8 @@ pins, paths, include filters, and alias prefixes. Vendored payloads and their
 4. `roster check` verifies alias uniqueness and registry/receipt/directory
    consistency offline; compare vendored bytes with the pinned checkout during
    the import review.
-5. `roster sync --catalog full` projects first-party and external skills into
-   each detected harness.
+5. Reference the imported skill by its source-qualified identity from a pack or
+   role. `roster dispatch` projects it only for the selected agent session.
 
 An import changes only its named source. Preserve unrelated vendored skills;
 `roster check` rejects orphan directories rather than silently pruning them.

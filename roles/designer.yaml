@@ -1,0 +1,5 @@
+schema_version: roster.role.v2
+name: designer
+description: Design and verify visible artifacts from rendered evidence.
+include:
+  - core/pack:design

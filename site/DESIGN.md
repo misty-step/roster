@@ -14,9 +14,9 @@ the site-scoped location is applied consistently regardless.
 - Plain-spoken, concrete, and operator-facing.
 - Lead with the user outcome, then the proof.
 - Avoid marketing fog, mascot language, and decorative claims.
-- Roster is a declaration repository and a CLI, not an agent framework pitch:
-  say what gets declared, composed, and dispatched — never "AI that manages
-  your agents for you."
+- Roster is a primitives compiler and CLI, not an agent framework pitch: say
+  what gets composed, resolved, and launched — never "AI that manages your
+  agents for you."
 
 ## Locked Homepage
 
@@ -52,17 +52,6 @@ with no runtime UI of its own that would call for a differentiated accent.
   --ae-accent-dark: #8c9eff;
 }
 ```
-
-## Screenshot Inventory
-
-All three are real terminal captures against this repo's actual `roster`
-binary and its committed `agents/cerberus/` declaration — not mockups:
-
-| File                                                    | Surface                                    | State                                              | Caption                                                                                          |
-| --------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `site/assets/screenshots/01-roster-list.png`              | `roster list` terminal                        | Launch capture of the committed roster inventory at the time | The roster, from the CLI — role, model class, reasoning tier, one line each. |
-| `site/assets/screenshots/02-declaration-convention.png`   | `ls agents/cerberus/` + `cat role.yaml` terminal | Real committed declaration                          | The `agents/<name>/` convention: one YAML file is the whole agent — model policy, permissions, skills, evidence bar. |
-| `site/assets/screenshots/03-dynamic-composition.png`      | `roster brief cerberus --add-skill qa` terminal | Real CLI run showing an override applied at dispatch time | The composition seam: a lane brief built from the declaration, with a skill added on top — no edit to the declaration itself. |
 
 ## Footer Links
 

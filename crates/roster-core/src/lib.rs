@@ -1,77 +1,390 @@
+//! Roster's deterministic spine: discover one configuration, resolve one agent,
+//! and materialize exactly that agent's declared primitives.
+
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::{
     collections::{BTreeMap, BTreeSet},
-    fs,
+    env, fs,
     path::{Path, PathBuf},
+    str::FromStr,
 };
+
+const CONFIG_SCHEMA: &str = "roster.config.v1";
+const ROLE_SCHEMA: &str = "roster.role.v2";
+const PACK_SCHEMA: &str = "roster.pack.v1";
+const MCP_SCHEMA: &str = "roster.mcp_registry.v1";
+const MANIFEST_SCHEMA: &str = "roster.bundle.v1";
+
+pub fn discover_config(start: &Path, home: &Path) -> Result<PathBuf, RosterError> {
+    let start = absolute(start)?;
+    for directory in start.ancestors() {
+        let candidate = directory.join(".roster/config.yaml");
+        if candidate.is_file() {
+            return Ok(candidate);
+        }
+    }
+    let fallback = home.join(".roster/config.yaml");
+    if fallback.is_file() {
+        Ok(fallback)
+    } else {
+        Err(RosterError::ConfigNotFound { start, fallback })
+    }
+}
+
+pub fn discover_from(start: &Path) -> Result<PathBuf, RosterError> {
+    let home = env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or(RosterError::HomeNotSet)?;
+    discover_config(start, &home)
+}
 
 #[derive(Debug)]
 pub struct Roster {
-    agents: Vec<Agent>,
-    mcp_registry: McpRegistry,
+    config_path: PathBuf,
+    config: Config,
 }
 
 impl Roster {
-    pub fn load(root: impl AsRef<Path>) -> Result<Self, RosterError> {
-        let root = root.as_ref();
-        let agents_dir = root.join("agents");
-        let entries = fs::read_dir(&agents_dir).map_err(|source| RosterError::Io {
-            path: agents_dir.clone(),
-            source,
-        })?;
-
-        let mut agents = Vec::new();
-        for entry in entries {
-            let entry = entry.map_err(|source| RosterError::Io {
-                path: agents_dir.clone(),
-                source,
-            })?;
-            let file_type = entry.file_type().map_err(|source| RosterError::Io {
-                path: entry.path(),
-                source,
-            })?;
-            if file_type.is_dir() {
-                agents.push(load_agent(entry.path())?);
-            }
-        }
-
-        agents.sort_by(|left, right| left.role.name.cmp(&right.role.name));
-        validate_unique_names(&agents)?;
-        let mcp_registry = McpRegistry::load(root)?;
-        validate_mcp_references(&agents, &mcp_registry)?;
-
+    pub fn load_config(path: impl AsRef<Path>) -> Result<Self, RosterError> {
+        let path = absolute(path.as_ref())?;
+        let mut visited = BTreeSet::new();
+        let config = load_config_tree(&path, &mut visited)?;
+        validate_config(&path, &config)?;
         Ok(Self {
-            agents,
-            mcp_registry,
+            config_path: path,
+            config,
         })
     }
 
-    pub fn agents(&self) -> &[Agent] {
-        &self.agents
+    pub fn discover(start: impl AsRef<Path>) -> Result<Self, RosterError> {
+        Self::load_config(discover_from(start.as_ref())?)
+    }
+
+    pub fn config_path(&self) -> &Path {
+        &self.config_path
+    }
+
+    pub fn agents(&self) -> &BTreeMap<String, Agent> {
+        &self.config.agents
+    }
+
+    pub fn source_roots(&self) -> impl Iterator<Item = &Path> {
+        self.config.sources.values().map(PathBuf::as_path)
     }
 
     pub fn agent(&self, name: &str) -> Option<&Agent> {
-        self.agents.iter().find(|agent| agent.role.name == name)
+        self.config.agents.get(name)
     }
 
-    pub fn mcps(&self) -> &[Mcp] {
-        &self.mcp_registry.mcps
+    pub fn authority(&self) -> Option<&Authority> {
+        self.config.authority.as_ref()
     }
 
-    pub fn mcp(&self, id: &str) -> Option<&Mcp> {
-        self.mcps().iter().find(|mcp| mcp.id == id)
+    pub fn resolve(&self, name: &str) -> Result<ResolvedAgent, RosterError> {
+        let agent = self
+            .agent(name)
+            .cloned()
+            .ok_or_else(|| RosterError::UnknownAgent(name.to_owned()))?;
+        let role_identity = Identity::from_str(&agent.role)?;
+        if role_identity.kind != PrimitiveKind::Role {
+            return Err(RosterError::Validation(format!(
+                "agent {name:?} role must identify a role, got {}",
+                agent.role
+            )));
+        }
+        let source_root = self.source_root(&role_identity.source)?;
+        let role_path = source_root
+            .join("roles")
+            .join(format!("{}.yaml", role_identity.name));
+        let role: Role = read_yaml(&role_path)?;
+        require_schema(&role_path, &role.schema_version, ROLE_SCHEMA)?;
+        if role.name != role_identity.name {
+            return Err(RosterError::Validation(format!(
+                "{} declares role {:?}, expected {:?}",
+                role_path.display(),
+                role.name,
+                role_identity.name
+            )));
+        }
+
+        let mut flattened = Vec::new();
+        let mut pack_stack = BTreeSet::new();
+        for include in &role.include {
+            self.expand(
+                include,
+                &mut flattened,
+                &mut pack_stack,
+                &[role_identity.to_string()],
+            )?;
+        }
+
+        let mut unique = Vec::<Expanded>::new();
+        let mut positions = BTreeMap::<String, usize>::new();
+        for expanded in flattened {
+            let key = expanded.identity.to_string();
+            if let Some(position) = positions.get(&key).copied() {
+                if !unique[position].via.contains(&expanded.via) {
+                    unique[position].via.push(expanded.via);
+                }
+            } else {
+                positions.insert(key, unique.len());
+                unique.push(Expanded {
+                    identity: expanded.identity,
+                    via: vec![expanded.via],
+                });
+            }
+        }
+
+        let mut guidance = Vec::new();
+        let mut skills = Vec::new();
+        let mut skill_names = BTreeMap::<String, String>::new();
+        let mut mcp_names = BTreeMap::<String, String>::new();
+        let mut mcps = Vec::new();
+        for expanded in unique {
+            let identity = expanded.identity;
+            let root = self.source_root(&identity.source)?;
+            match identity.kind {
+                PrimitiveKind::Guidance => {
+                    let path = root
+                        .join("primitives/guidance")
+                        .join(format!("{}.md", identity.name));
+                    guidance.push(ResolvedGuidance {
+                        identity: identity.to_string(),
+                        body: read_text(&path)?,
+                        path,
+                        via: expanded.via,
+                    });
+                }
+                PrimitiveKind::Skill => {
+                    if let Some(existing) =
+                        skill_names.insert(identity.name.clone(), identity.to_string())
+                    {
+                        return Err(RosterError::Validation(format!(
+                            "skill name collision: {existing} and {identity} both project as {:?}",
+                            identity.name
+                        )));
+                    }
+                    let path = resolve_skill_path(&root, &identity.name)?;
+                    skills.push(ResolvedSkill {
+                        identity: identity.to_string(),
+                        name: identity.name,
+                        path,
+                        via: expanded.via,
+                    });
+                }
+                PrimitiveKind::Mcp => {
+                    if let Some(existing) =
+                        mcp_names.insert(identity.name.clone(), identity.to_string())
+                    {
+                        return Err(RosterError::Validation(format!(
+                            "MCP name collision: {existing} and {identity} both project as {:?}",
+                            identity.name
+                        )));
+                    }
+                    let registry_path = root.join("primitives/mcps/registry.yaml");
+                    let registry: McpRegistry = read_yaml(&registry_path)?;
+                    require_schema(&registry_path, &registry.schema_version, MCP_SCHEMA)?;
+                    validate_mcp_registry(&registry_path, &registry)?;
+                    let mcp = registry
+                        .mcps
+                        .into_iter()
+                        .find(|mcp| mcp.id == identity.name)
+                        .ok_or_else(|| RosterError::MissingPrimitive(identity.to_string()))?;
+                    if mcp.status != "available" {
+                        return Err(RosterError::Validation(format!(
+                            "{} selects MCP {:?} with non-launchable status {:?}",
+                            identity, mcp.id, mcp.status
+                        )));
+                    }
+                    mcps.push(ResolvedMcp {
+                        identity: identity.to_string(),
+                        mcp,
+                        source: registry_path,
+                        via: expanded.via,
+                    });
+                }
+                PrimitiveKind::Pack | PrimitiveKind::Role => unreachable!("expanded above"),
+            }
+        }
+
+        Ok(ResolvedAgent {
+            name: name.to_owned(),
+            description: agent.description.clone(),
+            role: role.name,
+            role_description: role.description,
+            model: agent.model.clone(),
+            reasoning: agent.reasoning.clone(),
+            harness: agent.harness,
+            args: agent.args.clone(),
+            delegates: agent.delegates.clone(),
+            guidance,
+            skills,
+            mcps,
+            authority: self.config.authority.clone(),
+            config_path: self.config_path.clone(),
+        })
+    }
+
+    fn source_root(&self, source: &str) -> Result<PathBuf, RosterError> {
+        let declared = self
+            .config
+            .sources
+            .get(source)
+            .ok_or_else(|| RosterError::UnknownSource(source.to_owned()))?;
+        let base = self
+            .config_path
+            .parent()
+            .expect("a config file has a parent");
+        absolute(&base.join(declared))
+    }
+
+    fn expand(
+        &self,
+        raw: &str,
+        output: &mut Vec<ExpandedPath>,
+        pack_stack: &mut BTreeSet<String>,
+        via: &[String],
+    ) -> Result<(), RosterError> {
+        let identity = Identity::from_str(raw)?;
+        if identity.kind != PrimitiveKind::Pack {
+            if identity.kind == PrimitiveKind::Role {
+                return Err(RosterError::Validation(format!(
+                    "roles cannot include roles: {identity}"
+                )));
+            }
+            output.push(ExpandedPath {
+                identity,
+                via: via.to_vec(),
+            });
+            return Ok(());
+        }
+
+        let key = identity.to_string();
+        if !pack_stack.insert(key.clone()) {
+            return Err(RosterError::Validation(format!(
+                "pack cycle detected at {key}"
+            )));
+        }
+        let path = self
+            .source_root(&identity.source)?
+            .join("packs")
+            .join(format!("{}.yaml", identity.name));
+        let pack: Pack = read_yaml(&path)?;
+        require_schema(&path, &pack.schema_version, PACK_SCHEMA)?;
+        if pack.name != identity.name {
+            return Err(RosterError::Validation(format!(
+                "{} declares pack {:?}, expected {:?}",
+                path.display(),
+                pack.name,
+                identity.name
+            )));
+        }
+        for include in &pack.include {
+            let mut next_via = via.to_vec();
+            next_via.push(key.clone());
+            self.expand(include, output, pack_stack, &next_via)?;
+        }
+        pack_stack.remove(&key);
+        Ok(())
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct McpRegistry {
-    pub schema_version: String,
-    pub provenance: String,
-    pub mcps: Vec<Mcp>,
+struct Config {
+    schema_version: String,
+    #[serde(default)]
+    imports: Vec<PathBuf>,
+    sources: BTreeMap<String, PathBuf>,
+    agents: BTreeMap<String, Agent>,
+    #[serde(default)]
+    authority: Option<Authority>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Agent {
+    pub description: String,
+    pub role: String,
+    pub model: String,
+    #[serde(default)]
+    pub reasoning: Option<String>,
+    pub harness: Harness,
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(default)]
+    pub delegates: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Authority {
+    pub command: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum Harness {
+    Codex,
+    Claude,
+    Omp,
+}
+
+impl Harness {
+    pub fn command(self) -> &'static str {
+        match self {
+            Self::Codex => "codex",
+            Self::Claude => "claude",
+            Self::Omp => "omp",
+        }
+    }
+}
+
+impl FromStr for Harness {
+    type Err = RosterError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "codex" => Ok(Self::Codex),
+            "claude" => Ok(Self::Claude),
+            "omp" => Ok(Self::Omp),
+            other => Err(RosterError::Validation(format!(
+                "unsupported Harness {other:?}; expected codex, claude, or omp"
+            ))),
+        }
+    }
+}
+
+impl std::fmt::Display for Harness {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.command())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Role {
+    schema_version: String,
+    name: String,
+    description: String,
+    include: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Pack {
+    schema_version: String,
+    name: String,
+    #[serde(default)]
+    #[serde(rename = "description")]
+    _description: Option<String>,
+    include: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Mcp {
     pub id: String,
@@ -102,1088 +415,933 @@ pub struct Mcp {
     pub notes: Option<String>,
 }
 
-impl McpRegistry {
-    pub fn load(root: impl AsRef<Path>) -> Result<Self, RosterError> {
-        let path = root.as_ref().join("primitives/mcps/registry.yaml");
-        let text = fs::read_to_string(&path).map_err(|source| RosterError::Io {
-            path: path.clone(),
-            source,
-        })?;
-        let registry: Self = serde_yaml::from_str(&text).map_err(|source| RosterError::Yaml {
-            path: path.clone(),
-            source,
-        })?;
-
-        if registry.schema_version != "roster.mcp_registry.v1" {
-            return Err(RosterError::Validation(format!(
-                "{} has unsupported schema_version {:?}",
-                path.display(),
-                registry.schema_version
-            )));
-        }
-        require_non_empty(&registry.provenance, "provenance", &path)?;
-
-        let mut ids = BTreeSet::new();
-        for mcp in &registry.mcps {
-            require_non_empty(&mcp.id, "mcps[].id", &path)?;
-            require_non_empty(&mcp.status, "mcps[].status", &path)?;
-            require_one_of(
-                &mcp.status,
-                "mcps[].status",
-                &["available", "external", "disabled", "not_applicable"],
-                &path,
-            )?;
-            if !ids.insert(&mcp.id) {
-                return Err(RosterError::Validation(format!(
-                    "{} has duplicate MCP id {:?}",
-                    path.display(),
-                    mcp.id
-                )));
-            }
-            if let Some(reason) = &mcp.reason {
-                require_non_empty(reason, "mcps[].reason", &path)?;
-            }
-            for env_ref in &mcp.env_refs {
-                require_non_empty(env_ref, "mcps[].env_refs[]", &path)?;
-            }
-            match mcp.status.as_str() {
-                "available" => match mcp.transport.as_deref() {
-                    Some("stdio") => require_non_empty(
-                        mcp.command.as_deref().unwrap_or_default(),
-                        "mcps[].command",
-                        &path,
-                    )?,
-                    Some("http") => require_non_empty(
-                        mcp.url.as_deref().unwrap_or_default(),
-                        "mcps[].url",
-                        &path,
-                    )?,
-                    transport => {
-                        return Err(RosterError::Validation(format!(
-                            "{} MCP {:?} is available but has unsupported transport {:?}",
-                            path.display(),
-                            mcp.id,
-                            transport
-                        )));
-                    }
-                },
-                "disabled" | "not_applicable" => require_non_empty(
-                    mcp.reason.as_deref().unwrap_or_default(),
-                    "mcps[].reason",
-                    &path,
-                )?,
-                "external" => {}
-                _ => unreachable!("status was validated above"),
-            }
-        }
-
-        Ok(registry)
-    }
-}
-
-/// Concrete model id -> per-harness invocable token, loaded from
-/// `primitives/models.yaml`. Distinct from the pre-existing
-/// `primitives/providers.yaml` (a peer-harness-CLI dispatch table migrated
-/// from harness-kit's agents.yaml at P0 -- how to invoke codex/claude/pi/etc,
-/// not consulted by this struct): two files, two concepts. Also distinct
-/// from the retired `primitives/tiers.yaml`, which resolved an ABSTRACT tier
-/// symbol (`fable-class`, `codex-class`, `openrouter-class`) per harness --
-/// model policy v2 (roster-924) made `model_policy.preferred` always a
-/// concrete, invocable id, so this table only translates that id into the
-/// token a specific harness renderer needs, never a tier.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Models {
-    pub schema_version: String,
-    pub models: BTreeMap<String, ModelBinding>,
+struct McpRegistry {
+    schema_version: String,
+    #[serde(rename = "provenance")]
+    _provenance: String,
+    mcps: Vec<Mcp>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct ModelBinding {
-    pub claude: String,
-    pub bb: String,
+#[derive(Debug, Clone)]
+pub struct ResolvedGuidance {
+    pub identity: String,
+    pub body: String,
+    pub path: PathBuf,
+    pub via: Vec<Vec<String>>,
 }
 
-impl Models {
-    pub fn load(root: impl AsRef<Path>) -> Result<Self, RosterError> {
-        let path = root.as_ref().join("primitives/models.yaml");
-        let text = fs::read_to_string(&path).map_err(|source| RosterError::Io {
-            path: path.clone(),
-            source,
-        })?;
-        serde_yaml::from_str(&text).map_err(|source| RosterError::Yaml { path, source })
-    }
-
-    fn claude_for(&self, model: &str) -> Option<&str> {
-        self.models
-            .get(model)
-            .map(|binding| binding.claude.as_str())
-    }
-
-    fn bb_for(&self, model: &str) -> Option<&str> {
-        self.models.get(model).map(|binding| binding.bb.as_str())
-    }
+#[derive(Debug, Clone)]
+pub struct ResolvedSkill {
+    pub identity: String,
+    pub name: String,
+    pub path: PathBuf,
+    pub via: Vec<Vec<String>>,
 }
 
-/// Default ad hoc subagent pool, loaded from `primitives/subagent-pool.yaml`.
-/// Declared once; every agent with `subagent_rights.may_spawn_subagents`
-/// true points at this file rather than each instructions.md re-listing the
-/// pool. Not consumed by any renderer today -- validated here so a typo in
-/// the pool file fails a test, not a silent drift from the instructions.md
-/// line that names it.
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct SubagentPool {
-    pub schema_version: String,
-    pub pool: Vec<PoolEntry>,
+#[derive(Debug, Clone, Serialize)]
+pub struct ResolvedMcp {
+    pub identity: String,
+    #[serde(flatten)]
+    pub mcp: Mcp,
+    #[serde(skip)]
+    pub source: PathBuf,
+    #[serde(skip)]
+    pub via: Vec<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct PoolEntry {
-    pub model: String,
-    #[serde(default)]
-    pub reasoning: Option<String>,
-}
-
-impl SubagentPool {
-    pub fn load(root: impl AsRef<Path>) -> Result<Self, RosterError> {
-        let path = root.as_ref().join("primitives/subagent-pool.yaml");
-        let text = fs::read_to_string(&path).map_err(|source| RosterError::Io {
-            path: path.clone(),
-            source,
-        })?;
-        serde_yaml::from_str(&text).map_err(|source| RosterError::Yaml { path, source })
+impl std::ops::Deref for ResolvedMcp {
+    type Target = Mcp;
+    fn deref(&self) -> &Self::Target {
+        &self.mcp
     }
 }
 
-#[derive(Debug)]
-pub struct Agent {
-    pub directory: PathBuf,
-    pub role: Role,
-    pub instructions: String,
-}
-
-impl Agent {
-    pub fn instruction_path(&self) -> PathBuf {
-        self.directory.join("instructions.md")
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct Role {
-    pub schema_version: String,
+#[derive(Debug, Clone)]
+pub struct ResolvedAgent {
     pub name: String,
     pub description: String,
-    pub model_policy: ModelPolicy,
-    pub permissions: Permissions,
-    pub skills: Vec<SkillRef>,
-    pub mcps: Vec<String>,
-    #[serde(default)]
-    pub mcps_contextual: Vec<String>,
-    pub subagent_rights: SubagentRights,
-    pub evidence_expectations: Vec<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct ModelPolicy {
-    pub preferred: ModelEntry,
-    pub fallbacks: Vec<ModelEntry>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct ModelEntry {
+    pub role: String,
+    pub role_description: String,
     pub model: String,
-    pub reasoning: String,
+    pub reasoning: Option<String>,
+    pub harness: Harness,
+    pub args: Vec<String>,
+    pub delegates: Vec<String>,
+    pub guidance: Vec<ResolvedGuidance>,
+    pub skills: Vec<ResolvedSkill>,
+    pub mcps: Vec<ResolvedMcp>,
+    pub authority: Option<Authority>,
+    pub config_path: PathBuf,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+impl ResolvedAgent {
+    pub fn write_bundle(
+        &self,
+        destination: &Path,
+        workspace: &Path,
+    ) -> Result<BundleManifest, RosterError> {
+        if destination.exists() {
+            return Err(RosterError::DestinationExists(destination.to_path_buf()));
+        }
+        for skill in &self.skills {
+            validate_skill_tree(&skill.path)?;
+        }
+        fs::create_dir_all(destination).map_err(|source| RosterError::Io {
+            path: destination.to_path_buf(),
+            source,
+        })?;
+
+        let workspace = absolute(workspace)?;
+        let (agents_markdown, context) = self.agents_markdown_with_context(&workspace)?;
+        let agents_path = destination.join("AGENTS.md");
+        write_text(&agents_path, &agents_markdown)?;
+        for skill in &self.skills {
+            copy_tree(&skill.path, &destination.join("skills").join(&skill.name))?;
+        }
+        let mcps_path = destination.join("mcps.yaml");
+        let mcp_document = McpProjection {
+            schema_version: "roster.mcps.v1",
+            mcps: self.mcps.clone(),
+        };
+        write_text(&mcps_path, &to_yaml(&mcp_document)?)?;
+
+        let mut files = BTreeMap::new();
+        collect_hashes(destination, destination, &mut files)?;
+        let manifest = BundleManifest {
+            schema_version: MANIFEST_SCHEMA.to_owned(),
+            agent: self.name.clone(),
+            role: self.role.clone(),
+            model: self.model.clone(),
+            reasoning: self.reasoning.clone(),
+            harness: self.harness,
+            args: self.args.clone(),
+            delegates: self.delegates.clone(),
+            config: self.config_path.clone(),
+            workspace,
+            context,
+            guidance: self
+                .guidance
+                .iter()
+                .map(|item| ManifestPrimitive {
+                    identity: item.identity.clone(),
+                    source: item.path.clone(),
+                    via: item.via.clone(),
+                })
+                .collect(),
+            skills: self
+                .skills
+                .iter()
+                .map(|item| ManifestPrimitive {
+                    identity: item.identity.clone(),
+                    source: item.path.clone(),
+                    via: item.via.clone(),
+                })
+                .collect(),
+            mcps: self
+                .mcps
+                .iter()
+                .map(|item| ManifestPrimitive {
+                    identity: item.identity.clone(),
+                    source: item.source.clone(),
+                    via: item.via.clone(),
+                })
+                .collect(),
+            files,
+        };
+        write_text(&destination.join("manifest.yaml"), &to_yaml(&manifest)?)?;
+        Ok(manifest)
+    }
+
+    pub fn agents_markdown(&self) -> String {
+        let mut output = format!(
+            "<!-- roster-bundle:{} -->\n# {}\n\n{}\n",
+            MANIFEST_SCHEMA, self.name, self.role_description
+        );
+        for item in &self.guidance {
+            output.push('\n');
+            output.push_str(item.body.trim());
+            output.push('\n');
+        }
+        if !self.skills.is_empty() {
+            output.push_str("\n## Skills\n\nUse these progressive-disclosure skills when their descriptions fit the work:\n");
+            for skill in &self.skills {
+                output.push_str(&format!(
+                    "\n- `{}`: `skills/{}/SKILL.md`",
+                    skill.name, skill.name
+                ));
+            }
+            output.push('\n');
+        }
+        if !self.delegates.is_empty() {
+            output.push_str("\n## Delegation\n\nDispatch these independently resolved Roster agents; their primitives are not loaded here:\n");
+            for delegate in &self.delegates {
+                output.push_str(&format!("\n- `{delegate}`"));
+            }
+            output.push('\n');
+        }
+        if !self.mcps.is_empty() {
+            output.push_str("\n## MCP tools\n\nOnly these role-selected MCP servers are projected into this session:\n");
+            for mcp in &self.mcps {
+                output.push_str(&format!("\n- `{}`", mcp.id));
+            }
+            output.push('\n');
+        }
+        output.push_str(
+            "\n## Runtime authority\n\nIf an operation needs authority not already available, request only that operation with `roster authority request <capability>`. The configured provider may grant, proxy, ask the operator, or deny it; denial affects that operation, not this session. Never print or persist credential bytes.\n",
+        );
+        output
+    }
+
+    fn agents_markdown_with_context(
+        &self,
+        workspace: &Path,
+    ) -> Result<(String, Vec<ManifestContext>), RosterError> {
+        let mut output = self.agents_markdown();
+        let home = env::var_os("HOME").map(PathBuf::from);
+        let mut paths = workspace
+            .ancestors()
+            .take_while(|directory| home.as_deref() != Some(*directory))
+            .map(|directory| directory.join("AGENTS.md"))
+            .filter(|path| path.is_file())
+            .collect::<Vec<_>>();
+        paths.reverse();
+        let mut context = Vec::new();
+        for path in paths {
+            let body = read_text(&path)?;
+            output.push_str(&format!(
+                "\n\n---\n\n# Project context: {}\n\n{body}",
+                path.display()
+            ));
+            context.push(ManifestContext {
+                source: path,
+                sha256: format!("sha256:{:x}", Sha256::digest(body.as_bytes())),
+            });
+        }
+        Ok((output, context))
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct McpProjection {
+    schema_version: &'static str,
+    mcps: Vec<ResolvedMcp>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Permissions {
-    pub filesystem: String,
-    pub commands: String,
-    pub network: String,
-    pub secrets: String,
-    pub mutations: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct SkillRef {
-    pub name: String,
-    pub path: String,
-    pub reason: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct SubagentRights {
-    pub may_dispatch: bool,
-    pub may_spawn_subagents: bool,
-    pub may_use_peer_harnesses: bool,
-}
-
-#[derive(Debug)]
-pub struct PowderCardSnapshot {
-    pub id: String,
-    pub title: String,
-    pub body: String,
-    pub acceptance: Vec<String>,
-    pub status: String,
-    pub updated_at: i64,
-    pub fetched_at: i64,
-    pub claim: Option<PowderClaim>,
-}
-
-#[derive(Debug)]
-pub struct PowderClaim {
+pub struct BundleManifest {
+    pub schema_version: String,
     pub agent: String,
-    pub run_id: String,
-    pub expires_at: i64,
+    pub role: String,
+    pub model: String,
+    pub reasoning: Option<String>,
+    pub harness: Harness,
+    pub args: Vec<String>,
+    pub delegates: Vec<String>,
+    pub config: PathBuf,
+    pub workspace: PathBuf,
+    pub context: Vec<ManifestContext>,
+    pub guidance: Vec<ManifestPrimitive>,
+    pub skills: Vec<ManifestPrimitive>,
+    pub mcps: Vec<ManifestPrimitive>,
+    pub files: BTreeMap<PathBuf, String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ManifestContext {
+    pub source: PathBuf,
+    pub sha256: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ManifestPrimitive {
+    pub identity: String,
+    pub source: PathBuf,
+    pub via: Vec<Vec<String>>,
+}
+
+#[derive(Debug, Clone)]
+struct Expanded {
+    identity: Identity,
+    via: Vec<Vec<String>>,
+}
+
+#[derive(Debug, Clone)]
+struct ExpandedPath {
+    identity: Identity,
+    via: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Identity {
+    source: String,
+    kind: PrimitiveKind,
+    name: String,
+}
+
+impl FromStr for Identity {
+    type Err = RosterError;
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let (source, primitive) = value
+            .split_once('/')
+            .ok_or_else(|| RosterError::InvalidIdentity(value.to_owned()))?;
+        let (kind, name) = primitive
+            .split_once(':')
+            .ok_or_else(|| RosterError::InvalidIdentity(value.to_owned()))?;
+        if !is_slug(source) || !is_slug(name) {
+            return Err(RosterError::InvalidIdentity(value.to_owned()));
+        }
+        Ok(Self {
+            source: source.to_owned(),
+            kind: PrimitiveKind::from_str(kind)?,
+            name: name.to_owned(),
+        })
+    }
+}
+
+impl std::fmt::Display for Identity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}/{}:{}", self.source, self.kind, self.name)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PrimitiveKind {
+    Role,
+    Pack,
+    Guidance,
+    Skill,
+    Mcp,
+}
+
+impl FromStr for PrimitiveKind {
+    type Err = RosterError;
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "role" => Ok(Self::Role),
+            "pack" => Ok(Self::Pack),
+            "guidance" => Ok(Self::Guidance),
+            "skill" => Ok(Self::Skill),
+            "mcp" => Ok(Self::Mcp),
+            _ => Err(RosterError::InvalidPrimitiveKind(value.to_owned())),
+        }
+    }
+}
+
+impl std::fmt::Display for PrimitiveKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Role => "role",
+            Self::Pack => "pack",
+            Self::Guidance => "guidance",
+            Self::Skill => "skill",
+            Self::Mcp => "mcp",
+        })
+    }
+}
+
+fn load_config_tree(path: &Path, visited: &mut BTreeSet<PathBuf>) -> Result<Config, RosterError> {
+    if !visited.insert(path.to_path_buf()) {
+        return Err(RosterError::Validation(format!(
+            "config import cycle at {}",
+            path.display()
+        )));
+    }
+    let mut local: Config = read_yaml(path)?;
+    require_schema(path, &local.schema_version, CONFIG_SCHEMA)?;
+    let config_directory = path.parent().expect("config parent");
+    for source in local.sources.values_mut() {
+        if source.is_relative() {
+            *source = config_directory.join(&*source);
+        }
+    }
+    let imports = std::mem::take(&mut local.imports);
+    let mut combined = Config {
+        schema_version: CONFIG_SCHEMA.to_owned(),
+        imports: Vec::new(),
+        sources: BTreeMap::new(),
+        agents: BTreeMap::new(),
+        authority: None,
+    };
+    for import in imports {
+        let imported_path = absolute(&path.parent().expect("parent").join(import))?;
+        let imported = load_config_tree(&imported_path, visited)?;
+        merge_config(&mut combined, imported, &imported_path)?;
+    }
+    merge_config(&mut combined, local, path)?;
+    visited.remove(path);
+    Ok(combined)
+}
+
+fn merge_config(target: &mut Config, source: Config, origin: &Path) -> Result<(), RosterError> {
+    for (id, path) in source.sources {
+        if target.sources.insert(id.clone(), path).is_some() {
+            return Err(RosterError::Validation(format!(
+                "duplicate source {id:?} while importing {}",
+                origin.display()
+            )));
+        }
+    }
+    for (name, agent) in source.agents {
+        if target.agents.insert(name.clone(), agent).is_some() {
+            return Err(RosterError::Validation(format!(
+                "duplicate agent {name:?} while importing {}",
+                origin.display()
+            )));
+        }
+    }
+    if let Some(authority) = source.authority
+        && target.authority.replace(authority).is_some()
+    {
+        return Err(RosterError::Validation(format!(
+            "duplicate authority while importing {}",
+            origin.display()
+        )));
+    }
+    Ok(())
+}
+
+fn validate_config(path: &Path, config: &Config) -> Result<(), RosterError> {
+    if config.sources.is_empty() {
+        return Err(RosterError::Validation(format!(
+            "{} has no sources",
+            path.display()
+        )));
+    }
+    if config.agents.is_empty() {
+        return Err(RosterError::Validation(format!(
+            "{} has no agents",
+            path.display()
+        )));
+    }
+    for source in config.sources.keys() {
+        if !is_slug(source) {
+            return Err(RosterError::Validation(format!(
+                "{} has unsafe source name {source:?}",
+                path.display()
+            )));
+        }
+    }
+    for (name, agent) in &config.agents {
+        if !is_slug(name) {
+            return Err(RosterError::Validation(format!(
+                "{} has unsafe agent name {name:?}",
+                path.display()
+            )));
+        }
+        if agent.description.trim().is_empty() || agent.model.trim().is_empty() {
+            return Err(RosterError::Validation(format!(
+                "{} has an incomplete agent {name:?}",
+                path.display()
+            )));
+        }
+        Identity::from_str(&agent.role)?;
+        validate_agent_args(name, agent)?;
+        for delegate in &agent.delegates {
+            if !is_slug(delegate) {
+                return Err(RosterError::Validation(format!(
+                    "agent {name:?} has unsafe delegate name {delegate:?}"
+                )));
+            }
+            if !config.agents.contains_key(delegate) {
+                return Err(RosterError::Validation(format!(
+                    "agent {name:?} names unknown delegate {delegate:?}"
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn is_slug(value: &str) -> bool {
+    let mut characters = value.chars();
+    characters
+        .next()
+        .is_some_and(|character| character.is_ascii_lowercase() || character.is_ascii_digit())
+        && characters.all(|character| {
+            character.is_ascii_lowercase()
+                || character.is_ascii_digit()
+                || matches!(character, '-' | '_')
+        })
+}
+
+fn validate_agent_args(name: &str, agent: &Agent) -> Result<(), RosterError> {
+    let mut index = 0;
+    while index < agent.args.len() {
+        let flag = agent.args[index].as_str();
+        let value = |index: usize| {
+            agent.args.get(index).map(String::as_str).ok_or_else(|| {
+                RosterError::Validation(format!(
+                    "agent {name:?} argument {flag:?} requires a value"
+                ))
+            })
+        };
+        let consumed = match agent.harness {
+            Harness::Codex => match flag {
+                "--search" | "--dangerously-bypass-approvals-and-sandbox" | "--no-alt-screen" => 1,
+                "--sandbox" | "-s" => {
+                    let selected = value(index + 1)?;
+                    require_argument_value(
+                        name,
+                        flag,
+                        selected,
+                        &["read-only", "workspace-write", "danger-full-access"],
+                    )?;
+                    2
+                }
+                "--ask-for-approval" | "-a" => {
+                    let selected = value(index + 1)?;
+                    require_argument_value(
+                        name,
+                        flag,
+                        selected,
+                        &["untrusted", "on-request", "never"],
+                    )?;
+                    2
+                }
+                _ => return Err(unsafe_argument(name, flag)),
+            },
+            Harness::Claude => match flag {
+                "--dangerously-skip-permissions"
+                | "--allow-dangerously-skip-permissions"
+                | "--no-chrome"
+                | "--chrome"
+                | "--verbose" => 1,
+                "--permission-mode" => {
+                    let selected = value(index + 1)?;
+                    require_argument_value(
+                        name,
+                        flag,
+                        selected,
+                        &[
+                            "acceptEdits",
+                            "auto",
+                            "bypassPermissions",
+                            "manual",
+                            "dontAsk",
+                            "plan",
+                        ],
+                    )?;
+                    2
+                }
+                _ => return Err(unsafe_argument(name, flag)),
+            },
+            Harness::Omp => match flag {
+                "--auto-approve" | "--advisor" | "--no-pty" => 1,
+                "--approval-mode" => {
+                    let selected = value(index + 1)?;
+                    require_argument_value(name, flag, selected, &["always-ask", "write", "yolo"])?;
+                    2
+                }
+                _ => return Err(unsafe_argument(name, flag)),
+            },
+        };
+        index += consumed;
+    }
+    Ok(())
+}
+
+fn require_argument_value(
+    agent: &str,
+    flag: &str,
+    actual: &str,
+    allowed: &[&str],
+) -> Result<(), RosterError> {
+    if allowed.contains(&actual) {
+        Ok(())
+    } else {
+        Err(RosterError::Validation(format!(
+            "agent {agent:?} has invalid {flag} value {actual:?}"
+        )))
+    }
+}
+
+fn unsafe_argument(agent: &str, flag: &str) -> RosterError {
+    RosterError::Validation(format!(
+        "agent {agent:?} uses unsafe or topology-changing Harness argument {flag:?}"
+    ))
+}
+
+fn validate_mcp_registry(path: &Path, registry: &McpRegistry) -> Result<(), RosterError> {
+    if registry._provenance.trim().is_empty() {
+        return Err(RosterError::Validation(format!(
+            "{} has empty provenance",
+            path.display()
+        )));
+    }
+    let mut ids = BTreeSet::new();
+    for mcp in &registry.mcps {
+        if mcp.id.trim().is_empty() || !ids.insert(mcp.id.clone()) {
+            return Err(RosterError::Validation(format!(
+                "{} has empty or duplicate MCP id {:?}",
+                path.display(),
+                mcp.id
+            )));
+        }
+        if !["available", "external", "disabled", "not_applicable"].contains(&mcp.status.as_str()) {
+            return Err(RosterError::Validation(format!(
+                "{} MCP {:?} has unsupported status {:?}",
+                path.display(),
+                mcp.id,
+                mcp.status
+            )));
+        }
+        if mcp.status == "available" {
+            match mcp.transport.as_deref() {
+                Some("stdio")
+                    if mcp
+                        .command
+                        .as_deref()
+                        .is_some_and(|command| !command.trim().is_empty()) => {}
+                Some("http") if mcp.url.as_deref().is_some_and(|url| !url.trim().is_empty()) => {}
+                _ => {
+                    return Err(RosterError::Validation(format!(
+                        "{} available MCP {:?} requires stdio command or http URL",
+                        path.display(),
+                        mcp.id
+                    )));
+                }
+            }
+        }
+        if mcp.env_refs.iter().any(|value| value.trim().is_empty()) {
+            return Err(RosterError::Validation(format!(
+                "{} MCP {:?} has an empty env ref",
+                path.display(),
+                mcp.id
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn resolve_skill_path(source_root: &Path, name: &str) -> Result<PathBuf, RosterError> {
+    let direct = source_root.join("primitives/skills").join(name);
+    let direct_file = direct.join("SKILL.md");
+    let index_path = source_root.join("primitives/skills/skills-index.yaml");
+    let mut indexed_file = None;
+    if index_path.is_file() {
+        let index: SkillsIndex = read_yaml(&index_path)?;
+        if index.schema_version != "roster.skills_index.v1" {
+            return Err(RosterError::Validation(format!(
+                "{} uses unsupported schema {:?}",
+                index_path.display(),
+                index.schema_version
+            )));
+        }
+        let mut names = BTreeSet::new();
+        for entry in index.skills {
+            if !names.insert(entry.name.clone()) {
+                return Err(RosterError::Validation(format!(
+                    "{} declares duplicate skill name {:?}",
+                    index_path.display(),
+                    entry.name
+                )));
+            }
+            if entry.name == name {
+                if entry.path.is_absolute()
+                    || entry.path.components().any(|component| {
+                        !matches!(
+                            component,
+                            std::path::Component::Normal(_) | std::path::Component::CurDir
+                        )
+                    })
+                {
+                    return Err(RosterError::Validation(format!(
+                        "{} skill {:?} escapes its declared source via {}",
+                        index_path.display(),
+                        name,
+                        entry.path.display()
+                    )));
+                }
+                indexed_file = Some(source_root.join(entry.path));
+            }
+        }
+    }
+    if direct_file.is_file() {
+        if let Some(indexed) = &indexed_file
+            && indexed != &direct_file
+        {
+            return Err(RosterError::Validation(format!(
+                "skill:{name} conflicts between {} and {}",
+                direct_file.display(),
+                indexed.display()
+            )));
+        }
+        return Ok(direct);
+    }
+    if let Some(skill_file) = indexed_file {
+        if skill_file.file_name().and_then(|name| name.to_str()) != Some("SKILL.md")
+            || !skill_file.is_file()
+        {
+            return Err(RosterError::MissingPrimitive(format!(
+                "skill:{name} at {}",
+                skill_file.display()
+            )));
+        }
+        let canonical_root = fs::canonicalize(source_root).map_err(|source| RosterError::Io {
+            path: source_root.to_path_buf(),
+            source,
+        })?;
+        let canonical_file = fs::canonicalize(&skill_file).map_err(|source| RosterError::Io {
+            path: skill_file.clone(),
+            source,
+        })?;
+        if !canonical_file.starts_with(&canonical_root) {
+            return Err(RosterError::Validation(format!(
+                "skill:{name} resolves outside source {}",
+                source_root.display()
+            )));
+        }
+        return Ok(skill_file.parent().expect("SKILL.md parent").to_path_buf());
+    }
+    Err(RosterError::MissingPrimitive(format!("skill:{name}")))
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SkillsIndex {
+    schema_version: String,
+    #[serde(rename = "phase")]
+    _phase: String,
+    #[serde(rename = "note")]
+    _note: String,
+    skills: Vec<SkillIndexEntry>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SkillIndexEntry {
+    name: String,
+    path: PathBuf,
+}
+
+fn copy_tree(source: &Path, destination: &Path) -> Result<(), RosterError> {
+    fs::create_dir_all(destination).map_err(|error| RosterError::Io {
+        path: destination.to_path_buf(),
+        source: error,
+    })?;
+    let entries = fs::read_dir(source).map_err(|error| RosterError::Io {
+        path: source.to_path_buf(),
+        source: error,
+    })?;
+    for entry in entries {
+        let entry = entry.map_err(|error| RosterError::Io {
+            path: source.to_path_buf(),
+            source: error,
+        })?;
+        let source_path = entry.path();
+        let file_type = entry.file_type().map_err(|error| RosterError::Io {
+            path: source_path.clone(),
+            source: error,
+        })?;
+        if file_type.is_symlink() {
+            return Err(RosterError::Validation(format!(
+                "skill payload contains symlink {}",
+                source_path.display()
+            )));
+        }
+        if ignore_bundle_entry(&source_path, file_type.is_dir()) {
+            continue;
+        }
+        let destination_path = destination.join(entry.file_name());
+        if file_type.is_dir() {
+            copy_tree(&source_path, &destination_path)?;
+        } else {
+            fs::copy(&source_path, &destination_path).map_err(|error| RosterError::Io {
+                path: destination_path,
+                source: error,
+            })?;
+        }
+    }
+    Ok(())
+}
+
+fn ignore_bundle_entry(path: &Path, directory: bool) -> bool {
+    let name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("");
+    if directory && matches!(name, ".git" | "__pycache__" | "node_modules" | "target") {
+        return true;
+    }
+    matches!(name, ".DS_Store" | "Thumbs.db")
+        || name.ends_with('~')
+        || ["pyc", "pyo", "swp", "tmp"]
+            .iter()
+            .any(|extension| path.extension().and_then(|value| value.to_str()) == Some(extension))
+}
+
+fn validate_skill_tree(directory: &Path) -> Result<(), RosterError> {
+    for entry in fs::read_dir(directory).map_err(|source| RosterError::Io {
+        path: directory.to_path_buf(),
+        source,
+    })? {
+        let entry = entry.map_err(|source| RosterError::Io {
+            path: directory.to_path_buf(),
+            source,
+        })?;
+        let path = entry.path();
+        let file_type = entry.file_type().map_err(|source| RosterError::Io {
+            path: path.clone(),
+            source,
+        })?;
+        if file_type.is_symlink() {
+            return Err(RosterError::Validation(format!(
+                "skill payload contains symlink {}",
+                path.display()
+            )));
+        }
+        if ignore_bundle_entry(&path, file_type.is_dir()) {
+            continue;
+        }
+        let name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
+        if (name == ".env" || name.starts_with(".env.")) && !name.starts_with(".env.example") {
+            return Err(RosterError::Validation(format!(
+                "skill payload contains secret-shaped file {}",
+                path.display()
+            )));
+        }
+        if file_type.is_dir() {
+            validate_skill_tree(&path)?;
+        }
+    }
+    Ok(())
+}
+
+fn collect_hashes(
+    root: &Path,
+    directory: &Path,
+    hashes: &mut BTreeMap<PathBuf, String>,
+) -> Result<(), RosterError> {
+    for entry in fs::read_dir(directory).map_err(|source| RosterError::Io {
+        path: directory.to_path_buf(),
+        source,
+    })? {
+        let entry = entry.map_err(|source| RosterError::Io {
+            path: directory.to_path_buf(),
+            source,
+        })?;
+        let path = entry.path();
+        if entry
+            .file_type()
+            .map_err(|source| RosterError::Io {
+                path: path.clone(),
+                source,
+            })?
+            .is_dir()
+        {
+            collect_hashes(root, &path, hashes)?;
+        } else if path.file_name().and_then(|name| name.to_str()) != Some("manifest.yaml") {
+            let bytes = fs::read(&path).map_err(|source| RosterError::Io {
+                path: path.clone(),
+                source,
+            })?;
+            hashes.insert(
+                path.strip_prefix(root).expect("inside root").to_path_buf(),
+                format!("sha256:{:x}", Sha256::digest(bytes)),
+            );
+        }
+    }
+    Ok(())
+}
+
+fn read_text(path: &Path) -> Result<String, RosterError> {
+    fs::read_to_string(path).map_err(|source| RosterError::Io {
+        path: path.to_path_buf(),
+        source,
+    })
+}
+
+fn read_yaml<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T, RosterError> {
+    let text = read_text(path)?;
+    serde_yaml::from_str(&text).map_err(|source| RosterError::Yaml {
+        path: path.to_path_buf(),
+        source,
+    })
+}
+
+fn to_yaml<T: Serialize>(value: &T) -> Result<String, RosterError> {
+    serde_yaml::to_string(value).map_err(RosterError::Serialize)
+}
+
+fn write_text(path: &Path, body: &str) -> Result<(), RosterError> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|source| RosterError::Io {
+            path: parent.to_path_buf(),
+            source,
+        })?;
+    }
+    fs::write(path, body).map_err(|source| RosterError::Io {
+        path: path.to_path_buf(),
+        source,
+    })
+}
+
+fn absolute(path: &Path) -> Result<PathBuf, RosterError> {
+    if path.is_absolute() {
+        Ok(path.to_path_buf())
+    } else {
+        env::current_dir()
+            .map(|cwd| cwd.join(path))
+            .map_err(|source| RosterError::Io {
+                path: path.to_path_buf(),
+                source,
+            })
+    }
+}
+
+fn require_schema(path: &Path, actual: &str, expected: &str) -> Result<(), RosterError> {
+    if actual == expected {
+        Ok(())
+    } else {
+        Err(RosterError::Validation(format!(
+            "{} uses schema {:?}; expected {:?}",
+            path.display(),
+            actual,
+            expected
+        )))
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum RosterError {
-    #[error("failed to read {path}: {source}")]
+    #[error("HOME is not set")]
+    HomeNotSet,
+    #[error("no .roster/config.yaml found from {start}; fallback {fallback} is absent")]
+    ConfigNotFound { start: PathBuf, fallback: PathBuf },
+    #[error("I/O error at {path}: {source}")]
     Io {
         path: PathBuf,
         #[source]
         source: std::io::Error,
     },
-    #[error("failed to parse {path}: {source}")]
+    #[error("invalid YAML at {path}: {source}")]
     Yaml {
         path: PathBuf,
         #[source]
         source: serde_yaml::Error,
     },
-    #[error("{0}")]
+    #[error("could not serialize YAML: {0}")]
+    Serialize(serde_yaml::Error),
+    #[error("unknown agent {0:?}")]
+    UnknownAgent(String),
+    #[error("unknown source {0:?}")]
+    UnknownSource(String),
+    #[error("invalid primitive identity {0:?}; expected source/kind:name")]
+    InvalidIdentity(String),
+    #[error("invalid primitive kind {0:?}")]
+    InvalidPrimitiveKind(String),
+    #[error("missing primitive {0}")]
+    MissingPrimitive(String),
+    #[error("bundle destination already exists: {0}")]
+    DestinationExists(PathBuf),
+    #[error("validation failed: {0}")]
     Validation(String),
-}
-
-pub fn render_claude_agent(agent: &Agent, models: &Models) -> Result<String, String> {
-    let role = &agent.role;
-    let model = claude_model(role, models);
-    let tools = claude_tools(role)?;
-
-    Ok(format!(
-        r#"---
-name: {name}
-description: {description}
-model: {model}
-tools: {tools}
----
-
-# {name}
-
-{instructions}
-
-## Model Policy
-
-- Preferred: {preferred}
-- Fallbacks: {fallbacks}
-
-## Skills To Read
-
-{skills}
-
-## MCP Servers
-
-{mcp_servers}
-
-## Permissions
-
-- Filesystem: {filesystem}
-- Commands: {commands}
-- Network: {network}
-- Secrets: {secrets}
-- Mutations: {mutations}
-
-## Evidence Expectations
-
-{evidence}
-"#,
-        name = role.name,
-        description = role.description,
-        model = model,
-        tools = tools,
-        preferred = format_model_entry(&role.model_policy.preferred),
-        skills = render_skills(&role.skills, &[]),
-        instructions = agent.instructions.trim(),
-        fallbacks = format_fallbacks(&role.model_policy.fallbacks),
-        mcp_servers = render_mcp_servers(&role.mcps, &role.mcps_contextual, &[]),
-        filesystem = role.permissions.filesystem,
-        commands = role.permissions.commands,
-        network = role.permissions.network,
-        secrets = role.permissions.secrets,
-        mutations = role.permissions.mutations,
-        evidence = bullet_list(&role.evidence_expectations),
-    ))
-}
-
-/// Codex custom agents are native config layers referenced from
-/// `[agents.<name>]` in `$CODEX_HOME/config.toml`. The prompt-native brief is
-/// carried as additive developer instructions; `roster brief` remains the
-/// standalone dispatch-packet surface.
-pub fn render_codex_agent(agent: &Agent) -> String {
-    let role = &agent.role;
-    let mut lines = vec!["# Generated from a Roster agent declaration.".to_string()];
-    if let Some(model) = std::iter::once(&role.model_policy.preferred)
-        .chain(role.model_policy.fallbacks.iter())
-        .find(|entry| entry.model.starts_with("gpt-"))
-    {
-        lines.push(format!("model = {}", toml_string(&model.model)));
-        lines.push(format!(
-            "model_reasoning_effort = {}",
-            toml_string(&model.reasoning)
-        ));
-    }
-    let sandbox = match role.permissions.filesystem.as_str() {
-        "read-only" => "read-only",
-        _ => "workspace-write",
-    };
-    lines.push(format!("sandbox_mode = {}", toml_string(sandbox)));
-    lines.push(format!(
-        "developer_instructions = {}",
-        toml_string(&render_brief(agent, &[], &[], None))
-    ));
-    format!("{}\n", lines.join("\n"))
-}
-
-fn toml_string(value: &str) -> String {
-    serde_json::to_string(value).expect("JSON strings are valid TOML basic strings")
-}
-
-/// Composes the single doctrine file `roster sync` points every harness's
-/// global doctrine link at: the shared operating doctrine verbatim, then
-/// `agent`'s identity (instructions, skills, MCP bindings), so any default
-/// agent session on the machine boots as the declared roster orchestrator
-/// (operator ruling 2026-07-07) rather than a bare copy of shared AGENTS.md.
-pub fn render_home_doctrine(root: &Path, agent: &Agent) -> Result<String, RosterError> {
-    let role = &agent.role;
-    let doctrine_path = root.join("primitives/shared/AGENTS.md");
-    let doctrine = fs::read_to_string(&doctrine_path).map_err(|source| RosterError::Io {
-        path: doctrine_path.clone(),
-        source,
-    })?;
-
-    Ok(format!(
-        r#"{doctrine}
-
-# Session Identity: {name} (roster)
-
-{instructions}
-
-## Skills To Read
-
-{skills}
-
-## MCP Servers
-
-{mcp_servers}
-
----
-This is the composed home doctrine for the roster `{name}` agent, the
-declared default orchestrator for every harness on this machine. See the
-rest of the roster with `roster list`, `roster show <agent>`, or the roster
-MCP; lane dispatch goes through `roster materialize` / `roster brief`.
-"#,
-        doctrine = doctrine.trim_end(),
-        name = role.name,
-        instructions = agent.instructions.trim(),
-        skills = render_skills(&role.skills, &[]),
-        mcp_servers = render_mcp_servers(&role.mcps, &role.mcps_contextual, &[]),
-    ))
-}
-
-fn format_model_entry(entry: &ModelEntry) -> String {
-    format!("{} (reasoning: {})", entry.model, entry.reasoning)
-}
-
-fn format_fallbacks(fallbacks: &[ModelEntry]) -> String {
-    if fallbacks.is_empty() {
-        "none".to_string()
-    } else {
-        fallbacks
-            .iter()
-            .map(format_model_entry)
-            .collect::<Vec<_>>()
-            .join(", ")
-    }
-}
-
-fn claude_model(role: &Role, models: &Models) -> String {
-    let preferred = &role.model_policy.preferred.model;
-
-    if let Some(model) = models.claude_for(preferred) {
-        return model.to_string();
-    }
-
-    // `preferred` isn't a known concrete id in primitives/models.yaml, so
-    // treat it as a literal Claude model name. Pass Claude subagent model
-    // names straight through; conservatively map the handful of literal
-    // Claude ids role.yaml might carry to their subagent-frontmatter short
-    // form; anything else (a codex/browser-only id, or an unrecognized
-    // string) falls back to `inherit` — the subagent runs on the session's
-    // own model — rather than guessing a wrong one.
-    match preferred.as_str() {
-        "sonnet" | "opus" | "haiku" | "inherit" => preferred.clone(),
-        "claude-opus-4-8" => "opus".to_string(),
-        "claude-sonnet-5" => "sonnet".to_string(),
-        "claude-haiku-4-5" | "claude-haiku-4-5-20251001" => "haiku".to_string(),
-        _ => "inherit".to_string(),
-    }
-}
-
-fn claude_tools(role: &Role) -> Result<String, String> {
-    let mut tools = vec!["Read".to_string()];
-
-    // Mutating an external system through a scoped MCP does not grant file
-    // writes. The filesystem declaration is the only source for Write/Edit.
-    if allows_file_writes(role) {
-        tools.push("Write".to_string());
-        tools.push("Edit".to_string());
-    }
-
-    tools.push("Grep".to_string());
-    tools.push("Glob".to_string());
-
-    if allows_shell(role) {
-        tools.push("Bash".to_string());
-    }
-
-    if role.permissions.network == "allowed" {
-        tools.push("WebSearch".to_string());
-    }
-
-    for mcp in &role.mcps {
-        match (mcp.as_str(), role.permissions.mutations.as_str()) {
-            ("powder", "card-comments-and-answers-only") => {
-                tools.push("mcp__powder__add_comment".to_string());
-                tools.push("mcp__powder__answer_input".to_string());
-            }
-            ("powder" | "robinhood-trading", "with-explicit-scope") => {
-                tools.push(format!("mcp__{mcp}__*"));
-            }
-            _ => {
-                return Err(format!(
-                    "claude has no safe required-MCP tool mapping for agent {:?}: server {mcp:?}, mutations {:?}",
-                    role.name, role.permissions.mutations
-                ));
-            }
-        }
-    }
-
-    Ok(tools.join(", "))
-}
-
-// bb (Bitterblossom) config has no MCP concept: `role.mcps`/`mcps_contextual`
-// are not rendered into the generated TOML at all, required or contextual.
-pub fn render_bb_agent(agent: &Agent, models: &Models) -> Result<String, String> {
-    let role = &agent.role;
-    require_no_mcps("bb", role)?;
-    let model = bb_model(role, models)?;
-    let authority = if allows_file_writes(role) {
-        "edit"
-    } else {
-        "read"
-    };
-    let skills = toml_array(
-        &role
-            .skills
-            .iter()
-            .map(|skill| skill.name.clone())
-            .collect::<Vec<_>>(),
-    );
-
-    Ok(format!(
-        r#"# Generated from roster agent {name}.
-# Roster preferred model: {preferred}
-# Roster reasoning: {reasoning}
-version = 1
-harness = "pi"
-model = "{model}"
-provider = "openrouter"
-auth = "api"
-role = "{name}"
-skills = {skills}
-secrets = ["OPENROUTER_API_KEY"]
-
-[policy]
-authority = "{authority}"
-model_allowlist = ["{model}"]
-trigger_bindings = ["manual"]
-iteration_cap = 24
-turn_cap = 40
-tool_action_cap = 80
-output_bytes_cap = 120000
-wall_clock_minutes = 30
-side_effect_policy = "kill"
-"#,
-        name = toml_escape(&role.name),
-        preferred = toml_escape(&role.model_policy.preferred.model),
-        reasoning = toml_escape(&role.model_policy.preferred.reasoning),
-        model = toml_escape(&model),
-        skills = skills,
-        authority = authority,
-    ))
-}
-
-/// omp (`can1357/oh-my-pi`, a fork of pi) agent target (roster-915):
-/// Markdown/YAML frontmatter, a schema superset of Claude Code's per the
-/// roster-910 dispatch-mechanics receipt. Two fields the receipt found on
-/// omp's own bundled agents are intentionally NOT emitted here: `spawns:`
-/// (the agent-to-agent call graph) and `output:` (a JSON-Schema
-/// structured-yield contract). See `docs/roster-915-schema-decision.md` for
-/// why roster doesn't adopt an equivalent field of its own yet -- in short,
-/// roster has no dispatch runtime to enforce either against, so declaring
-/// them here would be unenforced decoration. `model:` is a list of omp's
-/// confirmed alias vocabulary (`pi/slow` for high/xhigh reasoning, `pi/smol`
-/// otherwise), resolved at omp's session level via `--slow`/`--smol`, not a
-/// concrete model id -- so unlike `render_claude_agent`/`render_bb_agent`
-/// this needs no `Models` lookup.
-pub fn render_omp_agent(agent: &Agent) -> Result<String, String> {
-    let role = &agent.role;
-    let alias = omp_model_alias(&role.model_policy.preferred.reasoning);
-    let tools = omp_tools(role);
-
-    Ok(format!(
-        r#"---
-name: {name}
-description: {description}
-model: [{alias}]
-tools: {tools}
----
-
-# {name}
-
-{instructions}
-
-## Skills To Read
-
-{skills}
-
-## MCP Servers
-
-{mcp_servers}
-
-## Evidence Expectations
-
-{evidence}
-"#,
-        name = role.name,
-        description = role.description,
-        alias = alias,
-        tools = tools,
-        instructions = agent.instructions.trim(),
-        skills = render_skills(&role.skills, &[]),
-        mcp_servers = render_mcp_servers(&role.mcps, &role.mcps_contextual, &[]),
-        evidence = bullet_list(&role.evidence_expectations),
-    ))
-}
-
-fn omp_model_alias(reasoning: &str) -> &'static str {
-    // Only the two alias values the roster-910 receipt actually observed on
-    // live bundled omp agents (reviewer.md: pi/slow, explore.md: pi/smol) --
-    // omp's docs mention a third `--plan` session flag, but no bundled agent
-    // sample confirmed a `pi/plan` model value, so it's not invented here.
-    match reasoning {
-        "high" | "xhigh" => "pi/slow",
-        _ => "pi/smol",
-    }
-}
-
-fn omp_tools(role: &Role) -> String {
-    // Conservative subset of the tool vocabulary the receipt actually saw
-    // (reviewer.md: read, grep, glob, bash, lsp, web_search, ast_grep,
-    // yield). `lsp`/`ast_grep`/`yield` aren't included: `yield` pairs with
-    // the `output:` schema this renderer doesn't emit, and there's no
-    // evidenced per-role criterion for lsp/ast_grep beyond the two samples.
-    let mut tools = vec!["read", "grep", "glob"];
-    if allows_file_writes(role) {
-        tools.push("write");
-        tools.push("edit");
-    }
-    if allows_shell(role) {
-        tools.push("bash");
-    }
-    if role.permissions.network == "allowed" {
-        tools.push("web_search");
-    }
-    if !role.mcps.is_empty() || !role.mcps_contextual.is_empty() {
-        // OMP task agents inherit the parent MCP manager. An explicit tools
-        // list otherwise hides MCP tools, so expose OMP's native discovery
-        // tool and let the declaration's required/contextual server ids guide
-        // model selection without hard-coding server tool names here.
-        tools.push("search_tool_bm25");
-    }
-    format!("[{}]", tools.join(", "))
-}
-
-fn allows_file_writes(role: &Role) -> bool {
-    role.permissions.filesystem == "workspace-write"
-}
-
-fn allows_shell(role: &Role) -> bool {
-    matches!(
-        role.permissions.commands.as_str(),
-        "allowed" | "verification-only"
-    )
-}
-
-fn require_no_mcps(harness: &str, role: &Role) -> Result<(), String> {
-    if role.mcps.is_empty() {
-        Ok(())
-    } else {
-        Err(format!(
-            "{harness} cannot bind required MCP servers for agent {:?}: {}",
-            role.name,
-            role.mcps.join(", ")
-        ))
-    }
-}
-
-pub fn render_brief(
-    agent: &Agent,
-    add_skills: &[String],
-    add_mcps: &[String],
-    card: Option<&PowderCardSnapshot>,
-) -> String {
-    let role = &agent.role;
-    let mut output = format!(
-        r#"# Roster Brief: {name}
-
-## Role
-
-{description}
-
-## Model Policy
-
-- Preferred: {preferred}
-- Fallbacks: {fallbacks}
-
-## Instructions
-
-Read: {instruction_path}
-
-{instructions}
-
-## Skills To Read
-
-{skills}
-
-## MCP Servers
-
-{mcp_servers}
-
-## Permissions
-
-- Filesystem: {filesystem}
-- Commands: {commands}
-- Network: {network}
-- Secrets: {secrets}
-- Mutations: {mutations}
-
-## Subagent Rights
-
-- May dispatch: {may_dispatch}
-- May spawn subagents: {may_spawn_subagents}
-- May use peer harnesses: {may_use_peer_harnesses}
-
-## Evidence Contract
-
-{evidence}
-"#,
-        name = role.name,
-        description = role.description,
-        preferred = format_model_entry(&role.model_policy.preferred),
-        fallbacks = format_fallbacks(&role.model_policy.fallbacks),
-        instruction_path = agent.instruction_path().display(),
-        instructions = agent.instructions.trim(),
-        skills = render_skills(&role.skills, add_skills),
-        mcp_servers = render_mcp_servers(&role.mcps, &role.mcps_contextual, add_mcps),
-        filesystem = role.permissions.filesystem,
-        commands = role.permissions.commands,
-        network = role.permissions.network,
-        secrets = role.permissions.secrets,
-        mutations = role.permissions.mutations,
-        may_dispatch = role.subagent_rights.may_dispatch,
-        may_spawn_subagents = role.subagent_rights.may_spawn_subagents,
-        may_use_peer_harnesses = role.subagent_rights.may_use_peer_harnesses,
-        evidence = bullet_list(&role.evidence_expectations),
-    );
-
-    if let Some(card) = card {
-        output.push_str("\n## Powder Card\n\n");
-        output.push_str(&format!("- ID: {}\n", card.id));
-        output.push_str(&format!("- Title: {}\n", card.title));
-        output.push_str(&format!("- Status: {}\n", card.status));
-        output.push_str(&format!("- Powder updated at: {}\n", card.updated_at));
-        output.push_str(&format!("- Fetched at: {}\n", card.fetched_at));
-        if let Some(claim) = &card.claim {
-            output.push_str(&format!(
-                "- Active claim: {} via {} until {}\n",
-                claim.agent, claim.run_id, claim.expires_at
-            ));
-        } else {
-            output.push_str("- Active claim: none\n");
-        }
-        output.push_str(
-            "- Authority: Powder is authoritative; re-read this card at claim/start and refresh if its update or claim differs.\n",
-        );
-        if !card.acceptance.is_empty() {
-            output.push_str("\n### Acceptance\n\n");
-            output.push_str(&bullet_list(&card.acceptance));
-            output.push('\n');
-        }
-        if !card.body.trim().is_empty() {
-            output.push_str("\n### Body\n\n");
-            output.push_str(card.body.trim());
-            output.push('\n');
-        }
-    }
-
-    output
-}
-
-fn bb_model(role: &Role, models: &Models) -> Result<String, String> {
-    if let Some(model) = openrouter_model(&role.model_policy.preferred.model) {
-        return Ok(model.to_string());
-    }
-    if let Some(model) = role
-        .model_policy
-        .fallbacks
-        .iter()
-        .find_map(|fallback| openrouter_model(&fallback.model))
-    {
-        return Ok(model.to_string());
-    }
-
-    // Neither `preferred` nor any fallback is a literal `openrouter/`-prefixed
-    // model id. Resolve `preferred` through primitives/models.yaml instead of
-    // ever emitting the bare concrete id as-is (a codex-only id like
-    // `gpt-5.6-luna` is not an invocable OpenRouter model, so a bb config carrying
-    // it verbatim would silently fail at dispatch time rather than at render
-    // time).
-    models
-        .bb_for(&role.model_policy.preferred.model)
-        .map(|model| openrouter_model(model).unwrap_or(model).to_string())
-        .ok_or_else(|| {
-            format!(
-                "cannot resolve bb model for agent {:?}: preferred {:?} is not an \
-                 openrouter/-prefixed literal, has no openrouter/-prefixed fallback, \
-                 and is not a known model in primitives/models.yaml",
-                role.name, role.model_policy.preferred.model
-            )
-        })
-}
-
-fn openrouter_model(value: &str) -> Option<&str> {
-    value.strip_prefix("openrouter/")
-}
-
-pub fn render_show(agent: &Agent) -> String {
-    let role = &agent.role;
-    format!(
-        r#"# {name}
-
-{description}
-
-- Directory: {directory}
-- Instructions: {instruction_path}
-- Preferred model: {preferred}
-- Fallbacks: {fallbacks}
-- Skills: {skill_count}
-- MCPs: {mcps}
-- Contextual MCPs: {mcps_contextual}
-
-## Evidence Expectations
-
-{evidence}
-"#,
-        name = role.name,
-        description = role.description,
-        directory = agent.directory.display(),
-        instruction_path = agent.instruction_path().display(),
-        preferred = format_model_entry(&role.model_policy.preferred),
-        fallbacks = format_fallbacks(&role.model_policy.fallbacks),
-        skill_count = role.skills.len(),
-        mcps = if role.mcps.is_empty() {
-            "none".to_string()
-        } else {
-            role.mcps.join(", ")
-        },
-        mcps_contextual = if role.mcps_contextual.is_empty() {
-            "none".to_string()
-        } else {
-            role.mcps_contextual.join(", ")
-        },
-        evidence = bullet_list(&role.evidence_expectations),
-    )
-}
-
-fn load_agent(directory: PathBuf) -> Result<Agent, RosterError> {
-    let role_path = directory.join("role.yaml");
-    let role_text = fs::read_to_string(&role_path).map_err(|source| RosterError::Io {
-        path: role_path.clone(),
-        source,
-    })?;
-    let role: Role = serde_yaml::from_str(&role_text).map_err(|source| RosterError::Yaml {
-        path: role_path.clone(),
-        source,
-    })?;
-
-    let instructions_path = directory.join("instructions.md");
-    let instructions =
-        fs::read_to_string(&instructions_path).map_err(|source| RosterError::Io {
-            path: instructions_path.clone(),
-            source,
-        })?;
-
-    validate_agent(&directory, &role, &instructions)?;
-
-    Ok(Agent {
-        directory,
-        role,
-        instructions,
-    })
-}
-
-fn validate_agent(directory: &Path, role: &Role, instructions: &str) -> Result<(), RosterError> {
-    if role.schema_version != "roster.role.v1" {
-        return Err(RosterError::Validation(format!(
-            "{} role.yaml has unsupported schema_version {:?}",
-            directory.display(),
-            role.schema_version
-        )));
-    }
-
-    let directory_name = directory
-        .file_name()
-        .and_then(|name| name.to_str())
-        .ok_or_else(|| {
-            RosterError::Validation(format!(
-                "{} has no valid directory name",
-                directory.display()
-            ))
-        })?;
-    if role.name != directory_name {
-        return Err(RosterError::Validation(format!(
-            "{} role name {:?} does not match directory {:?}",
-            directory.display(),
-            role.name,
-            directory_name
-        )));
-    }
-
-    require_non_empty(&role.name, "name", directory)?;
-    require_non_empty(&role.description, "description", directory)?;
-    require_non_empty(
-        &role.model_policy.preferred.model,
-        "model_policy.preferred.model",
-        directory,
-    )?;
-    require_non_empty(
-        &role.model_policy.preferred.reasoning,
-        "model_policy.preferred.reasoning",
-        directory,
-    )?;
-    for (index, fallback) in role.model_policy.fallbacks.iter().enumerate() {
-        require_non_empty(
-            &fallback.model,
-            &format!("model_policy.fallbacks[{index}].model"),
-            directory,
-        )?;
-        require_non_empty(
-            &fallback.reasoning,
-            &format!("model_policy.fallbacks[{index}].reasoning"),
-            directory,
-        )?;
-    }
-    require_non_empty(
-        &role.permissions.filesystem,
-        "permissions.filesystem",
-        directory,
-    )?;
-    require_one_of(
-        &role.permissions.filesystem,
-        "permissions.filesystem",
-        &["read-only", "workspace-write"],
-        directory,
-    )?;
-    require_non_empty(
-        &role.permissions.commands,
-        "permissions.commands",
-        directory,
-    )?;
-    require_non_empty(&role.permissions.network, "permissions.network", directory)?;
-    require_non_empty(&role.permissions.secrets, "permissions.secrets", directory)?;
-    require_non_empty(
-        &role.permissions.mutations,
-        "permissions.mutations",
-        directory,
-    )?;
-    require_non_empty(instructions, "instructions.md", directory)?;
-
-    for skill in &role.skills {
-        require_non_empty(&skill.name, "skills[].name", directory)?;
-        require_non_empty(&skill.path, "skills[].path", directory)?;
-        require_non_empty(&skill.reason, "skills[].reason", directory)?;
-    }
-
-    for mcp in &role.mcps {
-        require_non_empty(mcp, "mcps[]", directory)?;
-    }
-
-    for mcp in &role.mcps_contextual {
-        require_non_empty(mcp, "mcps_contextual[]", directory)?;
-    }
-
-    for expectation in &role.evidence_expectations {
-        require_non_empty(expectation, "evidence_expectations[]", directory)?;
-    }
-
-    Ok(())
-}
-
-fn validate_unique_names(agents: &[Agent]) -> Result<(), RosterError> {
-    let mut names = BTreeSet::new();
-    for agent in agents {
-        if !names.insert(&agent.role.name) {
-            return Err(RosterError::Validation(format!(
-                "duplicate agent name {:?}",
-                agent.role.name
-            )));
-        }
-    }
-    Ok(())
-}
-
-fn validate_mcp_references(agents: &[Agent], registry: &McpRegistry) -> Result<(), RosterError> {
-    let statuses = registry
-        .mcps
-        .iter()
-        .map(|mcp| (mcp.id.as_str(), mcp.status.as_str()))
-        .collect::<BTreeMap<_, _>>();
-
-    for agent in agents {
-        for (kind, mcps) in [
-            ("mcps", agent.role.mcps.as_slice()),
-            ("mcps_contextual", agent.role.mcps_contextual.as_slice()),
-        ] {
-            for mcp in mcps {
-                let Some(status) = statuses.get(mcp.as_str()) else {
-                    return Err(RosterError::Validation(format!(
-                        "agent {:?} references unknown MCP {:?} in {kind}",
-                        agent.role.name, mcp
-                    )));
-                };
-                if matches!(*status, "disabled" | "not_applicable") {
-                    return Err(RosterError::Validation(format!(
-                        "agent {:?} references MCP {:?} with non-bindable status {:?} in {kind}",
-                        agent.role.name, mcp, status
-                    )));
-                }
-            }
-        }
-    }
-
-    Ok(())
-}
-
-fn require_non_empty(value: &str, field: &str, directory: &Path) -> Result<(), RosterError> {
-    if value.trim().is_empty() {
-        return Err(RosterError::Validation(format!(
-            "{} has empty {}",
-            directory.display(),
-            field
-        )));
-    }
-    Ok(())
-}
-
-fn require_one_of(
-    value: &str,
-    field: &str,
-    allowed: &[&str],
-    directory: &Path,
-) -> Result<(), RosterError> {
-    if allowed.contains(&value) {
-        Ok(())
-    } else {
-        Err(RosterError::Validation(format!(
-            "{} has unsupported {} {:?}; expected one of {}",
-            directory.display(),
-            field,
-            value,
-            allowed.join(", ")
-        )))
-    }
-}
-
-fn render_skills(skills: &[SkillRef], add_skills: &[String]) -> String {
-    let mut lines = Vec::new();
-    for skill in skills {
-        lines.push(format!(
-            "- {}: {} ({})",
-            skill.name, skill.path, skill.reason
-        ));
-    }
-    for skill in add_skills {
-        lines.push(format!("- override: {skill}"));
-    }
-    if lines.is_empty() {
-        "- none".to_string()
-    } else {
-        lines.join("\n")
-    }
-}
-
-fn render_mcp_servers(mcps: &[String], mcps_contextual: &[String], add_mcps: &[String]) -> String {
-    let required = mcp_lines(mcps, &[]);
-    let contextual = mcp_lines(mcps_contextual, add_mcps);
-    format!("### Required\n\n{required}\n\n### Contextual (bind when present)\n\n{contextual}")
-}
-
-fn mcp_lines(mcps: &[String], overrides: &[String]) -> String {
-    let mut lines = mcps
-        .iter()
-        .map(|mcp| format!("- {mcp}"))
-        .collect::<Vec<_>>();
-    for mcp in overrides {
-        lines.push(format!("- override: {mcp}"));
-    }
-    if lines.is_empty() {
-        "- none".to_string()
-    } else {
-        lines.join("\n")
-    }
-}
-
-fn bullet_list(items: &[String]) -> String {
-    if items.is_empty() {
-        "- none".to_string()
-    } else {
-        items
-            .iter()
-            .map(|item| format!("- {item}"))
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
-}
-
-fn toml_array(items: &[String]) -> String {
-    let values = items
-        .iter()
-        .map(|item| format!("\"{}\"", toml_escape(item)))
-        .collect::<Vec<_>>()
-        .join(", ");
-    format!("[{values}]")
-}
-
-fn toml_escape(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
 }

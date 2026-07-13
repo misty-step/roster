@@ -1,0 +1,5 @@
+schema_version: roster.role.v2
+name: builder
+description: Deliver one accepted work item to a live, gated outcome.
+include:
+  - core/pack:build

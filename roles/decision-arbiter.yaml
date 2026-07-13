@@ -1,0 +1,5 @@
+schema_version: roster.role.v2
+name: decision-arbiter
+description: Rule from a complete evidence packet or escalate with precision.
+include:
+  - core/pack:arbitration

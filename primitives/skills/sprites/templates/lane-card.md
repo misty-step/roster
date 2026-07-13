@@ -25,11 +25,12 @@ Glass status beats:
 ## Launch
 
 ```sh
-roster brief <identity> --card <powder-card-id> > /tmp/lane-brief.md
-# Prepend /tmp/lane-brief.md to this card, then launch it through the chosen
-# harness's native subagent or peer-CLI surface.
+roster show <agent>
+roster dispatch <agent>
+# Paste this card into the launched session. The selected agent's complete
+# role is resolved independently; child-only primitives never load in the lead.
 ```
 
-Use `roster materialize <identity> --harness <harness>` when a harness-native
-projection is needed. Durable receipts belong on the Powder card as a run,
-comment, or link.
+If no declared agent fits, add a role and atomic agent binding to the applicable
+Roster config rather than adding primitives at launch. Durable evidence belongs
+on the Powder card; Roster writes the local dispatch receipt automatically.

@@ -52,8 +52,8 @@ skills:
     path: primitives/skills/next/SKILL.md
   - name: refactor
     path: primitives/skills/refactor/SKILL.md
-  - name: roster
-    path: primitives/skills/roster/SKILL.md
+  - name: peer-harnesses
+    path: primitives/skills/peer-harnesses/SKILL.md
   - name: skill-eval
     path: primitives/skills/skill-eval/SKILL.md
   - name: eval-design

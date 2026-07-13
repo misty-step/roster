@@ -61,8 +61,9 @@ providers:
     # Bare pi has no native named-agent registry at all (roster-910/roster-915
     # recon: no `agent`/`agents` subcommand, no `--agent` flag). The richer
     # `spawns:`/aliased-`model:` schema the roster-910 receipt found lives in
-    # `omp` (can1357/oh-my-pi), a fork of pi, not pi itself -- see
-    # `render_omp_agent` in roster-core and `roster materialize --harness omp`.
+    # `omp` (can1357/oh-my-pi), a fork of pi, not pi itself. Roster's OMP
+    # adapter projects only the selected root agent; distinct children launch
+    # through their own `roster dispatch` session.
     agent_dispatch: none
     agent_model_override: n/a
     notes: >-

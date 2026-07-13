@@ -1,0 +1,5 @@
+schema_version: roster.role.v2
+name: ai-capability-scout
+description: Empirically map current model, provider, and Harness capability.
+include:
+  - core/pack:ai-scout

@@ -1,0 +1,8 @@
+schema_version: roster.pack.v1
+name: arbitration
+description: Evidence-backed decision and escalation.
+include:
+  - core/pack:engineering-core
+  - core/pack:work-ledger-powder
+  - core/guidance:decision-arbiter
+  - core/skill:artifact

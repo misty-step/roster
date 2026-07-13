@@ -1,0 +1,6 @@
+schema_version: roster.pack.v1
+name: engineering-core
+description: Universal repository grounding and engineering stance.
+include:
+  - core/guidance:engineering
+  - core/skill:orient

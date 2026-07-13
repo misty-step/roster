@@ -197,6 +197,48 @@ fn check_reports_external_alias_receipt_and_declaration_drift() {
 }
 
 #[test]
+fn check_ignores_tracked_skills_deleted_in_the_worktree() {
+    let tmp = TempDir::new().expect("tempdir");
+    let root = tmp.path();
+    write(
+        root,
+        "primitives/skills/skills-index.yaml",
+        "schema_version: roster.skills_index.v1\nskills:\n  - name: old\n    path: primitives/skills/old/SKILL.md\n",
+    );
+    write(
+        root,
+        "primitives/skills/old/SKILL.md",
+        "---\nname: old\ndescription: Old skill.\nargument-hint: \"[x]\"\n---\nbody\n",
+    );
+    git(root, &["init", "-q"]);
+    git(
+        root,
+        &["config", "user.email", "roster-check-test@example.com"],
+    );
+    git(root, &["config", "user.name", "roster-check-test"]);
+    git(root, &["add", "-A"]);
+    git(root, &["commit", "-q", "-m", "fixture"]);
+
+    fs::remove_dir_all(root.join("primitives/skills/old")).expect("delete old skill");
+    write(
+        root,
+        "primitives/skills/skills-index.yaml",
+        "schema_version: roster.skills_index.v1\nskills:\n  - name: new\n    path: primitives/skills/new/SKILL.md\n",
+    );
+    write(
+        root,
+        "primitives/skills/new/SKILL.md",
+        "---\nname: new\ndescription: New skill.\nargument-hint: \"[x]\"\n---\nbody\n",
+    );
+
+    Command::cargo_bin("roster")
+        .expect("roster binary")
+        .args(["--root", root.to_str().expect("utf8 path"), "check"])
+        .assert()
+        .success();
+}
+
+#[test]
 fn check_passes_on_the_real_repo() {
     Command::cargo_bin("roster")
         .expect("roster binary")

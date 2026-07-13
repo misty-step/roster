@@ -1,0 +1,92 @@
+schema_version: roster.config.v1
+sources:
+  core: ..
+agents:
+  amos:
+    description: Codex orchestrator for broad software work.
+    role: core/role:orchestrator
+    model: gpt-5.6-luna
+    reasoning: xhigh
+    harness: codex
+    args: [--search, --dangerously-bypass-approvals-and-sandbox]
+    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon]
+  kaylee:
+    description: Claude orchestrator for broad software work.
+    role: core/role:orchestrator
+    model: claude-fable-5
+    reasoning: high
+    harness: claude
+    args: [--dangerously-skip-permissions]
+    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon]
+  urza:
+    description: OMP orchestrator for broad software work.
+    role: core/role:orchestrator
+    model: claude-fable-5
+    reasoning: high
+    harness: omp
+    args: [--approval-mode, yolo]
+    delegates: [hephaestus, cerberus, scully, eames, ripley, tars, magellan, solomon]
+  hephaestus:
+    description: Builder for one accepted software change.
+    role: core/role:builder
+    model: gpt-5.6-luna
+    reasoning: high
+    harness: codex
+    args: [--search, --dangerously-bypass-approvals-and-sandbox]
+    delegates: [cerberus, scully]
+  cerberus:
+    description: Fresh-context adversarial code reviewer.
+    role: core/role:code-reviewer
+    model: gpt-5.6-luna
+    reasoning: xhigh
+    harness: codex
+    args: [--search, --sandbox, read-only, --ask-for-approval, never]
+    delegates: []
+  scully:
+    description: Independent live-behavior verifier.
+    role: core/role:verifier
+    model: gpt-5.6-luna
+    reasoning: high
+    harness: codex
+    args: [--search, --sandbox, read-only, --ask-for-approval, never]
+    delegates: []
+  eames:
+    description: Render-first product and interface designer.
+    role: core/role:designer
+    model: claude-fable-5
+    reasoning: high
+    harness: claude
+    args: [--dangerously-skip-permissions]
+    delegates: [scully]
+  ripley:
+    description: Reproduce-first production incident investigator.
+    role: core/role:incident-investigator
+    model: gpt-5.6-luna
+    reasoning: xhigh
+    harness: codex
+    args: [--search, --sandbox, read-only, --ask-for-approval, never]
+    delegates: []
+  tars:
+    description: Empirical AI capability and routing scout.
+    role: core/role:ai-capability-scout
+    model: openrouter/deepseek/deepseek-v4-flash
+    reasoning: high
+    harness: omp
+    args: [--approval-mode, write]
+    delegates: []
+  magellan:
+    description: Broad read-only research and repository sweeper.
+    role: core/role:research-sweeper
+    model: openrouter/deepseek/deepseek-v4-flash
+    reasoning: medium
+    harness: omp
+    args: [--approval-mode, always-ask]
+    delegates: []
+  solomon:
+    description: Evidence-backed decision arbiter.
+    role: core/role:decision-arbiter
+    model: claude-fable-5
+    reasoning: high
+    harness: claude
+    args: [--permission-mode, plan]
+    delegates: []

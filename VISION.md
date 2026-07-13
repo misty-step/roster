@@ -60,8 +60,7 @@ primitives/
   guidance/
 packs/
 roles/
-harnesses/
-agents/        # optional examples; active bindings usually live with operator config
+examples/      # optional bindings; active agents live with operator config
 ```
 
 Personal and private composition lives outside the repository, normally under
@@ -106,7 +105,7 @@ for a skill or a verbose system prompt.
 ```text
 AGENTS.md
 skills/
-mcps/
+mcps.yaml
 manifest.yaml
 ```
 
@@ -128,10 +127,10 @@ them durable for inspection, control-plane handoff, or reproduction.
 
 ## Harness adapters
 
-Harness adapters are source-resolved library assets under `harnesses/`. An
-adapter reads the immutable semantic bundle, writes only an ephemeral
-Harness-native projection, selects the primary model, forwards native
-arguments, launches the process, and preserves its exit and signal behavior.
+Harness adapters are a small built-in Tier 1 boundary. An adapter reads the
+immutable semantic bundle, writes only an ephemeral Harness-native projection,
+selects the primary model, forwards only validated native arguments, launches
+the process, and preserves its exit and signal behavior.
 It may not add primitives, rewrite role guidance, or otherwise change semantic
 composition.
 
@@ -140,14 +139,11 @@ among eligible agents, route work, retry, supervise, or interpret the result;
 those richer dispatch responsibilities belong to a human or control plane.
 
 This narrow protocol prevents Roster from becoming a lowest-common-denominator
-Harness abstraction. OMP's advisor, smol model, reasoning budgets, and profiles
-remain OMP configuration passed through the agent's arguments. Roster-owned
-agent definitions use native arguments for runtime topology, budgets, sandbox,
-and profile selection—not to append or replace Roster-managed guidance, skills,
-or MCP material. The manifest records the forwarded arguments and profile
-reference, but does not claim to describe opaque Harness-owned configuration.
-Roster needs the primary model only for launch and root elicitation; it does
-not normalize a Harness's internal model topology.
+Harness abstraction. OMP's advisor, smol model, and other internal topology
+remain OMP-owned configuration; Roster does not normalize it. Agent definitions
+may use a small allowlisted native argument surface for runtime permissions and
+sandboxing, never to append or replace Roster-managed guidance, skills, MCPs,
+models, or configuration. The manifest records the validated arguments.
 
 ## Model elicitation: evidence before taxonomy
 
@@ -199,18 +195,13 @@ router:
 
 ## Product surface
 
-The intended CLI is small:
-
-- `list` and `show` inspect primitives, packs, roles, agents, and Harnesses.
-- `graph` / `why` explain effective composition and provenance.
-- `validate` rejects invalid, ambiguous, or conflicting declarations.
-- `resolve` emits or retains an immutable bundle.
-- `dispatch` resolves, launches through an adapter, and exits with the Harness.
-
-A first-party Roster skill teaches capable humans and orchestrators how to use
-this surface. Roster does not need a standing MCP server, HTTP API, UI, sync
-daemon, or workstation doctor until real demand proves the filesystem and CLI
-insufficient.
+The CLI is small: bare `roster` opens the agent picker; `init`, `list`, `show`,
+`resolve`, `dispatch`, `inspect`, `rescue`, and `check` cover the public
+surface. A hidden `authority request` seam supports an optional provider for
+one named mid-session operation without making credentials or permissions part
+of agent composition. Roster does not need a standing MCP server, HTTP API,
+web UI, sync daemon, or workstation doctor until real demand proves the
+filesystem and CLI insufficient.
 
 ## Non-goals
 
@@ -232,23 +223,17 @@ primitives and user-owned Harness state, not obsolete APIs.
 
 ## Migration truth
 
-The current implementation predates this contract. Its rich role schema,
-coupled `instructions.md`, `sync`, `doctor`, workstation projections, hooks,
-HTTP/UI/MCP services, card-aware briefs, and Bitterblossom materializer are
-legacy surfaces to delete, extract, or replace through the
-`roster-v02-primitives-compiler` epic. Do not extend them merely because they
-exist. New work must either advance the target or carry an explicit, temporary
-migration justification.
-
-Curated skills, external provenance, and useful plain-file declarations are the
-value to preserve. Deterministic mass must re-earn its place as validation,
-resolution, manifest production, or thin launch mechanics.
+v0.2 retired the rich role schema, coupled `instructions.md`, workstation
+`sync`/`doctor`, hooks, HTTP/UI/MCP services, and card-aware materializers.
+Curated skills, external provenance, and useful plain-file declarations remain.
+The deterministic spine is now validation, resolution, manifest production,
+receipts, and thin launch mechanics.
 
 ## What excellent looks like
 
-In the near term, one private role can compose public primitives, resolve to a
-bundle whose router and provenance are obvious, and launch through Codex and
-OMP without changing permanent Harness configuration.
+Today, one private role can compose public primitives, resolve to a bundle
+whose router and provenance are obvious, and launch through Codex, Claude Code,
+or OMP without changing permanent Harness configuration.
 
 In the medium term, control planes such as Bitterblossom consume the same
 bundle contract as local dispatch, while eval evidence—not remembered model

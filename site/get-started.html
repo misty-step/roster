@@ -4,184 +4,72 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Get started with Roster</title>
-    <meta
-      name="description"
-      content="Install Roster, sync it to your harnesses, and verify it went live — real commands from this repo's README and SKILL.md."
-    />
-    <script>
-      try {
-        var m = localStorage.getItem('ae-mode');
-        if (m === 'dark' || m === 'light') {
-          document.documentElement.classList.add(m);
-          document.documentElement.style.colorScheme = m;
-        }
-      } catch (e) {}
-    </script>
+    <meta name="description" content="Install Roster, declare agents, and launch an exact role through Codex, Claude Code, or OMP." />
+    <script>try{var m=localStorage.getItem('ae-mode');if(m==='dark'||m==='light'){document.documentElement.classList.add(m);document.documentElement.style.colorScheme=m}}catch(e){}</script>
     <link rel="stylesheet" href="aesthetic.css" />
     <link rel="stylesheet" href="marketing.css" />
   </head>
   <body>
-    <svg aria-hidden="true" width="0" height="0" style="position: absolute">
-      <symbol id="i-bot" viewBox="0 0 24 24">
-        <path d="M12 8V4H8" />
-        <rect width="16" height="12" x="4" y="8" rx="2" />
-        <path d="M2 14h2" />
-        <path d="M20 14h2" />
-        <path d="M15 13v2" />
-        <path d="M9 13v2" />
-      </symbol>
-      <symbol id="i-sun" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 2v2" />
-        <path d="M12 20v2" />
-        <path d="m4.93 4.93 1.41 1.41" />
-        <path d="m17.66 17.66 1.41 1.41" />
-        <path d="M2 12h2" />
-        <path d="M20 12h2" />
-        <path d="m6.34 17.66-1.41 1.41" />
-        <path d="m19.07 4.93-1.41 1.41" />
-      </symbol>
-      <symbol id="i-moon" viewBox="0 0 24 24">
-        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-      </symbol>
-      <symbol id="i-github" viewBox="0 0 24 24">
-        <path
-          d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
-        />
-        <path d="M9 18c-4.51 2-5-2-7-2" />
-      </symbol>
+    <svg aria-hidden="true" width="0" height="0" style="position:absolute">
+      <symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2m-13.66 5.66-1.41 1.41m14.14-14.14-1.41 1.41M6.34 6.34 4.93 4.93m14.14 14.14-1.41-1.41"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.78.98-1.12 2.21-1 3.5v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
     </svg>
-
     <div class="ae-screen ae-wide">
       <header class="ae-bar msk-bar">
-        <a class="ae-logo" href="./" aria-label="Roster home">
-          <span class="ae-app-mark" aria-hidden="true">
-            <svg class="ae-icon" data-lucide="bot">
-              <use href="#i-bot" />
-            </svg>
-          </span>
-          <span class="ae-name">Roster</span>
-        </a>
-        <nav class="ae-chrome msk-nav" aria-label="Site">
-          <a href="features.html">features</a>
-          <a href="get-started.html" aria-current="page">get started</a>
-          <a href="changelog.html">changelog</a>
-          <a href="https://github.com/misty-step/roster">github</a>
-        </nav>
+        <a class="ae-logo" href="./" aria-label="Roster home"><span class="ae-app-mark"><svg class="ae-icon"><use href="#i-bot"/></svg></span><span class="ae-name">Roster</span></a>
+        <nav class="ae-chrome msk-nav" aria-label="Site"><a href="features.html">features</a><a href="get-started.html" aria-current="page">get started</a><a href="changelog.html">changelog</a><a href="https://github.com/misty-step/roster">github</a></nav>
       </header>
-
       <main class="ae-stage ae-stage-scroll">
-        <article class="ae-doc msk-page" aria-labelledby="get-started-title">
-          <h1 id="get-started-title">Get started</h1>
-          <p class="ae-lede">
-            One machine, push-button to verified-live. Every command below is
-            copied straight from this repo's <code>README.md</code> and
-            <code>SKILL.md</code> — nothing invented.
-          </p>
-
+        <article class="ae-doc msk-page" aria-labelledby="title">
+          <h1 id="title">Get started</h1>
+          <p class="ae-lede">Install one binary. Declare the agents you want. Roster loads only the selected role when you launch.</p>
           <section class="msk-release">
             <h2>Install</h2>
-            <p>
-              Clone the repo and install the four binaries roster ships:
-              the CLI, the MCP face, the HTTP API face, and the Claude hook
-              helper.
-            </p>
-            <pre><code>git clone https://github.com/misty-step/roster && cd roster
-cargo install --locked --path crates/roster-cli     # `roster`
-cargo install --locked --path crates/roster-mcp     # `roster-mcp` (MCP face)
-cargo install --locked --path crates/roster-api     # `roster-api` (HTTP face)
-cargo install --locked --path crates/roster-hooks   # `roster-hooks` (Claude hooks)
-roster sync                                          # converge the managed Tier 1 core</code></pre>
-            <p class="ae-dim">
-              <code>roster sync</code> exposes the full skill catalog and
-              installs the orchestrator through native Tier 1 projections for
-              Claude Code, Codex, and OMP. Other identities remain explicitly
-              materializable. Every managed file, link, or config block is
-              reversible with <code>roster sync --disable</code>.
-            </p>
+            <pre><code>git clone https://github.com/misty-step/roster
+cd roster
+cargo install --locked --path crates/roster-cli
+mkdir -p ~/.roster
+cp examples/config.yaml ~/.roster/config.yaml
+# Set sources.core to this checkout's absolute path.
+roster check</code></pre>
+            <p class="ae-dim">Roster does not sync a global skill catalog or rewrite permanent Harness settings.</p>
           </section>
-
           <section class="msk-release">
-            <h2>Verify it went live</h2>
-            <pre><code>roster check                      # catalog gate: frontmatter, paths, index, markers
-roster doctor --live --json       # read-only Tier 1 state + bounded live probes
-roster list                       # all agents parse
-claude -p "state your session identity per your loaded instructions"
-# → "Session Identity: orchestrator (roster)"</code></pre>
+            <h2>Understand the declaration</h2>
+            <p>A role owns one additive <code>include</code> list over guidance, skills, MCP declarations, and packs. An agent binds that role to a name, model, Harness, safe native arguments, and delegate names.</p>
+            <pre><code>agents:
+  amos:
+    description: Codex orchestrator for broad software work.
+    role: core/role:orchestrator
+    model: gpt-5.6-luna
+    reasoning: xhigh
+    harness: codex
+    args: [--search]
+    delegates: [hephaestus, cerberus, scully]</code></pre>
           </section>
-
           <section class="msk-release">
-            <h2>Day-to-day verbs</h2>
-            <p>Once installed, these are the commands you'll actually run:</p>
-            <pre><code>roster list                                  # who exists
-roster show cerberus                         # one declaration, prompt-native
-roster materialize --harness codex cerberus  # per-harness install/brief form
-roster brief cerberus --card &lt;powder-id&gt;     # dispatch brief with a live card folded in</code></pre>
-            <p class="ae-dim">
-              Both binaries read the checkout via <code>--root &lt;path&gt;</code>
-              (CLI) or the <code>ROSTER_ROOT</code> env var (MCP server); the
-              default is the current directory.
-            </p>
+            <h2>Launch</h2>
+            <pre><code>roster                         # pick one effective agent
+roster list                    # workspace roster
+roster show amos               # exact composition
+roster dispatch amos --dry-run # exact projection and command
+roster dispatch amos           # launch it
+roster inspect amos            # config, graph, receipts</code></pre>
+            <p>The nearest <code>.roster/config.yaml</code> fully replaces your home config, so a client workspace can expose a completely separate roster and MCP set without ambient globals.</p>
           </section>
-
           <section class="msk-release">
-            <h2>MCP face</h2>
-            <p>
-              <code>roster-mcp</code> exposes four tools, listed in this
-              repo's <code>SKILL.md</code>:
-            </p>
-            <ul>
-              <li><code>list</code> — list roster agents from <code>role.yaml</code> declarations.</li>
-              <li><code>show</code> — show one agent declaration as prompt-native text.</li>
-              <li><code>brief</code> — render a dispatch brief, with optional <code>add_skills</code> / <code>add_mcps</code> overrides.</li>
-              <li><code>materialize</code> — render one declaration for <code>claude</code>, <code>codex</code>, <code>bb</code>, or <code>omp</code>.</li>
-            </ul>
-          </section>
-
-          <section class="msk-release">
-            <h2>HTTP API face</h2>
-            <p>
-              <code>roster-api</code> serves the same four verbs over HTTP,
-              bound to loopback by default:
-            </p>
-            <pre><code>roster-api --root . --port 4101
-curl -s http://127.0.0.1:4101/v1/agents
-curl -s http://127.0.0.1:4101/v1/agents/cerberus
-curl -s "http://127.0.0.1:4101/v1/agents/sweep/brief?add_skill=extra-skill"
-curl -s "http://127.0.0.1:4101/v1/agents/cerberus/materialize?harness=codex"</code></pre>
-          </section>
-
-          <section class="msk-release">
-            <h2>Next</h2>
-            <p>
-              Read <a href="features.html">why Roster works this way</a>, or
-              browse the <a href="changelog.html">release notes</a> for what's
-              shipped and when. Full field reference for
-              <code>role.yaml</code> and the agent quickstart live in the
-              repo's <code>README.md</code>.
-            </p>
+            <h2>Inspect the bundle</h2>
+            <pre><code>roster resolve amos --output /tmp/amos
+find /tmp/amos -maxdepth 3 -type f
+# AGENTS.md, selected skills, MCP declarations, manifest.yaml</code></pre>
+            <p class="ae-dim">Runtime bundles are ephemeral by default. Use <code>dispatch --keep-bundle</code> when the resolved projection itself is evidence.</p>
           </section>
         </article>
       </main>
-
-      <footer class="ae-bar msk-footer">
-        <button class="ae-mode" aria-label="toggle color mode">
-          <svg class="ae-icon ae-sun"><use href="#i-sun" /></svg>
-          <svg class="ae-icon ae-moon"><use href="#i-moon" /></svg>
-        </button>
-        <p class="ae-chrome msk-foot-credit">
-          a <a href="https://mistystep.io">Misty Step</a> project
-          <a
-            href="https://github.com/misty-step/roster"
-            aria-label="Roster on GitHub"
-            class="msk-foot-gh"
-          >
-            <svg class="ae-icon" aria-hidden="true"><use href="#i-github" /></svg>
-          </a>
-        </p>
-      </footer>
+      <footer class="ae-bar msk-footer"><button class="ae-mode" aria-label="toggle color mode"><svg class="ae-icon ae-sun"><use href="#i-sun"/></svg><svg class="ae-icon ae-moon"><use href="#i-moon"/></svg></button><p class="ae-chrome msk-foot-credit">a <a href="https://mistystep.io">Misty Step</a> project <a href="https://github.com/misty-step/roster" aria-label="Roster on GitHub" class="msk-foot-gh"><svg class="ae-icon"><use href="#i-github"/></svg></a></p></footer>
     </div>
-
     <script src="mode.js"></script>
   </body>
 </html>

@@ -259,6 +259,7 @@ fn tracked_files(root: &Path) -> Result<Vec<PathBuf>> {
     Ok(String::from_utf8(output.stdout)?
         .lines()
         .map(PathBuf::from)
+        .filter(|path| root.join(path).exists())
         .collect())
 }
 

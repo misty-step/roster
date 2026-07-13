@@ -3,7 +3,7 @@ name: council
 description: |
   Convene a council of DISTINCT OpenRouter model families (via opencode/pi),
   each in a generative persona, to think divergently about one question, then
-  synthesize as chair. The generative sibling of /roster's adversarial bench:
+  synthesize as chair. The generative sibling of /peer-harnesses' adversarial bench:
   councils generate and reframe, roster critiques. Use when: "convene a
   council", "thinktank", "brainstorm with different models", "get diverse
   perspectives", "panel of AIs", "what would different experts think",
@@ -19,7 +19,7 @@ families — each in a different generative persona — to think *divergently* a
 one question, then synthesize. The point is decorrelated thinking the single
 orchestrator can't produce alone.
 
-This is the **generative** sibling of `/roster`. Roster's adversarial bench
+This is the **generative** sibling of `/peer-harnesses`. Its adversarial bench
 reviews an artifact to find the bug (one lens each, artifact-only). A council
 *generates*: options, framings, first-principles takes, the non-obvious move,
 the real disagreement. Reuse roster's dispatch mechanics and model index; this
@@ -46,7 +46,7 @@ Two axes, both must vary — decorrelation comes from family × lens:
    frontier closed model on its own CLI (`codex`, `grok`, `agy`) for extra
    family spread.
    - **Slugs rot in days — never hardcode them.** Pull current top models live:
-     `primitives/skills/roster/references/model-provider-harness-index.md`, or the
+     `primitives/skills/peer-harnesses/references/model-provider-harness-index.md`, or the
      **OpenRouter MCP** (`models-list`, `benchmarks`, `model-endpoints` for
      current quality + pricing). `pi --provider openrouter --list-models
      <family>` lists live slugs.
@@ -70,7 +70,7 @@ scripts/council.sh --task /tmp/q.txt --members /tmp/members.tsv --outdir /tmp/co
 
 Write the shared task to one file (inline ALL context — lanes run cold, no
 shared history). Default `cli` is `opencode` (`opencode run --model
-openrouter/<slug>`); `pi` is the lighter no-tools alternative. See `/roster` for
+openrouter/<slug>`); `pi` is the lighter no-tools alternative. See `/peer-harnesses` for
 the exact headless forms.
 
 Timeout is a composition choice: the script default is 1200s because cold,
@@ -110,7 +110,7 @@ Reading the lanes is the work — don't just paste them.
 
 ## Composes with
 
-- `/roster` — dispatch mechanics, live model index, the adversarial-critique
+- `/peer-harnesses` — peer dispatch mechanics, live model index, the adversarial-critique
   counterpart (use that to *review*, this to *generate*).
 - `nous-creative-ideation` — a routed library of named ideation methods. Seed a
   member's persona with a specific method (OuLiPo, TRIZ, lateral provocations),

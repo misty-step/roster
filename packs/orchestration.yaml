@@ -1,0 +1,16 @@
+schema_version: roster.pack.v1
+name: orchestration
+description: Shape, dispatch, decide, and close work.
+include:
+  - core/pack:engineering-core
+  - core/pack:work-ledger-powder
+  - core/guidance:orchestrator
+  - core/guidance:delegation
+  - core/skill:shape
+  - core/skill:project-engineering
+  - core/skill:groom
+  - core/skill:sprites
+  - core/skill:artifact
+  - core/skill:showcase
+  - core/skill:research
+  - core/skill:eval-design

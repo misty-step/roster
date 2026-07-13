@@ -1,6 +1,6 @@
 [package]
 name = "roster-cli"
-version = "0.1.0"
+version = "0.2.0"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -14,12 +14,14 @@ path = "src/main.rs"
 anyhow.workspace = true
 chrono = { version = "0.4.41", default-features = false, features = ["clock"] }
 clap.workspace = true
+crossterm = "0.29.0"
 libc.workspace = true
-roster-canary.workspace = true
 roster-core.workspace = true
+serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_yaml.workspace = true
-ureq.workspace = true
+signal-hook.workspace = true
+toml.workspace = true
 
 [dev-dependencies]
 assert_cmd.workspace = true

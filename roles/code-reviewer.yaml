@@ -1,0 +1,5 @@
+schema_version: roster.role.v2
+name: code-reviewer
+description: Find high-conviction production risks in a change without fixing it.
+include:
+  - core/pack:code-review

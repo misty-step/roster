@@ -17,7 +17,7 @@ Every quality system names:
 
 Good systems are artifact-backed. Bad systems are vibes with more bullets.
 For the proof-loop contract, load
-`harnesses/shared/references/verification-system-first.md`.
+`primitives/shared/references/verification-system-first.md`.
 
 ## Proof Methods
 
@@ -63,7 +63,7 @@ Do not simulate a council inside one context. Separate execution from critique.
 - **Artifact-only:** critics get the diff, plan, oracle, screenshots, logs, or
   rendered surface. They do not get the author's reasoning trail.
 - **Lens-specific:** one critic hunts one class of failure. Use
-  `harnesses/shared/references/lenses.md` for compact rubrics.
+  `primitives/shared/references/lenses.md` for compact rubrics.
 - **Decorrelated when it matters:** a different model family is most useful for
   adversarial review of substantive author-written work.
 - **Lead-owned synthesis:** reviewer output is evidence, not authority. The

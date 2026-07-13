@@ -65,7 +65,8 @@ Hooks run on every tool use. CLAUDE.md is read once. A hook that blocks
 `rm -rf` is infinitely more reliable than a CLAUDE.md line saying
 "don't delete files." Invest in hooks over prose.
 
-Source of truth: `harnesses/claude/hooks/`
+Harness-native hooks stay in the owning harness or consumer repository. Roster
+v0.2 composes session primitives; it does not install or manage hook surfaces.
 
 ## AGENTS.md is a map, not a manual
 

@@ -1,0 +1,9 @@
+schema_version: roster.pack.v1
+name: code-review
+description: Fresh-context adversarial review.
+include:
+  - core/pack:engineering-core
+  - core/guidance:code-reviewer
+  - core/skill:code-review
+  - core/skill:ci
+  - core/skill:diagnose

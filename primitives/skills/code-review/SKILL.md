@@ -38,7 +38,7 @@ never ships on its own review — that is the one hard rule.
    DeepSeek V4 tier (budget sweep), `x-ai/grok-4.5` (high-stakes
    escalation). Verify slugs and prices against the roster model index at
    dispatch time — favorites are perishable. Codex and other peer CLIs
-   (`/roster`) are alternates when their surface answers a distinct
+   (`/peer-harnesses`) are alternates when their surface answers a distinct
    question, not the default; when any lane quota-dies, reroute to the next
    family immediately (a silent lane death degrades the topology to
    monoculture). A different model family has decorrelated failure modes.

@@ -73,7 +73,7 @@ Mode B loop runs unattended, it names all three hard stops:
 
 For the Mode A decision checklist that decides whether an idea is ready to
 leave ad-hoc work and become an unattended loop, see
-`harnesses/shared/references/loop-readiness.md`.
+`primitives/shared/references/loop-readiness.md`.
 
 - **Max iterations** — a ceiling, not a vibe.
 - **No-progress detection** — same failure twice, or no state change

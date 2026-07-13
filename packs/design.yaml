@@ -1,0 +1,10 @@
+schema_version: roster.pack.v1
+name: design
+description: Render-first visual design and proof.
+include:
+  - core/pack:engineering-core
+  - core/guidance:designer
+  - core/skill:design
+  - core/skill:artifact
+  - core/skill:qa
+  - core/skill:image-gen

@@ -1,0 +1,7 @@
+schema_version: roster.pack.v1
+name: work-ledger-powder
+description: Powder-default work management, replaceable by a local role.
+include:
+  - core/guidance:work-ledger
+  - core/skill:powder
+  - core/mcp:powder

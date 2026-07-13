@@ -1,0 +1,8 @@
+schema_version: roster.pack.v1
+name: research
+description: Broad read-only source and repository sweep.
+include:
+  - core/guidance:research-sweeper
+  - core/skill:orient
+  - core/skill:research
+  - core/skill:diagnose

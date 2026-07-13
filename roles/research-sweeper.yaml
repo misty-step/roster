@@ -1,0 +1,5 @@
+schema_version: roster.role.v2
+name: research-sweeper
+description: Scan broadly and return a concise, sourced discrepancy packet.
+include:
+  - core/pack:research
