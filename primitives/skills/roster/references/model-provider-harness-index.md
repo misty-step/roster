@@ -2,10 +2,10 @@
 model_reference_review_due: 2026-08-05
 openai_reference_review_due: 2026-07-18
 last_researched: 2026-07-11
-substrate_reference_review_due: 2026-06-26
-substrate_reference_last_researched: 2026-06-19
-speech_reference_review_due: 2026-06-27
-speech_reference_last_researched: 2026-06-20
+substrate_reference_review_due: 2026-07-20
+substrate_reference_last_researched: 2026-07-13
+speech_reference_review_due: 2026-07-20
+speech_reference_last_researched: 2026-07-13
 ---
 
 # Model / Provider / Harness Index
@@ -68,12 +68,12 @@ Oracle API mode in its skill and roster defaults.
 
 ## Realtime And Speech Substrate Snapshot
 
-Source: primary provider docs checked on 2026-06-20. This section is factual
+Source: primary provider docs checked on 2026-07-13. This section is factual
 input for product boundary decisions; it is not a default-provider policy.
 
 OpenAI:
 
-- Realtime guide positions `gpt-realtime-2` for low-latency voice agents and
+- Realtime guide positions `gpt-realtime-2.1` for low-latency voice agents and
   `gpt-realtime-whisper` for streaming transcription.
 - Realtime conversations support function calling and out-of-band responses
   (`conversation: "none"`), which fits side-channel classification/proposal
@@ -89,29 +89,38 @@ OpenAI:
 Google Gemini:
 
 - Gemini Live API supports low-latency realtime voice/vision interactions,
-  tool use, audio transcriptions, and proactive audio controls.
+  tool use, and audio transcriptions. Its general capability guide describes
+  proactive audio and affective dialog, but the Gemini 3.1 Flash Live model
+  page says neither is supported by that model; asynchronous function calling
+  is also not supported there.
 - Gemini model docs list Gemini 3.1 Flash Live Preview for high-quality
   low-latency audio-to-audio dialogue and Gemini 2.5 Flash Live Preview for
   low-latency bidirectional voice/video agents with native audio reasoning.
 - Sources:
   <https://ai.google.dev/gemini-api/docs/live-api>,
-  <https://ai.google.dev/gemini-api/docs/models>.
+  <https://ai.google.dev/gemini-api/docs/models>,
+  <https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-live-preview>.
 
 Deepgram:
 
 - Flux is positioned as conversational speech recognition for voice agents with
-  model-integrated end-of-turn detection, configurable turn-taking dynamics, and
-  ultra-low latency.
-- Source: <https://developers.deepgram.com/docs/models-languages-overview>.
+  model-integrated end-of-turn detection and configurable turn-taking dynamics.
+  Deepgram documents `flux-general-en` and the ten-language
+  `flux-general-multi`, plus `EagerEndOfTurn` / `TurnResumed` events for
+  speculative response generation and cancellation.
+- Sources: <https://developers.deepgram.com/docs/flux/quickstart>,
+  <https://developers.deepgram.com/docs/flux/configuration>.
 
 ElevenLabs:
 
 - Scribe v2 supports speech recognition across 90+ languages, word timestamps,
   dynamic audio tagging, and speaker diarization up to 32 speakers.
-- Scribe v2 Realtime is documented for realtime low-latency transcription and
-  word-level timestamps; verify current diarization support separately before
-  relying on realtime speaker labels.
-- Source: <https://elevenlabs.io/docs/overview/capabilities/speech-to-text>.
+- Scribe v2 Realtime is documented for realtime low-latency transcription,
+  90+ languages, and word-level timestamps. ElevenLabs' current Realtime page
+  says speaker diarization is not a priority for the realtime model, so the
+  batch model's speaker labels must not be inferred for Realtime.
+- Sources: <https://elevenlabs.io/docs/overview/capabilities/speech-to-text>,
+  <https://elevenlabs.io/realtime-speech-to-text>.
 
 Design implication for AI-first meeting products: deterministic code should
 own approval, policy, event logs, sandboxing, schemas, and evals; semantic
@@ -121,37 +130,41 @@ heuristics only as explicit fallback or fixture paths.
 
 ## Substrate Assessment Addendum
 
-Source: user-provided research report, "Modern coding-agent systems as
-execution substrates", current through 2026-06-19.
+Source: primary project documentation and repositories checked on 2026-07-13.
 
 Factual substrate distinctions to preserve in composition design:
 
-- OpenCode is server/session-shaped: clients sit on top of a service with
-  programmatic sessions, SDK/API access, plugins, tools, permissions, MCP, and
-  structured event output. It is the strongest open candidate for custom
-  code-centric review runners, but it is not a durable queue, sandbox, policy
-  service, publisher, model gateway, or eval warehouse by itself.
-- Goose is a portable MCP-driven workflow runtime with CLI/headless operation,
-  recipes, subagents, broad provider support, and a large MCP extension
-  surface. Prefer it when a lane spans code plus trackers, docs, browsers,
-  chat, or internal tools.
-- Pi is a minimal coding-agent harness with CLI/RPC/SDK, tree sessions,
-  provider adapters, extensions, and skills. It is valuable for local
-  hackability and peer lanes, but its default process permissions and lack of a
-  built-in permission system mean unattended production use needs an external
-  sandbox and control plane.
-- OMP is a heavier local engineering environment built around Pi-style
-  workflows, with LSP/debugger/worktree/subagent affordances. Treat it as an
-  expert local surface, not the organization-wide production control plane.
-- OpenHands is the heavier open self-hosted platform option for remote
-  workspaces and issue-to-PR work; use it when operating a multi-user agent
-  platform is the point, not for a lightweight review-only lane.
-- Continue's official repository was reported read-only / no longer actively
-  maintained; do not make it a new strategic dependency without fresh contrary
-  evidence.
-- Managed review products such as Cursor Bugbot, Greptile, CodeRabbit, Codex
-  review, and Copilot are bake-off comparators before building commodity review
-  machinery.
+- OpenCode exposes a client/server architecture, HTTP/OpenAPI server, generated
+  SDK, sessions, built-in and custom tools, MCP servers, and configurable tool
+  permissions. Sources: <https://opencode.ai/docs/server/>,
+  <https://opencode.ai/docs/tools/>, <https://opencode.ai/docs/mcp-servers/>.
+- Goose ships desktop, CLI, and API surfaces; recipes are portable YAML
+  workflows; its documented extension surface uses MCP; and it supports
+  subagents, multiple model providers, tool permissions, and sandbox mode.
+  Source: <https://block.github.io/goose/>.
+- Pi provides a multi-provider LLM API, agent core, TUI, coding-agent CLI,
+  SDK, JSON/RPC modes, tree sessions, extensions, and skills. Its official
+  README states that it has no built-in permission system and runs with the
+  launching process's permissions by default. Sources:
+  <https://github.com/earendil-works/pi>,
+  <https://github.com/earendil-works/pi/blob/main/packages/coding-agent/README.md>,
+  <https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/sdk.md>.
+- OMP is a Pi fork with built-in LSP and DAP operations, subagents, and optional
+  worktree or FUSE-backed task isolation. Sources:
+  <https://github.com/can1357/oh-my-pi>,
+  <https://github.com/can1357/oh-my-pi/blob/main/packages/coding-agent/DEVELOPMENT.md>.
+- OpenHands provides an SDK, CLI, local GUI, cloud product, and Agent Server.
+  Its workspace abstraction covers local processes, containers, and remote
+  servers, while remote Agent Servers are documented for Kubernetes, VMs,
+  on-premises, or cloud deployment. Sources:
+  <https://github.com/OpenHands/OpenHands>,
+  <https://github.com/OpenHands/software-agent-sdk>,
+  <https://docs.openhands.dev/sdk/arch/workspace>,
+  <https://docs.openhands.dev/sdk/guides/agent-server/overview>.
+- Continue's official docs describe its 2.0.0 release as final and its
+  repository as no longer actively maintained and read-only; the same docs
+  retain CLI, VS Code, and JetBrains surfaces. Source:
+  <https://docs.continue.dev/>.
 
 The security boundary is external to every row above: do not put model-provider
 keys or GitHub write credentials inside a sandbox that can execute
