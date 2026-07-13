@@ -5,7 +5,7 @@ mod receipt;
 
 use anyhow::{Context, Result, anyhow, bail};
 use clap::{Parser, Subcommand};
-use roster_core::{Harness, ResolvedAgent, Roster};
+use roster_core::{Harness, ResolvedAgent, Roster, RosterError};
 use std::{env, fs, io::IsTerminal, path::PathBuf};
 
 #[derive(Debug, Parser)]
@@ -129,19 +129,27 @@ fn run(cli: Cli) -> Result<()> {
         }
         Some(Command::Rescue { harness, dry_run }) => adapter::rescue(harness, &cwd, dry_run)?,
         Some(Command::Check) => {
-            let roster = load(&cli.config, &cwd)?;
-            for name in roster.agents().keys() {
-                roster
-                    .resolve(name)
-                    .with_context(|| format!("resolve agent {name:?}"))?;
+            let roster = load_for_check(&cli.config, &cwd)?;
+            if let Some(roster) = &roster {
+                for name in roster.agents().keys() {
+                    roster
+                        .resolve(name)
+                        .with_context(|| format!("resolve agent {name:?}"))?;
+                }
             }
             let roots = match cli.root {
                 Some(root) => vec![root],
-                None => roster
-                    .source_roots()
-                    .filter(|root| root.join("primitives/skills/skills-index.yaml").is_file())
-                    .map(PathBuf::from)
-                    .collect(),
+                None => match &roster {
+                    Some(roster) => roster
+                        .source_roots()
+                        .filter(|root| root.join("primitives/skills/skills-index.yaml").is_file())
+                        .map(PathBuf::from)
+                        .collect(),
+                    None if cwd.join("primitives/skills/skills-index.yaml").is_file() => {
+                        vec![cwd.clone()]
+                    }
+                    None => Vec::new(),
+                },
             };
             if roots.is_empty() {
                 bail!("no source exposes the public primitive catalog; pass --root explicitly");
@@ -155,11 +163,15 @@ fn run(cli: Cli) -> Result<()> {
                     bail!("primitive catalog check failed for {}", root.display());
                 }
             }
-            println!(
-                "roster graph: ok ({} agents from {})",
-                roster.agents().len(),
-                roster.config_path().display()
-            );
+            if let Some(roster) = roster {
+                println!(
+                    "roster graph: ok ({} agents from {})",
+                    roster.agents().len(),
+                    roster.config_path().display()
+                );
+            } else {
+                println!("roster graph: skipped (no effective config)");
+            }
         }
         Some(Command::Authority {
             command: AuthorityCommand::Request { capability },
@@ -173,6 +185,18 @@ fn load(config: &Option<PathBuf>, cwd: &std::path::Path) -> Result<Roster> {
     match config.as_ref().or(runtime_config.as_ref()) {
         Some(path) => Roster::load_config(path).map_err(Into::into),
         None => Roster::discover(cwd).map_err(Into::into),
+    }
+}
+
+fn load_for_check(config: &Option<PathBuf>, cwd: &std::path::Path) -> Result<Option<Roster>> {
+    let runtime_config = env::var_os("ROSTER_CONFIG").map(PathBuf::from);
+    if config.is_some() || runtime_config.is_some() {
+        return load(config, cwd).map(Some);
+    }
+    match Roster::discover(cwd) {
+        Ok(roster) => Ok(Some(roster)),
+        Err(RosterError::ConfigNotFound { .. } | RosterError::HomeNotSet) => Ok(None),
+        Err(error) => Err(error.into()),
     }
 }
 

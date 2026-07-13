@@ -72,7 +72,11 @@ pub fn dispatch(
         print_invocation(&invocation);
         return Ok(());
     }
+    eprintln!("Preparing {} ({})…", agent.name, agent.harness);
+    std::io::stderr().flush()?;
     preflight(agent, workspace, &invocation)?;
+    eprintln!("Launching {} ({})…", agent.name, agent.harness);
+    std::io::stderr().flush()?;
     let started_at = Utc::now();
     let status = run_invocation(&invocation)?;
     let path = receipt::record(
@@ -191,6 +195,7 @@ fn prepare_codex(
 ) -> Result<Invocation> {
     let home = run_root.join("projection/codex");
     fs::create_dir_all(&home)?;
+    let native_home = real_home()?.join(".codex");
     for name in [
         "auth.json",
         "sessions",
@@ -198,13 +203,19 @@ fn prepare_codex(
         "history.jsonl",
         "session_index.jsonl",
     ] {
-        bridge(&home, name, &real_home()?.join(".codex").join(name))?;
+        bridge(&home, name, &native_home.join(name))?;
     }
     symlink_if_present(&bundle.join("AGENTS.md"), &home.join("AGENTS.md"))?;
     symlink_if_present(&bundle.join("skills"), &home.join("skills"))?;
     fs::write(home.join("config.toml"), codex_config(agent, workspace)?)?;
     Ok(Invocation {
-        env: BTreeMap::from([("CODEX_HOME".to_owned(), home.display().to_string())]),
+        env: BTreeMap::from([
+            ("CODEX_HOME".to_owned(), home.display().to_string()),
+            (
+                "CODEX_SQLITE_HOME".to_owned(),
+                native_home.display().to_string(),
+            ),
+        ]),
         command: "codex".to_owned(),
         args: vec![
             "--strict-config".into(),
@@ -333,6 +344,13 @@ fn codex_config(agent: &ResolvedAgent, workspace: &Path) -> Result<String> {
     if let Some(reasoning) = &agent.reasoning {
         document.push_str(&format!("model_reasoning_effort = {:?}\n", reasoning));
     }
+    if let Some((project, trust_level)) = codex_project_trust(workspace)? {
+        document.push_str(&format!(
+            "\n[projects.{}]\ntrust_level = {:?}\n",
+            toml_key(&project),
+            trust_level
+        ));
+    }
     for item in &agent.mcps {
         document.push_str(&format!("\n[mcp_servers.{}]\n", toml_key(&item.id)));
         match item.transport.as_deref() {
@@ -365,6 +383,44 @@ fn codex_config(agent: &ResolvedAgent, workspace: &Path) -> Result<String> {
     Ok(document)
 }
 
+fn codex_project_trust(workspace: &Path) -> Result<Option<(String, String)>> {
+    let path = real_home()?.join(".codex/config.toml");
+    if !path.is_file() {
+        return Ok(None);
+    }
+    let contents = fs::read_to_string(&path)
+        .with_context(|| format!("read Codex trust state from {}", path.display()))?;
+    let value: toml::Value = toml::from_str(&contents)
+        .with_context(|| format!("parse Codex trust state from {}", path.display()))?;
+    let Some(projects) = value.get("projects").and_then(toml::Value::as_table) else {
+        return Ok(None);
+    };
+    let workspace = workspace
+        .canonicalize()
+        .unwrap_or_else(|_| workspace.to_path_buf());
+    let mut matches = projects
+        .iter()
+        .filter_map(|(project, settings)| {
+            let project_path = PathBuf::from(project);
+            let comparable = project_path
+                .canonicalize()
+                .unwrap_or_else(|_| project_path.clone());
+            let trust_level = settings.get("trust_level")?.as_str()?;
+            workspace.starts_with(&comparable).then(|| {
+                (
+                    comparable.components().count(),
+                    project.clone(),
+                    trust_level.to_owned(),
+                )
+            })
+        })
+        .collect::<Vec<_>>();
+    matches.sort_by_key(|(depth, _, _)| *depth);
+    Ok(matches
+        .pop()
+        .map(|(_, project, trust_level)| (project, trust_level)))
+}
+
 fn project_mcp_names(workspace: &Path) -> Result<BTreeSet<String>> {
     let mut names = BTreeSet::new();
     let home = real_home()?;
@@ -376,10 +432,10 @@ fn project_mcp_names(workspace: &Path) -> Result<BTreeSet<String>> {
         if !path.is_file() {
             continue;
         }
-        let value: toml::Value = fs::read_to_string(&path)
-            .with_context(|| format!("read {}", path.display()))?
-            .parse()
-            .with_context(|| format!("parse {}", path.display()))?;
+        let contents =
+            fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
+        let value: toml::Value =
+            toml::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
         if let Some(table) = value.get("mcp_servers").and_then(toml::Value::as_table) {
             names.extend(table.keys().cloned());
         }

@@ -22,6 +22,7 @@ serde_json.workspace = true
 serde_yaml.workspace = true
 signal-hook.workspace = true
 toml.workspace = true
+unicode-width.workspace = true
 
 [dev-dependencies]
 assert_cmd.workspace = true

@@ -156,6 +156,18 @@ fn dispatch_dry_run_is_transparent_and_rescue_has_no_roster_context() {
             .contains("setupVersion: 1"),
         "isolated OMP launches must bypass the first-run wizard"
     );
+
+    let home = temp.path().join("home");
+    write(&home.join(".codex/auth.json"), "{}\n");
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("HOME", &home)
+        .env("ROSTER_STATE_DIR", &state)
+        .args(["rescue", "codex", "--dry-run"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("CODEX_HOME="))
+        .stdout(predicate::str::contains("--disable apps"));
 }
 
 fn fake_codex(directory: &Path, launch: &str) {
@@ -177,6 +189,77 @@ fn fake_harness(directory: &Path, name: &str, script: &str) {
     let mut permissions = fs::metadata(&path).expect("metadata").permissions();
     permissions.set_mode(0o755);
     fs::set_permissions(path, permissions).expect("chmod");
+}
+
+#[test]
+fn codex_projection_preserves_native_state_and_workspace_trust() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let workspace = temp.path().join("workspace");
+    fs::create_dir_all(&workspace).expect("workspace");
+    let home = temp.path().join("home");
+    let codex_home = home.join(".codex");
+    fs::create_dir_all(codex_home.join("sessions")).expect("sessions");
+    fs::create_dir_all(codex_home.join("archived_sessions")).expect("archive");
+    write(&codex_home.join("auth.json"), "{}\n");
+    write(&codex_home.join("sessions/global.jsonl"), "ambient\n");
+    write(
+        &codex_home.join("archived_sessions/global.jsonl"),
+        "ambient\n",
+    );
+    write(&codex_home.join("history.jsonl"), "ambient\n");
+    write(&codex_home.join("session_index.jsonl"), "ambient\n");
+    let trust_config = format!(
+        "[projects.\"{workspace}\"]\ntrust_level = \"trusted\"\n",
+        workspace = workspace.display()
+    );
+    assert!(!trust_config.contains("\\\""), "{trust_config:?}");
+    write(&codex_home.join("config.toml"), &trust_config);
+
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_codex(
+        &bin,
+        r#"test -L "$CODEX_HOME/auth.json" || exit 70
+test -L "$CODEX_HOME/sessions" || exit 71
+test -L "$CODEX_HOME/archived_sessions" || exit 72
+test -L "$CODEX_HOME/history.jsonl" || exit 73
+test -L "$CODEX_HOME/session_index.jsonl" || exit 74
+test "$CODEX_SQLITE_HOME" = "$HOME/.codex" || exit 75
+cp "$CODEX_HOME/config.toml" "$FAKE_CONFIG""#,
+    );
+    let observed = temp.path().join("observed-config.toml");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("HOME", &home)
+        .env("PATH", path)
+        .env("FAKE_CONFIG", &observed)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--cwd",
+            workspace.to_str().unwrap(),
+            "dispatch",
+            "amos",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("Preparing amos (codex)"))
+        .stderr(predicate::str::contains("Launching amos (codex)"));
+
+    let observed = fs::read_to_string(observed).expect("observed config");
+    let projected: toml::Value = toml::from_str(&observed).expect("valid projected config");
+    assert_eq!(
+        projected
+            .get("projects")
+            .and_then(toml::Value::as_table)
+            .and_then(|projects| projects.get(&workspace.display().to_string()))
+            .and_then(|project| project.get("trust_level"))
+            .and_then(toml::Value::as_str),
+        Some("trusted")
+    );
 }
 
 #[test]
@@ -332,4 +415,178 @@ fi"#,
         .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
         .assert()
         .success();
+}
+
+#[test]
+fn bare_launch_is_pipe_friendly_and_init_refuses_overwrite() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args(["--config", config.to_str().unwrap()])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "amos\tcodex\tgpt-test\tCodex lead",
+        ));
+
+    let workspace = temp.path().join("workspace");
+    fs::create_dir_all(&workspace).expect("workspace");
+    let source = temp.path().join("source");
+    let args = [
+        "--cwd",
+        workspace.to_str().unwrap(),
+        "init",
+        "--source",
+        source.to_str().unwrap(),
+    ];
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args(args)
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("created"));
+    assert!(workspace.join(".roster/config.yaml").is_file());
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args(args)
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("refusing to overwrite"));
+}
+
+#[test]
+fn inspect_reports_one_agent_and_recent_receipts() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let state = temp.path().join("state");
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_codex(&bin, "exit 0");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_STATE_DIR", &state)
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .success();
+
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("ROSTER_STATE_DIR", &state)
+        .args(["--config", config.to_str().unwrap(), "inspect"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("receipts:"))
+        .stdout(predicate::str::contains("- "));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args(["--config", config.to_str().unwrap(), "inspect", "amos"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("name: amos"));
+}
+
+#[test]
+fn authority_requests_are_explicit_receipted_and_fail_closed() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let provider = temp.path().join("bin/authority-provider");
+    fake_harness(
+        provider.parent().expect("provider parent"),
+        "authority-provider",
+        r#"printf '%s|%s|%s' "$ROSTER_AUTHORITY_AGENT" "$1" "$2" > "$AUTHORITY_OBSERVED"
+[ "$2" = deploy ]"#,
+    );
+    let body = fs::read_to_string(&config).expect("config");
+    write(
+        &config,
+        &format!(
+            "{body}authority:\n  command: {:?}\n  args: [fixed]\n",
+            provider.display().to_string()
+        ),
+    );
+    let state = temp.path().join("state");
+    let observed = temp.path().join("observed");
+    let request = |capability: &str| {
+        let mut command = Command::cargo_bin("roster").expect("bin");
+        command
+            .env("ROSTER_AGENT", "amos")
+            .env("ROSTER_STATE_DIR", &state)
+            .env("AUTHORITY_OBSERVED", &observed)
+            .args([
+                "--config",
+                config.to_str().unwrap(),
+                "authority",
+                "request",
+                capability,
+            ]);
+        command
+    };
+    request("deploy").assert().success();
+    assert_eq!(
+        fs::read_to_string(&observed).expect("observed"),
+        "amos|fixed|deploy"
+    );
+    let receipt = fs::read_dir(state.join("authority"))
+        .expect("authority receipts")
+        .next()
+        .expect("receipt")
+        .expect("entry")
+        .path();
+    let receipt = fs::read_to_string(receipt).expect("receipt body");
+    assert!(receipt.contains("roster.authority_receipt.v1"));
+    assert!(receipt.contains("capability: deploy"));
+
+    request("denied")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("denied or unavailable"));
+    request("")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("non-empty descriptive name"));
+
+    let no_provider = fixture(&temp.path().join("plain"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args([
+            "--config",
+            no_provider.to_str().unwrap(),
+            "authority",
+            "request",
+            "deploy",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("no authority provider"));
+}
+
+#[test]
+fn check_validates_an_explicit_config_graph_and_rejects_no_catalog() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args([
+            "--config",
+            root.join("examples/config.yaml").to_str().unwrap(),
+            "--root",
+            root.to_str().unwrap(),
+            "check",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("roster graph: ok (11 agents"));
+
+    let temp = tempfile::tempdir().expect("temp");
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .current_dir(temp.path())
+        .env("HOME", temp.path())
+        .env_remove("ROSTER_CONFIG")
+        .arg("check")
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("no source exposes"));
 }

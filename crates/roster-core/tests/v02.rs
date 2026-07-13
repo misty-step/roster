@@ -1,5 +1,5 @@
 use roster_core::{Harness, Roster, discover_config};
-use std::{fs, path::Path};
+use std::{fs, path::Path, str::FromStr};
 
 fn write(path: &Path, body: &str) {
     fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
@@ -446,5 +446,282 @@ fn manifest_records_registry_and_inclusion_chain() {
             ["core/role:orchestrator", "core/pack:ledger"],
             ["core/role:orchestrator", "core/pack:operations"]
         ]
+    );
+}
+
+#[test]
+fn discovery_imports_and_public_metadata_are_observable() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let home = temp.path().join("home");
+    let config_dir = home.join(".roster");
+    let source_root = temp.path().join("source");
+    source(&source_root, "core", "powder");
+    let imported = config_dir.join("base.yaml");
+    config(&imported, "core", &source_root, "amos", "codex");
+    let mut body = fs::read_to_string(&imported)
+        .expect("base config")
+        .replace("delegates: []", "delegates: [reviewer]");
+    body.push_str(
+        "  reviewer:\n    description: Independent reviewer\n    role: core/role:orchestrator\n    model: test/model\n    harness: claude\n    args: []\n    delegates: []\nauthority:\n  command: authority-provider\n  args: [request]\n",
+    );
+    write(&imported, &body);
+    let config_path = config_dir.join("config.yaml");
+    write(
+        &config_path,
+        "schema_version: roster.config.v1\nimports: [base.yaml]\nsources: {}\nagents: {}\n",
+    );
+    let workspace = temp.path().join("workspace/project");
+    fs::create_dir_all(&workspace).expect("workspace");
+
+    let found = discover_config(&workspace, &home).expect("home fallback");
+    assert_eq!(found, config_path);
+    let roster = Roster::load_config(&found).expect("imported roster");
+    assert_eq!(roster.config_path(), found);
+    assert_eq!(roster.source_roots().collect::<Vec<_>>(), [&source_root]);
+    assert_eq!(
+        roster.authority().expect("authority").command,
+        "authority-provider"
+    );
+    let markdown = roster.resolve("amos").expect("resolve").agents_markdown();
+    assert!(markdown.contains("## Delegation"));
+    assert!(markdown.contains("`reviewer`"));
+}
+
+#[test]
+fn imports_fail_closed_on_cycles_and_duplicates() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let root = temp.path().join("source");
+    source(&root, "core", "powder");
+
+    let cycle = temp.path().join("cycle");
+    write(
+        &cycle.join("a.yaml"),
+        "schema_version: roster.config.v1\nimports: [b.yaml]\nsources: {}\nagents: {}\n",
+    );
+    write(
+        &cycle.join("b.yaml"),
+        "schema_version: roster.config.v1\nimports: [a.yaml]\nsources: {}\nagents: {}\n",
+    );
+    let error = Roster::load_config(cycle.join("a.yaml")).expect_err("cycle must fail");
+    assert!(error.to_string().contains("config import cycle"), "{error}");
+
+    let duplicate_source = temp.path().join("duplicate-source");
+    config(
+        &duplicate_source.join("base.yaml"),
+        "core",
+        &root,
+        "amos",
+        "codex",
+    );
+    write(
+        &duplicate_source.join("config.yaml"),
+        &format!(
+            "schema_version: roster.config.v1\nimports: [base.yaml]\nsources:\n  core: {}\nagents: {{}}\n",
+            root.display()
+        ),
+    );
+    let error = Roster::load_config(duplicate_source.join("config.yaml"))
+        .expect_err("duplicate source must fail");
+    assert!(error.to_string().contains("duplicate source"), "{error}");
+
+    let duplicate_agent = temp.path().join("duplicate-agent");
+    config(
+        &duplicate_agent.join("base.yaml"),
+        "core",
+        &root,
+        "amos",
+        "codex",
+    );
+    write(
+        &duplicate_agent.join("config.yaml"),
+        "schema_version: roster.config.v1\nimports: [base.yaml]\nsources: {}\nagents:\n  amos:\n    description: duplicate\n    role: core/role:orchestrator\n    model: test/model\n    harness: codex\n",
+    );
+    let error = Roster::load_config(duplicate_agent.join("config.yaml"))
+        .expect_err("duplicate agent must fail");
+    assert!(error.to_string().contains("duplicate agent"), "{error}");
+
+    let duplicate_authority = temp.path().join("duplicate-authority");
+    config(
+        &duplicate_authority.join("base.yaml"),
+        "core",
+        &root,
+        "amos",
+        "codex",
+    );
+    let base = fs::read_to_string(duplicate_authority.join("base.yaml")).expect("base");
+    write(
+        &duplicate_authority.join("base.yaml"),
+        &format!("{base}authority:\n  command: first\n"),
+    );
+    write(
+        &duplicate_authority.join("config.yaml"),
+        "schema_version: roster.config.v1\nimports: [base.yaml]\nsources: {}\nagents: {}\nauthority:\n  command: second\n",
+    );
+    let error = Roster::load_config(duplicate_authority.join("config.yaml"))
+        .expect_err("duplicate authority must fail");
+    assert!(error.to_string().contains("duplicate authority"), "{error}");
+}
+
+#[test]
+fn config_and_harness_arguments_fail_closed() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let root = temp.path().join("source");
+    source(&root, "core", "powder");
+    let path = temp.path().join("config.yaml");
+    let document = |sources: &str, agents: &str| {
+        format!("schema_version: roster.config.v1\nsources: {sources}\nagents: {agents}\n")
+    };
+    let agent = |description: &str, harness: &str, args: &str, delegates: &str| {
+        format!(
+            "\n  amos:\n    description: {description:?}\n    role: core/role:orchestrator\n    model: test/model\n    harness: {harness}\n    args: {args}\n    delegates: {delegates}\n"
+        )
+    };
+    let sources = format!("\n  core: {}", root.display());
+    let cases = [
+        (
+            "{}".to_owned(),
+            agent("lead", "codex", "[]", "[]"),
+            "no sources",
+        ),
+        (sources.clone(), "{}".to_owned(), "no agents"),
+        (
+            format!("\n  Unsafe: {}", root.display()),
+            agent("lead", "codex", "[]", "[]"),
+            "unsafe source name",
+        ),
+        (
+            sources.clone(),
+            agent("", "codex", "[]", "[]"),
+            "incomplete agent",
+        ),
+        (
+            sources.clone(),
+            agent("lead", "codex", "[]", "[../escape]"),
+            "unsafe delegate name",
+        ),
+        (
+            sources.clone(),
+            agent("lead", "codex", "[]", "[missing]"),
+            "unknown delegate",
+        ),
+        (
+            sources.clone(),
+            agent("lead", "codex", "[--sandbox]", "[]"),
+            "requires a value",
+        ),
+        (
+            sources.clone(),
+            agent("lead", "codex", "[--sandbox, invalid]", "[]"),
+            "invalid --sandbox value",
+        ),
+        (
+            sources.clone(),
+            agent("lead", "claude", "[--model, other]", "[]"),
+            "unsafe or topology-changing",
+        ),
+        (
+            sources.clone(),
+            agent("lead", "omp", "[--model, other]", "[]"),
+            "unsafe or topology-changing",
+        ),
+    ];
+    for (sources, agents, expected) in cases {
+        write(&path, &document(&sources, &agents));
+        let error = Roster::load_config(&path).expect_err(expected);
+        assert!(error.to_string().contains(expected), "{expected}: {error}");
+    }
+
+    write(
+        &path,
+        &format!(
+            "schema_version: roster.config.v1\nsources:{sources}\nagents:\n  codex:\n    description: codex\n    role: core/role:orchestrator\n    model: test/model\n    harness: codex\n    args: [--sandbox, read-only, --ask-for-approval, never]\n  claude:\n    description: claude\n    role: core/role:orchestrator\n    model: test/model\n    harness: claude\n    args: [--permission-mode, plan]\n  omp:\n    description: omp\n    role: core/role:orchestrator\n    model: test/model\n    harness: omp\n    args: [--approval-mode, write]\n"
+        ),
+    );
+    let roster = Roster::load_config(&path).expect("allowlisted Harness arguments");
+    assert_eq!(roster.agents().len(), 3);
+    let error = Harness::from_str("mystery").expect_err("unsupported Harness must fail");
+    assert!(error.to_string().contains("unsupported Harness"));
+}
+
+#[test]
+fn resolution_rejects_semantic_role_and_pack_drift() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let root = temp.path().join("source");
+    source(&root, "core", "powder");
+    let path = temp.path().join("config.yaml");
+    config(&path, "core", &root, "amos", "codex");
+
+    let body = fs::read_to_string(&path)
+        .expect("config")
+        .replace("core/role:orchestrator", "core/pack:orchestrator");
+    write(&path, &body);
+    let roster = Roster::load_config(&path).expect("load wrong kind");
+    let error = roster.resolve("amos").expect_err("role kind must fail");
+    assert!(
+        error.to_string().contains("must identify a role"),
+        "{error}"
+    );
+
+    config(&path, "core", &root, "amos", "codex");
+    write(
+        &root.join("roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: other\ndescription: drift\ninclude: []\n",
+    );
+    let roster = Roster::load_config(&path).expect("load role drift");
+    let error = roster
+        .resolve("amos")
+        .expect_err("role name drift must fail");
+    assert!(error.to_string().contains("declares role"), "{error}");
+
+    write(
+        &root.join("roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: orchestrator\ndescription: drift\ninclude: [core/role:other]\n",
+    );
+    let roster = Roster::load_config(&path).expect("load nested role");
+    let error = roster.resolve("amos").expect_err("nested role must fail");
+    assert!(
+        error.to_string().contains("roles cannot include roles"),
+        "{error}"
+    );
+
+    write(
+        &root.join("roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: orchestrator\ndescription: cycle\ninclude: [core/pack:a]\n",
+    );
+    write(
+        &root.join("packs/a.yaml"),
+        "schema_version: roster.pack.v1\nname: a\ninclude: [core/pack:b]\n",
+    );
+    write(
+        &root.join("packs/b.yaml"),
+        "schema_version: roster.pack.v1\nname: b\ninclude: [core/pack:a]\n",
+    );
+    let roster = Roster::load_config(&path).expect("load pack cycle");
+    let error = roster.resolve("amos").expect_err("pack cycle must fail");
+    assert!(error.to_string().contains("pack cycle"), "{error}");
+
+    write(
+        &root.join("packs/a.yaml"),
+        "schema_version: roster.pack.v1\nname: wrong\ninclude: []\n",
+    );
+    let roster = Roster::load_config(&path).expect("load pack drift");
+    let error = roster
+        .resolve("amos")
+        .expect_err("pack name drift must fail");
+    assert!(error.to_string().contains("declares pack"), "{error}");
+
+    write(
+        &root.join("roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: orchestrator\ndescription: inactive\ninclude: [core/mcp:powder]\n",
+    );
+    write(
+        &root.join("primitives/mcps/registry.yaml"),
+        "schema_version: roster.mcp_registry.v1\nprovenance: fixture\nmcps:\n  - id: powder\n    status: disabled\n",
+    );
+    let roster = Roster::load_config(&path).expect("load inactive MCP");
+    let error = roster.resolve("amos").expect_err("inactive MCP must fail");
+    assert!(
+        error.to_string().contains("non-launchable status"),
+        "{error}"
     );
 }

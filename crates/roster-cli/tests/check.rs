@@ -58,6 +58,9 @@ fn check_fails_on_broken_frontmatter_and_dead_reference() {
 
     Command::cargo_bin("roster")
         .expect("roster binary")
+        .current_dir(root)
+        .env("HOME", root)
+        .env_remove("ROSTER_CONFIG")
         .env_remove("CANARY_ENDPOINT")
         .env_remove("CANARY_API_KEY")
         .env_remove("CANARY_INGEST_KEY")
@@ -100,6 +103,9 @@ fn check_warns_but_passes_on_past_due_review_date() {
 
     Command::cargo_bin("roster")
         .expect("roster binary")
+        .current_dir(root)
+        .env("HOME", root)
+        .env_remove("ROSTER_CONFIG")
         .env_remove("CANARY_ENDPOINT")
         .env_remove("CANARY_API_KEY")
         .env_remove("CANARY_INGEST_KEY")
@@ -141,6 +147,9 @@ fn check_accepts_consistent_external_provenance_offline() {
 
     Command::cargo_bin("roster")
         .expect("roster binary")
+        .current_dir(root)
+        .env("HOME", root)
+        .env_remove("ROSTER_CONFIG")
         .args(["--root", root.to_str().expect("utf8 path"), "check"])
         .assert()
         .success();
@@ -181,6 +190,9 @@ fn check_reports_external_alias_receipt_and_declaration_drift() {
 
     Command::cargo_bin("roster")
         .expect("roster binary")
+        .current_dir(root)
+        .env("HOME", root)
+        .env_remove("ROSTER_CONFIG")
         .args(["--root", root.to_str().expect("utf8 path"), "check"])
         .assert()
         .failure()
@@ -233,20 +245,56 @@ fn check_ignores_tracked_skills_deleted_in_the_worktree() {
 
     Command::cargo_bin("roster")
         .expect("roster binary")
+        .current_dir(root)
+        .env("HOME", root)
+        .env_remove("ROSTER_CONFIG")
         .args(["--root", root.to_str().expect("utf8 path"), "check"])
         .assert()
         .success();
 }
 
 #[test]
-fn check_passes_on_the_real_repo() {
+fn check_without_config_uses_the_catalog_in_cwd() {
+    let tmp = TempDir::new().expect("tempdir");
+    let root = tmp.path();
+    write(
+        root,
+        "primitives/skills/skills-index.yaml",
+        "schema_version: roster.skills_index.v1\nskills: []\n",
+    );
+    git(root, &["init", "-q"]);
+    git(root, &["add", "-A"]);
+
     Command::cargo_bin("roster")
         .expect("roster binary")
-        .current_dir(workspace_root())
+        .current_dir(root)
+        .env("HOME", root)
+        .env_remove("ROSTER_CONFIG")
+        .arg("check")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("roster check: ok"))
+        .stdout(predicate::str::contains(
+            "roster graph: skipped (no effective config)",
+        ));
+}
+
+#[test]
+fn check_passes_on_the_real_repo() {
+    let home = TempDir::new().expect("isolated home");
+    let root = workspace_root();
+    Command::cargo_bin("roster")
+        .expect("roster binary")
+        .current_dir(home.path())
+        .env("HOME", home.path())
+        .env_remove("ROSTER_CONFIG")
         .env_remove("CANARY_ENDPOINT")
         .env_remove("CANARY_API_KEY")
         .env_remove("CANARY_INGEST_KEY")
-        .arg("check")
+        .args(["--root", root.to_str().expect("workspace path"), "check"])
         .assert()
-        .success();
+        .success()
+        .stdout(predicate::str::contains(
+            "roster graph: skipped (no effective config)",
+        ));
 }
