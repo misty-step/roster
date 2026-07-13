@@ -71,10 +71,10 @@ hand-roll closure:
   themes, unfocused small items. Consolidate only when tickets genuinely share
   one outcome; never veto an evidenced emission on an arbitrary item count.
 
-Never promote a discovered `backlog.d/` tree into an active workflow. It is a
-migration/import source only when the repository routing profile explicitly
-declares it. Ordinary Misty Step repositories use Powder; Adminifi and r90 use
-Habitat.
+Repository-local ticket directories are forbidden. Ordinary Misty Step
+repositories use Powder; R90 repositories use Habitat. If a legacy ticket tree
+is discovered, preserve its contents in the routed work plane, verify live
+readback, and remove the tree before continuing normal grooming.
 
 ## Delegation
 
