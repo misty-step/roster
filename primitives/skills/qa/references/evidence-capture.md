@@ -25,10 +25,6 @@ browser_take_screenshot  →  saves to specified path
 ```
 Full-page screenshots by default. Element screenshots via selector.
 
-### Chrome MCP
-Navigate to the state, then use `upload_image` or `gif_creator` for a
-single-frame capture.
-
 ### agent-browser
 ```bash
 # Standard screenshot
@@ -47,15 +43,6 @@ Take a screenshot of the current page state
 ```
 
 ## GIF Recordings
-
-### Chrome MCP (claude-in-chrome)
-```
-1. gif_creator — start recording
-2. Perform walkthrough (capture extra frames before/after actions)
-3. gif_creator — stop recording
-4. Name: feature-name-walkthrough.gif
-```
-This is the fastest path to inline-renderable GIFs for PRs.
 
 ### agent-browser → ffmpeg
 ```bash
@@ -85,7 +72,8 @@ agent-browser record start "$EVIDENCE_DIR/session.webm"
 # ... full QA session ...
 agent-browser record stop
 ```
-Add `--pause 500` between actions for human-readable playback.
+Prefer state-based waits. When a recording genuinely needs a fixed beat for
+human readability, run `agent-browser wait 500` between actions.
 
 ### Browserbase
 Every session is automatically recorded. Access via:

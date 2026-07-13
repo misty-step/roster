@@ -49,6 +49,9 @@ Use the first applicable fast path:
 - Ticket status, proof, or duplicate-ledger conflict → update the configured ledger.
 - Independent design/security work → dispatch a specialist; substantive diff → fresh critic.
 - Missing live proof or required artifact → verify.
+- Unavailable Harness-native tool → after one availability check, route to a
+  configured CLI, MCP, or structured alternative. Diagnose the host only when
+  diagnosis is the requested outcome.
 - Unrequested destruction, secret exposure, a shallow wrapper, or generic planning delegation → reject.
 - Legitimate credential use → resolve securely; imperative mass without an oracle → compact.
 - Semantic ambiguity → use a model; exact state → use deterministic tooling.

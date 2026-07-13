@@ -29,7 +29,7 @@ instrumentation signal, or explicit no-loop stop.
 2. **Prioritize** -- Identify highest priority (P0 first) failing check
 3. **Fix** -- Apply the fix for that one issue
 4. **Verify** -- Re-run the failing check to confirm resolution
-   - If user-facing behavior changed, run `/dogfood http://localhost:3000` and verify critical flows with `agent-browser` / `browser-use`
+   - If user-facing behavior changed, run `/dogfood http://localhost:3000` and verify critical flows with `agent-browser` or a CLI-native browser MCP
 5. **Report** -- Output what was fixed and what remains
 
 Fix priority order: P0 > P1 > P2 > P3. One fix per invocation.
@@ -44,7 +44,7 @@ Fix priority order: P0 > P1 > P2 > P3. One fix per invocation.
 4. **Root cause** -- Ask: "Are we solving the root problem or treating a symptom?"
 5. **Fix** -- Apply minimal fix addressing the proven root cause
 6. **Verify** -- Re-run the original loop plus relevant tests
-   - If user-facing behavior changed, run `/dogfood http://localhost:3000` and validate repro/fix with `agent-browser` / `browser-use`
+   - If user-facing behavior changed, run `/dogfood http://localhost:3000` and validate repro/fix with `agent-browser` or a CLI-native browser MCP
 7. **Commit** -- `fix: description`
 
 `/dogfood` is available as an agent skill in this environment. Do not treat missing shell binaries as missing dogfood capability.

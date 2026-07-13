@@ -1,271 +1,140 @@
 # Browser Tools for Agent-Driven QA
 
-Detailed setup and usage patterns for each browser automation tool.
+Choose the control surface that the active Harness can actually host. In a
+terminal Harness, prefer CLI and MCP tools. OpenAI's built-in Browser is not
+available in Codex CLI; Computer Use and the Chrome-extension setup are
+documented through the ChatGPT desktop app. Do not turn one native-bridge
+availability failure into an extension reinstall, process-kill, or signing
+investigation. Route to a CLI-native tool unless the task is running in the
+desktop app and specifically requires its native surface.
 
-## Playwright MCP
+## Selection
 
-The most mature browser automation MCP. Accessibility tree snapshots instead
-of screenshots — structured text, no vision model needed.
+| Need | Default | Why |
+|---|---|---|
+| Browse, fill forms, inspect DOM, capture screenshots | `agent-browser` | Small CLI/skill surface, compact snapshots, no MCP schema tax |
+| Reproducible app QA or a test artifact | Playwright CLI | Test-oriented sessions, traces, and generated proof |
+| Console, network, performance, Lighthouse, heap, or live-Chrome debugging | Chrome DevTools MCP | Chrome-specific diagnostic depth |
+| Persistent exploratory loop over structured page state | Playwright MCP | Stateful MCP loop when its larger tool/context surface earns the cost |
+| Remote browser, proxies, geography, anti-bot, or shared cloud session | `agent-browser` with Browserbase provider | Keeps the same CLI contract; credentialed cloud escalation |
+| Natural-language `act` / `observe` / `extract` backed by Stagehand | Browserbase MCP | Opt-in semantic layer, cloud boundary, credentials, and billing |
 
-### Setup
+Stop at the first row that satisfies the task. Do not register every browser
+MCP by default.
 
-```json
-{
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest"]
-    }
-  }
-}
-```
+Registration examples below use Codex CLI. They are explicit operator setup;
+other Harnesses use their own user-owned registration surface. Runtime agents
+route among tools already available to the active Harness.
 
-### Key tools
+## agent-browser
 
-- `browser_navigate` — load URL, get accessibility snapshot
-- `browser_click` / `browser_type` — interact by element ref
-- `browser_take_screenshot` — full page or element screenshot
-- `browser_snapshot` — current accessibility tree
-- `browser_wait_for_network_idle` — wait for async loads
-- `browser_generate_playwright_test` — convert exploration to test code
+Generic browser automation default for terminal agents.
 
-### Playwright CLI (token-efficient alternative)
-
-Playwright CLI saves snapshots and screenshots to disk instead of streaming
-them into context. **4x cheaper** on tokens than MCP for the same capability.
-
-```bash
-npx @playwright/cli@latest
-```
-
-Use CLI when embedded in a large coding workflow. Use MCP when the agent needs
-a persistent interactive browser loop.
-
-### Playwright Test Agents (v1.56+)
-
-Three built-in agents for test lifecycle:
-
-**Planner:** Explores the app, creates a structured test plan.
-```
-Input: URL + feature description
-Output: Step-by-step test plan with expected outcomes
-```
-
-**Generator:** Converts a plan into executable Playwright tests with validated
-selectors and assertions.
-```
-Input: Test plan from Planner
-Output: TypeScript Playwright test file
-```
-
-**Healer:** Repairs failing tests by inspecting the live UI and patching
-locators/assertions that broke due to UI changes.
-```
-Input: Failing test + error
-Output: Patched test with updated selectors
-```
-
-### Screenshot and video
-
-```javascript
-// Screenshot
-await page.screenshot({ path: 'screenshot.png', fullPage: true });
-
-// Video recording (set in context)
-const context = await browser.newContext({
-  recordVideo: { dir: '/tmp/qa-videos/' }
-});
-
-// Trace (includes screenshots, DOM snapshots, network)
-await context.tracing.start({ screenshots: true, snapshots: true });
-// ... do things ...
-await context.tracing.stop({ path: 'trace.zip' });
-// View: npx playwright show-trace trace.zip
-```
-
----
-
-## Chrome MCP (claude-in-chrome)
-
-Live browser control via the claude-in-chrome extension. Best for exploratory
-QA with existing auth state and GIF demo capture.
-
-### Key tools
-
-- `tabs_context_mcp` — **always call first** to get current tab state
-- `navigate` — go to URL
-- `read_page` / `get_page_text` — read page content
-- `find` — locate elements
-- `form_input` — fill forms
-- `computer` — click, type, scroll at coordinates
-- `gif_creator` — record GIF walkthrough
-- `read_console_messages` — check for errors
-- `read_network_requests` — check for failed calls
-- `javascript_tool` — run JS in page context
-
-### GIF recording workflow
-
-1. Navigate to starting state
-2. Start GIF recording via `gif_creator`
-3. Perform the walkthrough — capture extra frames before/after actions
-4. Stop recording
-5. Name meaningfully: `feature-name-walkthrough.gif`
-
-### Best for
-
-- Exploratory QA with existing login/cookies
-- Demo GIF recording
-- Quick visual verification
-- Console/network error checking
-
-### Limitations
-
-- Tied to the user's Chrome instance
-- Cannot run headless or in CI
-- GIF output only (no video)
-
----
-
-## agent-browser (Vercel Labs)
-
-Rust CLI for AI agents. Compact text output, lowest token usage.
-
-### Install
-
-```bash
-# Via npm
+```sh
 npm install -g agent-browser
+agent-browser install
 
-# Or direct binary
-curl -fsSL https://agent-browser.dev/install | sh
+agent-browser open https://example.com
+agent-browser snapshot -i
+agent-browser click @e1
+agent-browser screenshot --annotate /tmp/qa-example.png
+agent-browser close
 ```
 
-### Key features
+Use named sessions when work must coexist. Re-snapshot after navigation or any
+DOM-changing action; element refs are page-state handles, not durable selectors.
+Connect through CDP only when existing Chrome state is actually required.
 
-- **Ref-based snapshots** — accessibility tree with element refs (like Playwright MCP)
-- **Annotated screenshots** — screenshots with visible labels bound to element refs
-- **Video recording** — WebM with start/stop control
-- **Snapshot diffing** — compare before/after states
-- **Pixel diffing** — compare screenshots for visual regression
-- **Sessions** — persistent browser state across commands
+The curated `agent-browser` skill should teach the active CLI. If installing it
+for another compatible coding agent, use the upstream discovery stub rather
+than copying a versioned `SKILL.md`:
 
-### Usage patterns
-
-```bash
-# Navigate and get snapshot
-agent-browser navigate https://localhost:3000
-agent-browser snapshot
-
-# Annotated screenshot (labels on interactive elements)
-agent-browser screenshot --annotate /tmp/qa-slug/annotated.png
-
-# Video recording
-agent-browser record start /tmp/qa-slug/walkthrough.webm
-# ... interact with the page ...
-agent-browser record stop
-
-# Snapshot diff
-agent-browser snapshot --save before.json
-# ... make changes ...
-agent-browser snapshot --diff before.json
+```sh
+npx skills add vercel-labs/agent-browser
 ```
 
-### Token efficiency
+## Playwright CLI
 
-82% less context than Playwright MCP for equivalent tasks. Snapshots are
-compact by design — built for AI agent consumption.
+Prefer the CLI for coding-agent QA that should leave tests, traces, or compact
+disk artifacts instead of streaming a large MCP schema and page tree into
+context.
 
-### Best for
-
-- Token-conscious QA sessions
-- Annotated bug report screenshots
-- Video evidence with precise start/stop
-- Visual regression via pixel diffing
-
----
-
-## Stagehand / Browserbase
-
-Browserbase is hosted browser infrastructure. Stagehand is the AI framework
-on top, with natural-language-friendly primitives.
-
-### Setup (MCP)
-
-```json
-{
-  "mcpServers": {
-    "browserbase": {
-      "command": "npx",
-      "args": ["@browserbasehq/mcp-server@latest"],
-      "env": {
-        "BROWSERBASE_API_KEY": "<key>",
-        "BROWSERBASE_PROJECT_ID": "<project>"
-      }
-    }
-  }
-}
+```sh
+npm install -g @playwright/cli@latest
+playwright-cli install --skills
 ```
 
-### Stagehand primitives
-
-- `act("click the login button")` — natural language action
-- `extract("get the price from this page")` — structured data extraction
-- `observe("what's on this page?")` — semantic page understanding
-- `agent` — multi-step autonomous workflow
-
-### Hosted features
-
-- **Session recordings** — every session recorded as video automatically
-- **Live View** — watch the agent in real time
-- **Session Inspector** — replay with timeline, logs, network
-- **Stealth mode** — anti-bot bypass, residential proxies
-- **Caching** — run AI once, cache into deterministic code for reruns
-
-### Best for
-
-- QA on hostile/anti-bot sites
-- Shared session recordings for team review
-- Human-in-the-loop via Live View
-- Production agent workflows at scale
-
----
+Use the repository's Playwright tests and configuration when present. A global
+CLI does not replace repo-owned test fixtures, auth setup, or assertions.
 
 ## Chrome DevTools MCP
 
-Deep debugging access to a live Chrome instance via DevTools Protocol.
+Use for Chrome diagnostics, not as the generic browser driver.
+Runtime agents route here only when it is already available. The following is
+operator setup that mutates Codex's user-owned configuration; do not run it as
+availability repair during an ordinary task:
 
-### Setup
-
-```json
-{
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": ["@anthropic-ai/chrome-devtools-mcp@latest"]
-    }
-  }
-}
+```sh
+codex mcp add chrome-devtools \
+  --env CHROME_DEVTOOLS_MCP_NO_USAGE_STATISTICS=1 \
+  -- npx -y chrome-devtools-mcp@latest \
+  --no-performance-crux --redact-network-headers
 ```
 
-### Key capabilities
+Its unique surface includes console and network inspection, performance traces,
+Lighthouse, heap snapshots, and Chrome emulation. It uses a dedicated profile
+by default. Connecting to an existing logged-in Chrome is a separate, explicit
+CDP/remote-debugging choice; never weaken Chrome security flags merely to avoid
+using a dedicated automation profile.
 
-- **Performance traces** — CPU profiling, rendering analysis
-- **Network inspection** — request/response details, timing, failures
-- **Console messages** — errors, warnings, log output (use `pattern` for filtering)
-- **Screenshots** — via CDP (faster than standard approaches)
-- **Script evaluation** — run JS in any frame context
-- **Device emulation** — viewport, user agent, geolocation
+## Playwright MCP
 
-### When to use
+Use only when a persistent, iterative accessibility-tree loop is more valuable
+than the CLI's smaller context footprint.
+Runtime agents use it only when already registered. This is explicit operator
+setup for Codex's user-owned configuration:
 
-Chrome DevTools MCP is a **diagnostic tool**, not a primary QA driver. Use when:
-- A page is janky and you need a perf trace
-- Network calls are failing and you need request/response details
-- Console errors need investigation
-- You need to understand render path changes
+```sh
+codex mcp add playwright -- npx -y @playwright/mcp@latest
+```
 
-### Privacy note
+It needs no API credential. Treat it as browser automation, not a security
+boundary, and use isolated profiles for concurrent agents.
 
-Google Chrome DevTools MCP collects usage statistics by default. Performance
-tools may send trace URLs to the CrUX API. For internal/sensitive QA, review
-the privacy settings.
+## Browserbase
+
+Prefer Browserbase through the existing `agent-browser` interface when local
+Chrome is unavailable or the task requires remote sessions, proxies,
+geolocation, concurrency, or anti-bot infrastructure:
+
+```sh
+# BROWSERBASE_API_KEY must be resolved by the credential broker at invocation.
+agent-browser -p browserbase open https://example.com
+```
+
+Do not put a Browserbase key in a command, hosted-MCP URL, repository, or
+Harness config. The hosted Browserbase MCP authenticates through URL query
+state, which does not fit Roster's secret-reference contract. The self-hosted
+`@browserbasehq/mcp` server is allowed only behind a broker wrapper that injects
+`BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID`, and the Stagehand model
+credential required by the selected model (for the default, `GEMINI_API_KEY`)
+at process launch. Never put a model credential in `--modelApiKey`.
+
+Use Browserbase MCP rather than the provider only when Stagehand's semantic
+`act`, `observe`, and `extract` operations are themselves the requirement.
+That path adds a model layer, nondeterminism, cloud data handling, and billing.
+
+## Evidence
+
+- OpenAI: [Browser](https://learn.chatgpt.com/docs/browser),
+  [Computer Use](https://learn.chatgpt.com/docs/computer-use), and
+  [Chrome extension](https://learn.chatgpt.com/docs/chrome-extension)
+- Vercel Labs: [agent-browser](https://github.com/vercel-labs/agent-browser)
+- Microsoft: [Playwright CLI](https://github.com/microsoft/playwright-cli) and
+  [Playwright MCP](https://github.com/microsoft/playwright-mcp)
+- Google: [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp)
+- Browserbase: [agent-browser integration](https://docs.browserbase.com/integrations/agent-browser/quickstart)
+  and [MCP setup](https://docs.browserbase.com/integrations/mcp/setup)
+
+Re-check upstream package names and support before changing installation or
+routing policy; browser tooling is release-sensitive.
