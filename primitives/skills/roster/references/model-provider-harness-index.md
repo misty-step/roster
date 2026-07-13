@@ -90,7 +90,7 @@ Google Gemini:
 
 - Gemini Live API supports low-latency realtime voice/vision interactions,
   tool use, and audio transcriptions. Its general capability guide describes
-  proactive audio and affective dialog, but the Gemini 3.1 Flash Live model
+  proactive audio and affective dialogue, but the Gemini 3.1 Flash Live model
   page says neither is supported by that model; asynchronous function calling
   is also not supported there.
 - Gemini model docs list Gemini 3.1 Flash Live Preview for high-quality
@@ -134,7 +134,7 @@ Source: primary project documentation and repositories checked on 2026-07-13.
 
 Factual substrate distinctions to preserve in composition design:
 
-- OpenCode exposes a client/server architecture, HTTP/OpenAPI server, generated
+- OpenCode exposes a client/server architecture, an HTTP/OpenAPI server, a generated
   SDK, sessions, built-in and custom tools, MCP servers, and configurable tool
   permissions. Sources: <https://opencode.ai/docs/server/>,
   <https://opencode.ai/docs/tools/>, <https://opencode.ai/docs/mcp-servers/>.
