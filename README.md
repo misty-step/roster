@@ -97,7 +97,12 @@ digests, file digests, model, Harness, and safe launch arguments. Runtime bundle
 Each Tier 1 adapter creates a private projection:
 
 - Codex receives a temporary `CODEX_HOME`, bridged auth/session state, and an
-  exact MCP/skill projection. A preflight rejects MCP drift before launch.
+  independent MCP/skill projection; bundled and ambient skills are disabled.
+  The projection marks the canonical project root untrusted, so project-local
+  Codex config, hooks, and exec policies cannot alter the agent. Roster embeds
+  the workspace `AGENTS.md` chain itself and disables Codex's second
+  project-doc read to avoid duplicate instructions. Strict config-loader,
+  enabled-skill inventory, and MCP-inventory preflights all pass before launch.
 - Claude Code starts with no inherited setting sources, one ephemeral plugin,
   one strict MCP file, and the resolved runtime instructions.
 - OMP receives a private agent directory, explicit skills, and an isolation
@@ -118,6 +123,8 @@ Dispatch writes a bounded, redacted receipt under
 `~/.local/state/roster/receipts/` (or `$ROSTER_STATE_DIR`). It records identity,
 workspace, config, model, Harness, clocks, exit status, and retained bundle
 path—never prompts, environment values, or credentials.
+Preflight failures are receipted before the temporary projection is removed;
+their child exit status is empty because the Harness never launched.
 
 A config may declare an optional external authority command. Inside a launched
 session, `roster authority request <capability>` asks that provider to grant,

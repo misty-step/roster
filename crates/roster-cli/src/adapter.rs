@@ -7,7 +7,7 @@ use signal_hook::iterator::Signals;
 use std::{
     collections::{BTreeMap, BTreeSet},
     env, fs,
-    io::{Read, Write},
+    io::{BufRead, BufReader, Read, Write},
     os::unix::fs::symlink,
     os::unix::process::ExitStatusExt,
     path::{Path, PathBuf},
@@ -15,6 +15,7 @@ use std::{
     sync::{
         Arc,
         atomic::{AtomicI32, Ordering},
+        mpsc,
     },
     thread,
     time::{Duration, Instant},
@@ -74,10 +75,44 @@ pub fn dispatch(
     }
     eprintln!("Preparing {} ({})…", agent.name, agent.harness);
     std::io::stderr().flush()?;
-    preflight(agent, workspace, &invocation)?;
+    let started_at = Utc::now();
+    if let Err(preflight_error) = preflight(agent, workspace, &invocation) {
+        let receipt_path = match receipt::record(
+            agent,
+            workspace.to_path_buf(),
+            keep_bundle.then(|| {
+                invocation
+                    .bundle
+                    .as_ref()
+                    .expect("dispatch bundle")
+                    .path
+                    .join("bundle")
+            }),
+            started_at,
+            None,
+        ) {
+            Ok(path) => path,
+            Err(receipt_error) => {
+                return Err(anyhow::anyhow!(
+                    "{preflight_error:#}; failed to record preflight receipt: {receipt_error:#}"
+                ));
+            }
+        };
+        if let Err(cleanup_error) = invocation
+            .bundle
+            .as_mut()
+            .expect("dispatch bundle")
+            .cleanup()
+        {
+            return Err(anyhow::anyhow!(
+                "{preflight_error:#}; failed to clean dispatch projection after preflight: {cleanup_error:#}"
+            ));
+        }
+        eprintln!("roster receipt: {}", receipt_path.display());
+        return Err(preflight_error);
+    }
     eprintln!("Launching {} ({})…", agent.name, agent.harness);
     std::io::stderr().flush()?;
-    let started_at = Utc::now();
     let status = run_invocation(&invocation)?;
     let path = receipt::record(
         agent,
@@ -205,8 +240,9 @@ fn prepare_codex(
     ] {
         bridge(&home, name, &native_home.join(name))?;
     }
-    symlink_if_present(&bundle.join("AGENTS.md"), &home.join("AGENTS.md"))?;
-    symlink_if_present(&bundle.join("skills"), &home.join("skills"))?;
+    fs::copy(bundle.join("AGENTS.md"), home.join("AGENTS.md"))
+        .context("copy Codex instruction projection")?;
+    copy_projection_tree(&bundle.join("skills"), &home.join("skills"))?;
     fs::write(home.join("config.toml"), codex_config(agent, workspace)?)?;
     Ok(Invocation {
         env: BTreeMap::from([
@@ -249,7 +285,7 @@ fn prepare_claude(
             "author": {"name": "Roster"}
         }))?,
     )?;
-    symlink_if_present(&bundle.join("skills"), &plugin.join("skills"))?;
+    copy_projection_tree(&bundle.join("skills"), &plugin.join("skills"))?;
     let mcp_path = projection.join("root-mcp.json");
     fs::write(
         &mcp_path,
@@ -290,7 +326,7 @@ fn prepare_omp(
     let projection = run_root.join("projection/omp");
     let home = projection.join("agent");
     fs::create_dir_all(&home)?;
-    symlink_if_present(&bundle.join("skills"), &home.join("skills"))?;
+    copy_projection_tree(&bundle.join("skills"), &home.join("skills"))?;
     fs::write(
         home.join("mcp.json"),
         serde_json::to_vec_pretty(&mcp_json(&agent.mcps))?,
@@ -340,17 +376,16 @@ fn omp_isolation() -> &'static str {
 }
 
 fn codex_config(agent: &ResolvedAgent, workspace: &Path) -> Result<String> {
-    let mut document = format!("model = {:?}\n", agent.model);
+    let mut document = format!("model = {:?}\nproject_doc_max_bytes = 0\n", agent.model);
     if let Some(reasoning) = &agent.reasoning {
         document.push_str(&format!("model_reasoning_effort = {:?}\n", reasoning));
     }
-    if let Some((project, trust_level)) = codex_project_trust(workspace)? {
-        document.push_str(&format!(
-            "\n[projects.{}]\ntrust_level = {:?}\n",
-            toml_key(&project),
-            trust_level
-        ));
-    }
+    let project = codex_project_root(workspace);
+    document.push_str(&format!(
+        "\n[projects.{}]\ntrust_level = \"untrusted\"\n",
+        toml_key(&project.display().to_string())
+    ));
+    document.push_str("\n[skills.bundled]\nenabled = false\n");
     for item in &agent.mcps {
         document.push_str(&format!("\n[mcp_servers.{}]\n", toml_key(&item.id)));
         match item.transport.as_deref() {
@@ -366,14 +401,6 @@ fn codex_config(agent: &ResolvedAgent, workspace: &Path) -> Result<String> {
             other => bail!("unsupported MCP transport {other:?} for {}", item.id),
         }
     }
-    for name in project_mcp_names(workspace)? {
-        if !agent.mcps.iter().any(|item| item.id == name) {
-            document.push_str(&format!(
-                "\n[mcp_servers.{}]\nenabled = false\n",
-                toml_key(&name)
-            ));
-        }
-    }
     for path in external_skill_paths(workspace)? {
         document.push_str(&format!(
             "\n[[skills.config]]\npath = {:?}\nenabled = false\n",
@@ -383,64 +410,16 @@ fn codex_config(agent: &ResolvedAgent, workspace: &Path) -> Result<String> {
     Ok(document)
 }
 
-fn codex_project_trust(workspace: &Path) -> Result<Option<(String, String)>> {
-    let path = real_home()?.join(".codex/config.toml");
-    if !path.is_file() {
-        return Ok(None);
-    }
-    let contents = fs::read_to_string(&path)
-        .with_context(|| format!("read Codex trust state from {}", path.display()))?;
-    let value: toml::Value = toml::from_str(&contents)
-        .with_context(|| format!("parse Codex trust state from {}", path.display()))?;
-    let Some(projects) = value.get("projects").and_then(toml::Value::as_table) else {
-        return Ok(None);
-    };
+fn codex_project_root(workspace: &Path) -> PathBuf {
     let workspace = workspace
         .canonicalize()
         .unwrap_or_else(|_| workspace.to_path_buf());
-    let mut matches = projects
-        .iter()
-        .filter_map(|(project, settings)| {
-            let project_path = PathBuf::from(project);
-            let comparable = project_path
-                .canonicalize()
-                .unwrap_or_else(|_| project_path.clone());
-            let trust_level = settings.get("trust_level")?.as_str()?;
-            workspace.starts_with(&comparable).then(|| {
-                (
-                    comparable.components().count(),
-                    project.clone(),
-                    trust_level.to_owned(),
-                )
-            })
-        })
-        .collect::<Vec<_>>();
-    matches.sort_by_key(|(depth, _, _)| *depth);
-    Ok(matches
-        .pop()
-        .map(|(_, project, trust_level)| (project, trust_level)))
-}
-
-fn project_mcp_names(workspace: &Path) -> Result<BTreeSet<String>> {
-    let mut names = BTreeSet::new();
-    let home = real_home()?;
     for directory in workspace.ancestors() {
-        if directory == home {
-            break;
-        }
-        let path = directory.join(".codex/config.toml");
-        if !path.is_file() {
-            continue;
-        }
-        let contents =
-            fs::read_to_string(&path).with_context(|| format!("read {}", path.display()))?;
-        let value: toml::Value =
-            toml::from_str(&contents).with_context(|| format!("parse {}", path.display()))?;
-        if let Some(table) = value.get("mcp_servers").and_then(toml::Value::as_table) {
-            names.extend(table.keys().cloned());
+        if directory.join(".git").exists() {
+            return directory.to_path_buf();
         }
     }
-    Ok(names)
+    workspace
 }
 
 fn external_skill_paths(workspace: &Path) -> Result<BTreeSet<PathBuf>> {
@@ -454,23 +433,40 @@ fn external_skill_paths(workspace: &Path) -> Result<BTreeSet<PathBuf>> {
         roots.push(directory.join(".codex/skills"));
     }
     let mut paths = BTreeSet::new();
+    let mut visited = BTreeSet::new();
     for root in roots {
-        collect_skill_files(&root, &mut paths)?;
+        collect_skill_files(&root, &mut paths, &mut visited)?;
     }
     Ok(paths)
 }
 
-fn collect_skill_files(directory: &Path, output: &mut BTreeSet<PathBuf>) -> Result<()> {
+fn collect_skill_files(
+    directory: &Path,
+    output: &mut BTreeSet<PathBuf>,
+    visited: &mut BTreeSet<PathBuf>,
+) -> Result<()> {
     if !directory.is_dir() {
         return Ok(());
     }
-    for entry in fs::read_dir(directory)? {
+    let directory = directory.canonicalize()?;
+    if !visited.insert(directory.clone()) {
+        return Ok(());
+    }
+    for entry in fs::read_dir(&directory)? {
         let entry = entry?;
         let path = entry.path();
-        if entry.file_type()?.is_dir() {
-            collect_skill_files(&path, output)?;
+        let file_type = entry.file_type()?;
+        if file_type.is_dir() {
+            collect_skill_files(&path, output, visited)?;
+        } else if file_type.is_symlink() {
+            let Ok(target) = path.canonicalize() else {
+                continue;
+            };
+            if target.is_dir() {
+                collect_skill_files(&target, output, visited)?;
+            }
         } else if path.file_name().and_then(|name| name.to_str()) == Some("SKILL.md") {
-            output.insert(path);
+            output.insert(path.canonicalize()?);
         }
     }
     Ok(())
@@ -493,7 +489,35 @@ fn preflight(agent: &ResolvedAgent, workspace: &Path, invocation: &Invocation) -
     match agent.harness {
         Harness::Codex => {
             require_version(invocation, &["--version"], &["codex-cli 0.144.3"])?;
-            let output = Command::new("codex")
+            let actual_skills = codex_enabled_skills(invocation, workspace)?;
+            let skill_root = PathBuf::from(
+                invocation
+                    .env
+                    .get("CODEX_HOME")
+                    .context("CODEX_HOME missing from Codex projection")?,
+            )
+            .join("skills");
+            let mut expected_skills = agent
+                .skills
+                .iter()
+                .map(|skill| {
+                    let path = skill_root.join(&skill.name).join("SKILL.md");
+                    Ok((
+                        skill.name.clone(),
+                        path.canonicalize().with_context(|| {
+                            format!("canonicalize projected skill {}", path.display())
+                        })?,
+                        "user".to_owned(),
+                    ))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            expected_skills.sort();
+            if actual_skills != expected_skills {
+                bail!(
+                    "Codex skill isolation drift: expected {expected_skills:?}, loaded {actual_skills:?}"
+                );
+            }
+            let output = Command::new(&invocation.command)
                 .args(["mcp", "--disable", "apps", "list", "--json"])
                 .current_dir(workspace)
                 .envs(&invocation.env)
@@ -522,6 +546,163 @@ fn preflight(agent: &ResolvedAgent, workspace: &Path, invocation: &Invocation) -
         Harness::Omp => preflight_omp(agent, invocation)?,
     }
     Ok(())
+}
+
+fn codex_enabled_skills(
+    invocation: &Invocation,
+    workspace: &Path,
+) -> Result<Vec<(String, PathBuf, String)>> {
+    let mut child = Command::new(&invocation.command)
+        .args(["app-server", "--strict-config", "--listen", "stdio://"])
+        .current_dir(workspace)
+        .envs(&invocation.env)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .context("start strict Codex skill inventory probe")?;
+    let mut stdin = child.stdin.take().context("open Codex probe stdin")?;
+    let stdout = child.stdout.take().context("capture Codex probe stdout")?;
+    let mut stderr = child.stderr.take().context("capture Codex probe stderr")?;
+    let (sender, receiver) = mpsc::channel();
+    let stdout_reader = thread::spawn(move || {
+        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+            if sender.send(line).is_err() {
+                break;
+            }
+        }
+    });
+    let stderr_reader = thread::spawn(move || {
+        let mut bytes = Vec::new();
+        let _ = stderr.read_to_end(&mut bytes);
+        bytes
+    });
+    let frames = [
+        json!({
+            "method": "initialize",
+            "id": "roster-init",
+            "params": {
+                "clientInfo": {"name": "roster", "title": "Roster", "version": env!("CARGO_PKG_VERSION")},
+                "capabilities": {"experimentalApi": true}
+            }
+        }),
+        json!({"method": "initialized", "params": {}}),
+        json!({
+            "method": "skills/list",
+            "id": "roster-skills",
+            "params": {"cwds": [workspace.display().to_string()], "forceReload": true}
+        }),
+    ];
+    let write_result = (|| -> Result<()> {
+        for frame in frames {
+            serde_json::to_writer(&mut stdin, &frame)?;
+            stdin.write_all(b"\n")?;
+        }
+        stdin.flush()?;
+        Ok(())
+    })();
+
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let mut response = None;
+    while Instant::now() < deadline {
+        match receiver.recv_timeout(Duration::from_millis(50)) {
+            Ok(line) => {
+                let Ok(frame) = serde_json::from_str::<Value>(&line) else {
+                    continue;
+                };
+                if frame.get("id").and_then(Value::as_str) == Some("roster-skills") {
+                    response = Some(frame);
+                    break;
+                }
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                if child.try_wait()?.is_some() {
+                    break;
+                }
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+        }
+    }
+    drop(stdin);
+    let mut timed_out = false;
+    let shutdown_deadline = Instant::now() + Duration::from_secs(5);
+    let status = loop {
+        if let Some(status) = child.try_wait()? {
+            break status;
+        }
+        if Instant::now() >= shutdown_deadline {
+            timed_out = true;
+            let _ = child.kill();
+            break child.wait()?;
+        }
+        thread::sleep(Duration::from_millis(25));
+    };
+    let _ = stdout_reader.join();
+    let stderr = stderr_reader
+        .join()
+        .map_err(|_| anyhow::anyhow!("Codex probe stderr reader panicked"))?;
+    if timed_out {
+        bail!("Codex strict configuration preflight timed out");
+    }
+    if !status.success() {
+        bail!(
+            "Codex strict configuration preflight failed: {}",
+            bounded_stderr(&stderr)
+        );
+    }
+    write_result?;
+    let response =
+        response.context("Codex skill isolation probe returned no skills/list response")?;
+    if let Some(error) = response.get("error") {
+        bail!("Codex skill isolation preflight failed: {error}");
+    }
+    let entries = response
+        .pointer("/result/data")
+        .and_then(Value::as_array)
+        .context("Codex skills/list omitted result.data")?;
+    let mut enabled = Vec::new();
+    for entry in entries {
+        let errors = entry
+            .get("errors")
+            .and_then(Value::as_array)
+            .context("Codex skills/list omitted errors")?;
+        if !errors.is_empty() {
+            bail!(
+                "Codex skill isolation preflight reported errors: {}",
+                serde_json::to_string(errors)?
+            );
+        }
+        for skill in entry
+            .get("skills")
+            .and_then(Value::as_array)
+            .context("Codex skills/list omitted skills")?
+        {
+            if skill.get("enabled").and_then(Value::as_bool) == Some(true) {
+                let name = skill
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .context("Codex enabled skill omitted name")?
+                    .to_owned();
+                let path = PathBuf::from(
+                    skill
+                        .get("path")
+                        .and_then(Value::as_str)
+                        .context("Codex enabled skill omitted path")?,
+                );
+                let path = path
+                    .canonicalize()
+                    .with_context(|| format!("canonicalize enabled skill {}", path.display()))?;
+                let scope = skill
+                    .get("scope")
+                    .and_then(Value::as_str)
+                    .context("Codex enabled skill omitted scope")?
+                    .to_owned();
+                enabled.push((name, path, scope));
+            }
+        }
+    }
+    enabled.sort();
+    Ok(enabled)
 }
 
 fn preflight_claude(agent: &ResolvedAgent, invocation: &Invocation) -> Result<()> {
@@ -748,9 +929,26 @@ fn bridge(destination_root: &Path, name: &str, source: &Path) -> Result<()> {
     Ok(())
 }
 
-fn symlink_if_present(source: &Path, destination: &Path) -> Result<()> {
-    if source.exists() {
-        symlink(source, destination)?;
+fn copy_projection_tree(source: &Path, destination: &Path) -> Result<()> {
+    fs::create_dir_all(destination)?;
+    if !source.is_dir() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        let file_type = entry.file_type()?;
+        if file_type.is_dir() {
+            copy_projection_tree(&source_path, &destination_path)?;
+        } else if file_type.is_file() {
+            fs::copy(&source_path, &destination_path)?;
+        } else {
+            bail!(
+                "unsupported file type in Codex skill projection: {}",
+                source_path.display()
+            );
+        }
     }
     Ok(())
 }

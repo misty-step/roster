@@ -1,7 +1,11 @@
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::{
-    fs, os::unix::fs::PermissionsExt, path::Path, process::Command as StdCommand, thread,
+    fs,
+    os::unix::fs::{PermissionsExt, symlink},
+    path::Path,
+    process::Command as StdCommand,
+    thread,
     time::Duration,
 };
 
@@ -174,9 +178,39 @@ fn fake_codex(directory: &Path, launch: &str) {
     let path = directory.join("codex");
     write(
         &path,
-        &format!(
-            "#!/bin/sh\nif [ \"$1\" = --version ]; then echo 'codex-cli 0.144.3'; exit 0; fi\nif [ \"$1\" = mcp ]; then printf '[]\\n'; exit 0; fi\n{launch}\n"
-        ),
+        &r#"#!/bin/sh
+if [ "$1" = --version ]; then
+  echo 'codex-cli 0.144.3'
+  exit 0
+fi
+if [ "$1" = app-server ]; then
+  [ "$2" = --strict-config ] || exit 76
+  [ "$3" = --listen ] || exit 77
+  [ "$4" = stdio:// ] || exit 78
+  [ -z "$FAKE_PREFLIGHT" ] || touch "$FAKE_PREFLIGHT"
+  if [ -n "$FAKE_SYSTEM_SKILL" ]; then
+    mkdir -p "$CODEX_HOME/skills/.system/intrinsic"
+    printf '%s\n' intrinsic > "$CODEX_HOME/skills/.system/intrinsic/SKILL.md"
+    printf '%s\n' projection-mutation >> "$CODEX_HOME/skills/deliver/SKILL.md"
+    printf '%s\n' projection-agent-mutation >> "$CODEX_HOME/AGENTS.md"
+  fi
+  while IFS= read -r request; do
+    case "$request" in
+      *'"id":"roster-skills"'*)
+        printf '{"id":"roster-skills","result":{"data":[{"cwd":"fixture","skills":[{"name":"deliver","path":"%s","scope":"user","enabled":true}],"errors":[]}]}}\n' \
+          "$CODEX_HOME/skills/deliver/SKILL.md"
+        ;;
+    esac
+  done
+  exit 0
+fi
+if [ "$1" = mcp ]; then
+  printf '[]\n'
+  exit 0
+fi
+__LAUNCH__
+"#
+        .replace("__LAUNCH__", launch),
     );
     let mut permissions = fs::metadata(&path).expect("metadata").permissions();
     permissions.set_mode(0o755);
@@ -192,11 +226,29 @@ fn fake_harness(directory: &Path, name: &str, script: &str) {
 }
 
 #[test]
-fn codex_projection_preserves_native_state_and_workspace_trust() {
+fn codex_projection_preserves_native_state_and_blocks_project_config() {
     let temp = tempfile::tempdir().expect("temp");
     let config = fixture(temp.path());
     let workspace = temp.path().join("workspace");
     fs::create_dir_all(&workspace).expect("workspace");
+    fs::create_dir_all(workspace.join(".git")).expect("git marker");
+    let selected_workspace = workspace.join("nested");
+    fs::create_dir_all(&selected_workspace).expect("nested workspace");
+    write(
+        &workspace.join(".codex/config.toml"),
+        "[features]\nretired_project_field = true\n",
+    );
+    let ambient_skill = temp.path().join("ambient/foreign/SKILL.md");
+    write(
+        &ambient_skill,
+        "---\nname: foreign\ndescription: Ambient skill.\n---\n\nAmbient.\n",
+    );
+    fs::create_dir_all(workspace.join(".agents/skills")).expect("ambient skill root");
+    symlink(
+        ambient_skill.parent().expect("ambient skill parent"),
+        workspace.join(".agents/skills/foreign"),
+    )
+    .expect("ambient skill symlink");
     let home = temp.path().join("home");
     let codex_home = home.join(".codex");
     fs::create_dir_all(codex_home.join("sessions")).expect("sessions");
@@ -226,15 +278,176 @@ test -L "$CODEX_HOME/archived_sessions" || exit 72
 test -L "$CODEX_HOME/history.jsonl" || exit 73
 test -L "$CODEX_HOME/session_index.jsonl" || exit 74
 test "$CODEX_SQLITE_HOME" = "$HOME/.codex" || exit 75
+grep -F 'trust_level = "untrusted"' "$CODEX_HOME/config.toml" >/dev/null || exit 79
+grep -F 'project_doc_max_bytes = 0' "$CODEX_HOME/config.toml" >/dev/null || exit 80
+run_root=$(dirname "$(dirname "$CODEX_HOME")")
+test ! -e "$run_root/bundle/skills/.system" || exit 81
+test -f "$CODEX_HOME/skills/.system/intrinsic/SKILL.md" || exit 82
+test ! -L "$CODEX_HOME/skills/deliver" || exit 83
+grep -F projection-mutation "$run_root/bundle/skills/deliver/SKILL.md" >/dev/null && exit 84
+grep -F projection-agent-mutation "$run_root/bundle/AGENTS.md" >/dev/null && exit 85
 cp "$CODEX_HOME/config.toml" "$FAKE_CONFIG""#,
     );
     let observed = temp.path().join("observed-config.toml");
+    let strict_preflight = temp.path().join("strict-preflight");
     let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
     Command::cargo_bin("roster")
         .expect("bin")
         .env("HOME", &home)
         .env("PATH", path)
         .env("FAKE_CONFIG", &observed)
+        .env("FAKE_PREFLIGHT", &strict_preflight)
+        .env("FAKE_SYSTEM_SKILL", "1")
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--cwd",
+            selected_workspace.to_str().unwrap(),
+            "dispatch",
+            "amos",
+        ])
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("Preparing amos (codex)"))
+        .stderr(predicate::str::contains("Launching amos (codex)"));
+    assert!(
+        strict_preflight.is_file(),
+        "dispatch must strict-parse the exact Codex projection before launch"
+    );
+
+    let observed = fs::read_to_string(observed).expect("observed config");
+    let projected: toml::Value = toml::from_str(&observed).expect("valid projected config");
+    let project_root = workspace
+        .canonicalize()
+        .expect("canonical workspace")
+        .display()
+        .to_string();
+    assert_eq!(
+        projected
+            .get("projects")
+            .and_then(toml::Value::as_table)
+            .and_then(|projects| projects.get(&project_root))
+            .and_then(|project| project.get("trust_level"))
+            .and_then(toml::Value::as_str),
+        Some("untrusted")
+    );
+    assert_eq!(
+        projected
+            .get("skills")
+            .and_then(|skills| skills.get("bundled"))
+            .and_then(|bundled| bundled.get("enabled"))
+            .and_then(toml::Value::as_bool),
+        Some(false)
+    );
+    let ambient_skill = ambient_skill
+        .canonicalize()
+        .expect("canonical ambient skill")
+        .display()
+        .to_string();
+    assert!(
+        projected
+            .get("skills")
+            .and_then(|skills| skills.get("config"))
+            .and_then(toml::Value::as_array)
+            .into_iter()
+            .flatten()
+            .any(|rule| {
+                rule.get("path").and_then(toml::Value::as_str) == Some(ambient_skill.as_str())
+                    && rule.get("enabled").and_then(toml::Value::as_bool) == Some(false)
+            }),
+        "symlinked ambient skills must be disabled by canonical identity"
+    );
+}
+
+#[test]
+fn codex_strict_configuration_failure_stops_before_launch() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let workspace = temp.path().join("workspace");
+    fs::create_dir_all(workspace.join(".git")).expect("workspace");
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "codex",
+        r#"if [ "$1" = --version ]; then echo 'codex-cli 0.144.3'; exit 0; fi
+if [ "$1" = app-server ]; then echo 'unknown configuration field fixture' >&2; exit 81; fi
+touch "$FAKE_LAUNCHED""#,
+    );
+    let launched = temp.path().join("launched");
+    let state = temp.path().join("state");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("FAKE_LAUNCHED", &launched)
+        .env("ROSTER_STATE_DIR", &state)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--cwd",
+            workspace.to_str().unwrap(),
+            "dispatch",
+            "amos",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "Codex strict configuration preflight failed: unknown configuration field fixture",
+        ))
+        .stderr(predicate::str::contains("Launching amos (codex)").not());
+    assert!(
+        !launched.exists(),
+        "the Harness must not launch after strict configuration preflight failure"
+    );
+    let receipts = fs::read_dir(state.join("receipts"))
+        .expect("failed preflight receipts")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("receipt entries");
+    assert_eq!(receipts.len(), 1, "failed preflight must write one receipt");
+    let receipt = fs::read_to_string(receipts[0].path()).expect("preflight receipt");
+    assert!(receipt.contains("agent: amos"));
+    assert!(
+        receipt.contains("exit_code: null"),
+        "a Harness that never launched has no child exit code: {receipt}"
+    );
+}
+
+#[test]
+fn codex_skill_inventory_drift_stops_before_launch() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let workspace = temp.path().join("workspace");
+    fs::create_dir_all(workspace.join(".git")).expect("workspace");
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "codex",
+        r#"if [ "$1" = --version ]; then echo 'codex-cli 0.144.3'; exit 0; fi
+if [ "$1" = app-server ]; then
+  mkdir -p "$CODEX_HOME/skills/ambient"
+  cp "$CODEX_HOME/skills/deliver/SKILL.md" "$CODEX_HOME/skills/ambient/SKILL.md"
+  while IFS= read -r request; do
+    case "$request" in
+      *'"id":"roster-skills"'*)
+        printf '{"id":"roster-skills","result":{"data":[{"cwd":"fixture","skills":[{"name":"ambient","path":"%s","scope":"user","enabled":true}],"errors":[]}]}}\n' \
+          "$CODEX_HOME/skills/ambient/SKILL.md"
+        ;;
+    esac
+  done
+  exit 0
+fi
+if [ "$1" = mcp ]; then printf '[]\n'; exit 0; fi
+touch "$FAKE_LAUNCHED""#,
+    );
+    let launched = temp.path().join("launched");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("FAKE_LAUNCHED", &launched)
         .env("ROSTER_STATE_DIR", temp.path().join("state"))
         .args([
             "--config",
@@ -245,20 +458,67 @@ cp "$CODEX_HOME/config.toml" "$FAKE_CONFIG""#,
             "amos",
         ])
         .assert()
-        .success()
-        .stderr(predicate::str::contains("Preparing amos (codex)"))
-        .stderr(predicate::str::contains("Launching amos (codex)"));
+        .failure()
+        .stderr(predicate::str::contains("Codex skill isolation drift:"))
+        .stderr(predicate::str::contains("ambient"))
+        .stderr(predicate::str::contains("Launching amos (codex)").not());
+    assert!(
+        !launched.exists(),
+        "the Harness must not launch with an unexpected enabled skill"
+    );
+}
 
-    let observed = fs::read_to_string(observed).expect("observed config");
-    let projected: toml::Value = toml::from_str(&observed).expect("valid projected config");
-    assert_eq!(
-        projected
-            .get("projects")
-            .and_then(toml::Value::as_table)
-            .and_then(|projects| projects.get(&workspace.display().to_string()))
-            .and_then(|project| project.get("trust_level"))
-            .and_then(toml::Value::as_str),
-        Some("trusted")
+#[test]
+fn codex_skill_identity_collision_stops_before_launch() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let workspace = temp.path().join("workspace");
+    fs::create_dir_all(workspace.join(".git")).expect("workspace");
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "codex",
+        r#"if [ "$1" = --version ]; then echo 'codex-cli 0.144.3'; exit 0; fi
+if [ "$1" = app-server ]; then
+  mkdir -p "$CODEX_HOME/skills/ambient-deliver"
+  cp "$CODEX_HOME/skills/deliver/SKILL.md" "$CODEX_HOME/skills/ambient-deliver/SKILL.md"
+  while IFS= read -r request; do
+    case "$request" in
+      *'"id":"roster-skills"'*)
+        printf '{"id":"roster-skills","result":{"data":[{"cwd":"fixture","skills":[{"name":"deliver","path":"%s","scope":"user","enabled":true},{"name":"deliver","path":"%s","scope":"user","enabled":true}],"errors":[]}]}}\n' \
+          "$CODEX_HOME/skills/deliver/SKILL.md" \
+          "$CODEX_HOME/skills/ambient-deliver/SKILL.md"
+        ;;
+    esac
+  done
+  exit 0
+fi
+if [ "$1" = mcp ]; then printf '[]\n'; exit 0; fi
+touch "$FAKE_LAUNCHED""#,
+    );
+    let launched = temp.path().join("launched");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("FAKE_LAUNCHED", &launched)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--cwd",
+            workspace.to_str().unwrap(),
+            "dispatch",
+            "amos",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("Codex skill isolation drift:"))
+        .stderr(predicate::str::contains("Launching amos (codex)").not());
+    assert!(
+        !launched.exists(),
+        "a colliding ambient skill must not pass as the declared skill"
     );
 }
 
