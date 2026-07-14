@@ -38,16 +38,15 @@ roster check</code></pre>
           </section>
           <section class="msk-release">
             <h2>Understand the declaration</h2>
-            <p>A role owns one additive <code>include</code> list over guidance, skills, MCP declarations, and packs. An agent binds that role to a name, model, Harness, safe native arguments, and delegate names.</p>
+            <p>A role owns one additive <code>include</code> list over guidance, skills, MCP declarations, and packs. An agent binds that role to a name, model, Harness, and safe native arguments. Any agent may dispatch any other agent through the Roster CLI.</p>
             <pre><code>agents:
   amos:
     description: Codex orchestrator for broad software work.
     role: core/role:orchestrator
-    model: gpt-5.6-luna
-    reasoning: xhigh
+    model: gpt-5.6-sol
+    reasoning: high
     harness: codex
-    args: [--search]
-    delegates: [hephaestus, cerberus, scully]</code></pre>
+    args: [--search]</code></pre>
           </section>
           <section class="msk-release">
             <h2>Launch</h2>

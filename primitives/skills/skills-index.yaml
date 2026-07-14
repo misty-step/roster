@@ -66,6 +66,8 @@ skills:
     path: primitives/skills/misty-mint/SKILL.md
   - name: image-gen
     path: primitives/skills/image-gen/SKILL.md
+  - name: roster
+    path: primitives/skills/roster/SKILL.md
   - name: grilling
     path: primitives/skills/.external/mattpocock-grilling/SKILL.md
   - name: writing-great-skills

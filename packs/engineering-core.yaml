@@ -4,3 +4,4 @@ description: Universal repository grounding and engineering stance.
 include:
   - core/guidance:engineering
   - core/skill:orient
+  - core/skill:roster

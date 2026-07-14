@@ -4,6 +4,7 @@ description: Empirical AI capability and routing research.
 include:
   - core/guidance:ai-capability-scout
   - core/skill:orient
+  - core/skill:roster
   - core/skill:research
   - core/skill:oracle
   - core/skill:eval-design

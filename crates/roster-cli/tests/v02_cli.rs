@@ -35,7 +35,7 @@ fn fixture(root: &Path) -> std::path::PathBuf {
     write(
         &config,
         &format!(
-            "schema_version: roster.config.v1\nsources:\n  core: {}\nagents:\n  amos:\n    description: Codex lead\n    role: core/role:orchestrator\n    model: gpt-test\n    reasoning: high\n    harness: codex\n    args: [--search]\n    delegates: []\n",
+            "schema_version: roster.config.v1\nsources:\n  core: {}\nagents:\n  amos:\n    description: Codex lead\n    role: core/role:orchestrator\n    model: gpt-test\n    reasoning: high\n    harness: codex\n    args: [--search]\n",
             root.join("source").display()
         ),
     );
@@ -70,7 +70,7 @@ fn list_keeps_an_invalid_agent_visible_but_disabled() {
     write(
         &config,
         &format!(
-            "{body}  broken:\n    description: Broken agent remains inspectable\n    role: core/role:missing\n    model: gpt-test\n    harness: codex\n    args: []\n    delegates: []\n"
+            "{body}  broken:\n    description: Broken agent remains inspectable\n    role: core/role:missing\n    model: gpt-test\n    harness: codex\n    args: []\n"
         ),
     );
     Command::cargo_bin("roster")
@@ -837,7 +837,7 @@ fn check_validates_an_explicit_config_graph_and_rejects_no_catalog() {
         ])
         .assert()
         .success()
-        .stdout(predicate::str::contains("roster graph: ok (12 agents"));
+        .stdout(predicate::str::contains("roster graph: ok (11 agents"));
 
     let temp = tempfile::tempdir().expect("temp");
     Command::cargo_bin("roster")
