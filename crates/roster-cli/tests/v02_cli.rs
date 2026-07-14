@@ -572,8 +572,12 @@ fn codex_projection_preserves_native_state_and_blocks_project_config() {
     );
     write(&codex_home.join("history.jsonl"), "ambient\n");
     write(&codex_home.join("session_index.jsonl"), "ambient\n");
+    write(
+        &codex_home.join("themes/ember-dawn.toml"),
+        "name = \"ember-dawn\"\n",
+    );
     let trust_config = format!(
-        "[projects.\"{workspace}\"]\ntrust_level = \"trusted\"\n",
+        "approval_policy = \"never\"\n\n[tui]\ntheme = \"ember-dawn\"\nstatus_line = [\"model-with-reasoning\", \"git-branch\"]\nstatus_line_use_colors = true\nnotifications = true\n\n[projects.\"{workspace}\"]\ntrust_level = \"trusted\"\n",
         workspace = workspace.display()
     );
     assert!(!trust_config.contains("\\\""), "{trust_config:?}");
@@ -588,6 +592,7 @@ test -L "$CODEX_HOME/sessions" || exit 71
 test -L "$CODEX_HOME/archived_sessions" || exit 72
 test -L "$CODEX_HOME/history.jsonl" || exit 73
 test -L "$CODEX_HOME/session_index.jsonl" || exit 74
+test -L "$CODEX_HOME/themes" || exit 76
 test "$CODEX_SQLITE_HOME" = "$HOME/.codex" || exit 75
 grep -F 'trust_level = "untrusted"' "$CODEX_HOME/config.toml" >/dev/null || exit 79
 grep -F 'project_doc_max_bytes = 0' "$CODEX_HOME/config.toml" >/dev/null || exit 80
@@ -651,6 +656,38 @@ cp "$CODEX_HOME/config.toml" "$FAKE_CONFIG""#,
             .and_then(toml::Value::as_bool),
         Some(false)
     );
+    assert_eq!(
+        projected
+            .get("tui")
+            .and_then(|tui| tui.get("theme"))
+            .and_then(toml::Value::as_str),
+        Some("ember-dawn")
+    );
+    assert_eq!(
+        projected
+            .get("tui")
+            .and_then(|tui| tui.get("status_line"))
+            .and_then(toml::Value::as_array)
+            .map(|items| items
+                .iter()
+                .filter_map(toml::Value::as_str)
+                .collect::<Vec<_>>()),
+        Some(vec!["model-with-reasoning", "git-branch"])
+    );
+    assert_eq!(
+        projected
+            .get("tui")
+            .and_then(|tui| tui.get("status_line_use_colors"))
+            .and_then(toml::Value::as_bool),
+        Some(true)
+    );
+    assert!(
+        projected
+            .get("tui")
+            .and_then(|tui| tui.get("notifications"))
+            .is_none()
+    );
+    assert!(projected.get("approval_policy").is_none());
     let ambient_skill = ambient_skill
         .canonicalize()
         .expect("canonical ambient skill")
@@ -669,6 +706,200 @@ cp "$CODEX_HOME/config.toml" "$FAKE_CONFIG""#,
             }),
         "symlinked ambient skills must be disabled by canonical identity"
     );
+}
+
+#[test]
+fn claude_projection_preserves_presentation_and_blocks_native_behavior() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config)
+        .expect("config")
+        .replace("harness: codex", "harness: claude")
+        .replace("args: [--search]", "args: []");
+    write(&config, &body);
+    let home = temp.path().join("home");
+    write(
+        &home.join(".claude/settings.json"),
+        r#"{
+  "tui": "fullscreen",
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh",
+    "padding": 2,
+    "refreshInterval": 5,
+    "hideVimModeIndicator": true,
+    "unknown": "must not leak"
+  },
+  "hooks": {"PreToolUse": []},
+  "permissions": {"allow": ["Bash(*)"]},
+  "env": {"LEAK": "secret"},
+  "enabledPlugins": {"leak": true},
+  "mcpServers": {"leak": {"command": "leak"}},
+  "model": "claude-forbidden",
+  "outputStyle": "forbidden"
+}"#,
+    );
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "claude",
+        r#"if [ "$1" = --version ]; then echo '9.9.9 (Claude Code)'; exit 0; fi
+case " $* " in *' --roster-invalid-probe '*) echo "error: unknown option '--roster-invalid-probe'" >&2; exit 1;; esac
+if [ "$1" = plugin ]; then exit 0; fi
+args=''
+settings=''
+while [ "$#" -gt 0 ]; do
+  args="$args <$1>"
+  if [ "$1" = --settings ]; then shift; settings="$1"; fi
+  shift
+done
+printf '%s' "$args" > "$FAKE_ARGS"
+cp "$settings" "$FAKE_SETTINGS""#,
+    );
+    let args = temp.path().join("claude-args");
+    let settings = temp.path().join("claude-settings.json");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("HOME", &home)
+        .env("PATH", path)
+        .env("ROSTER_CHILD_ENV_FAKE_ARGS", &args)
+        .env("ROSTER_CHILD_ENV_FAKE_SETTINGS", &settings)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .success();
+
+    let args = fs::read_to_string(args).expect("Claude args");
+    assert!(args.contains("<--setting-sources=>"));
+    assert!(args.contains("<--settings>"));
+    let projected: serde_json::Value =
+        serde_json::from_slice(&fs::read(settings).expect("projected Claude settings"))
+            .expect("valid projected Claude settings");
+    assert_eq!(
+        projected.get("tui").and_then(serde_json::Value::as_str),
+        Some("fullscreen")
+    );
+    assert_eq!(
+        projected
+            .get("statusLine")
+            .and_then(|status| status.get("command"))
+            .and_then(serde_json::Value::as_str),
+        Some("~/.claude/statusline.sh")
+    );
+    assert_eq!(
+        projected
+            .get("statusLine")
+            .and_then(|status| status.get("refreshInterval"))
+            .and_then(serde_json::Value::as_u64),
+        Some(5)
+    );
+    assert_eq!(
+        projected
+            .get("statusLine")
+            .and_then(|status| status.get("padding"))
+            .and_then(serde_json::Value::as_u64),
+        Some(2)
+    );
+    assert_eq!(
+        projected
+            .get("statusLine")
+            .and_then(|status| status.get("hideVimModeIndicator"))
+            .and_then(serde_json::Value::as_bool),
+        Some(true)
+    );
+    assert!(
+        projected
+            .get("statusLine")
+            .and_then(|status| status.get("unknown"))
+            .is_none()
+    );
+    for key in [
+        "hooks",
+        "permissions",
+        "env",
+        "enabledPlugins",
+        "mcpServers",
+        "model",
+        "outputStyle",
+    ] {
+        assert!(projected.get(key).is_none(), "forbidden key leaked: {key}");
+    }
+}
+
+#[test]
+fn malformed_presentation_config_is_omitted_deterministically() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let claude_config = fs::read_to_string(&config)
+        .expect("config")
+        .replace("harness: codex", "harness: claude")
+        .replace("args: [--search]", "args: []");
+    write(&config, &claude_config);
+    let home = temp.path().join("home");
+    write(
+        &home.join(".claude/settings.json"),
+        r#"{"tui": "not-a-supported-mode", "statusLine": "not-an-object"}"#,
+    );
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "claude",
+        r#"if [ "$1" = --version ]; then echo '9.9.9 (Claude Code)'; exit 0; fi
+case " $* " in *' --roster-invalid-probe '*) echo "error: unknown option '--roster-invalid-probe'" >&2; exit 1;; esac
+if [ "$1" = plugin ]; then exit 0; fi
+settings=''
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = --settings ]; then shift; settings="$1"; fi
+  shift
+done
+cp "$settings" "$FAKE_SETTINGS""#,
+    );
+    let settings = temp.path().join("claude-settings.json");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("HOME", &home)
+        .env("PATH", path)
+        .env("ROSTER_CHILD_ENV_FAKE_SETTINGS", &settings)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(settings).expect("projected settings"),
+        "{}"
+    );
+
+    let config = fixture(temp.path());
+    let home = temp.path().join("codex-home");
+    write(
+        &home.join(".codex/config.toml"),
+        "[tui\nstatus_line = true\n",
+    );
+    let bin = temp.path().join("codex-bin");
+    fs::create_dir_all(&bin).expect("codex bin");
+    fake_codex(
+        &bin,
+        "cp \"$CODEX_HOME/config.toml\" \"$FAKE_CONFIG\"\nexit 0",
+    );
+    let observed = temp.path().join("codex-config.toml");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("HOME", &home)
+        .env("PATH", path)
+        .env("ROSTER_CHILD_ENV_FAKE_CONFIG", &observed)
+        .env("ROSTER_STATE_DIR", temp.path().join("codex-state"))
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .success();
+    let projected: toml::Value =
+        toml::from_str(&fs::read_to_string(observed).expect("projected Codex config"))
+            .expect("valid projected Codex config");
+    assert!(projected.get("tui").is_none());
 }
 
 #[test]

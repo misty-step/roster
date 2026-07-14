@@ -258,13 +258,17 @@ fn prepare_codex(
         "archived_sessions",
         "history.jsonl",
         "session_index.jsonl",
+        "themes",
     ] {
         bridge(&home, name, &native_home.join(name))?;
     }
     fs::copy(bundle.join("AGENTS.md"), home.join("AGENTS.md"))
         .context("copy Codex instruction projection")?;
     copy_projection_tree(&bundle.join("skills"), &home.join("skills"))?;
-    fs::write(home.join("config.toml"), codex_config(agent, workspace)?)?;
+    fs::write(
+        home.join("config.toml"),
+        codex_config(agent, workspace, &native_home.join("config.toml"))?,
+    )?;
     Ok(Invocation {
         env: BTreeMap::from([
             ("CODEX_HOME".to_owned(), home.display().to_string()),
@@ -312,8 +316,15 @@ fn prepare_claude(
         &mcp_path,
         serde_json::to_vec_pretty(&mcp_json(&agent.mcps))?,
     )?;
+    let settings_path = projection.join("settings.json");
+    fs::write(
+        &settings_path,
+        serde_json::to_vec_pretty(&claude_presentation_settings())?,
+    )?;
     let mut args = vec![
         "--setting-sources=".into(),
+        "--settings".into(),
+        settings_path.display().to_string(),
         "--system-prompt-file".into(),
         bundle.join("AGENTS.md").display().to_string(),
         "--plugin-dir".into(),
@@ -396,10 +407,13 @@ fn omp_isolation() -> &'static str {
     "setupVersion: 1\nmcp:\n  enableProjectConfig: false\n  discoveryMode: false\ntools:\n  discoveryMode: off\ndisabledProviders:\n  - agents-md\n  - claude\n  - claude-plugins\n  - cline\n  - codex\n  - cursor\n  - gemini\n  - github\n  - mcp-json\n  - omp-plugins\n  - opencode\n  - ssh-json\n  - vscode\n  - windsurf\n"
 }
 
-fn codex_config(agent: &ResolvedAgent, workspace: &Path) -> Result<String> {
+fn codex_config(agent: &ResolvedAgent, workspace: &Path, native_config: &Path) -> Result<String> {
     let mut document = format!("model = {:?}\nproject_doc_max_bytes = 0\n", agent.model);
     if let Some(reasoning) = &agent.reasoning {
         document.push_str(&format!("model_reasoning_effort = {:?}\n", reasoning));
+    }
+    if let Some(tui) = codex_presentation_config(native_config) {
+        document.push_str(&format!("\n{tui}"));
     }
     let project = codex_project_root(workspace);
     document.push_str(&format!(
@@ -429,6 +443,106 @@ fn codex_config(agent: &ResolvedAgent, workspace: &Path) -> Result<String> {
         ));
     }
     Ok(document)
+}
+
+// Native config crosses the isolation boundary only through these structural
+// presentation allowlists; the source files themselves are never forwarded.
+fn claude_presentation_settings() -> Value {
+    let Ok(home) = real_home() else {
+        return json!({});
+    };
+    let Ok(bytes) = fs::read(home.join(".claude/settings.json")) else {
+        return json!({});
+    };
+    let Ok(native) = serde_json::from_slice::<Value>(&bytes) else {
+        return json!({});
+    };
+    let Some(native) = native.as_object() else {
+        return json!({});
+    };
+    let mut projected = Map::new();
+    if let Some(tui) = native
+        .get("tui")
+        .and_then(Value::as_str)
+        .filter(|value| matches!(*value, "default" | "fullscreen"))
+    {
+        projected.insert("tui".to_owned(), Value::String(tui.to_owned()));
+    }
+    if let Some(status_line) = native.get("statusLine").and_then(claude_status_line) {
+        projected.insert("statusLine".to_owned(), status_line);
+    }
+    Value::Object(projected)
+}
+
+fn claude_status_line(value: &Value) -> Option<Value> {
+    let object = value.as_object()?;
+    if object.get("type").and_then(Value::as_str) != Some("command") {
+        return None;
+    }
+    let command = object.get("command").and_then(Value::as_str)?;
+    let mut projected = Map::new();
+    projected.insert("type".to_owned(), Value::String("command".to_owned()));
+    projected.insert("command".to_owned(), Value::String(command.to_owned()));
+    if let Some(padding) = object
+        .get("padding")
+        .and_then(Value::as_u64)
+        .map(|value| Value::Number(value.into()))
+    {
+        projected.insert("padding".to_owned(), padding);
+    }
+    if let Some(refresh_interval) = object
+        .get("refreshInterval")
+        .and_then(Value::as_u64)
+        .filter(|value| *value >= 1)
+        .map(|value| Value::Number(value.into()))
+    {
+        projected.insert("refreshInterval".to_owned(), refresh_interval);
+    }
+    if let Some(hide_vim_mode_indicator) = object
+        .get("hideVimModeIndicator")
+        .and_then(Value::as_bool)
+        .map(Value::Bool)
+    {
+        projected.insert("hideVimModeIndicator".to_owned(), hide_vim_mode_indicator);
+    }
+    Some(Value::Object(projected))
+}
+
+fn codex_presentation_config(native_config: &Path) -> Option<String> {
+    let source = fs::read_to_string(native_config).ok()?;
+    let native: toml::Value = toml::from_str(&source).ok()?;
+    let tui = native.get("tui")?.as_table()?;
+    let mut fields = Vec::new();
+    if let Some(theme) = tui.get("theme").and_then(toml::Value::as_str) {
+        fields.push(format!("theme = {}", toml::Value::String(theme.to_owned())));
+    }
+    if let Some(status_line) = toml_string_array(tui.get("status_line")) {
+        fields.push(format!("status_line = {status_line}"));
+    }
+    if let Some(status_line_use_colors) = tui
+        .get("status_line_use_colors")
+        .and_then(toml::Value::as_bool)
+    {
+        fields.push(format!("status_line_use_colors = {status_line_use_colors}"));
+    }
+    (!fields.is_empty()).then(|| format!("[tui]\n{}\n", fields.join("\n")))
+}
+
+fn toml_string_array(value: Option<&toml::Value>) -> Option<String> {
+    let items = value?.as_array()?;
+    let items = items
+        .iter()
+        .map(toml::Value::as_str)
+        .collect::<Option<Vec<_>>>()?;
+    Some(
+        toml::Value::Array(
+            items
+                .into_iter()
+                .map(|item| toml::Value::String(item.to_owned()))
+                .collect(),
+        )
+        .to_string(),
+    )
 }
 
 fn codex_project_root(workspace: &Path) -> PathBuf {
