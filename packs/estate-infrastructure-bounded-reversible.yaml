@@ -1,0 +1,6 @@
+schema_version: roster.pack.v1
+name: estate-infrastructure-bounded-reversible
+description: Describe a request limited to Estate-bounded restart or release actions.
+include:
+  - core/guidance:estate-infrastructure-bounded-reversible
+  - core/skill:estate-infrastructure

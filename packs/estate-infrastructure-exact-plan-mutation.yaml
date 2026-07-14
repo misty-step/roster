@@ -1,0 +1,6 @@
+schema_version: roster.pack.v1
+name: estate-infrastructure-exact-plan-mutation
+description: Describe an exact-plan mutation request requiring one-shot Estate authorization.
+include:
+  - core/guidance:estate-infrastructure-exact-plan-mutation
+  - core/skill:estate-infrastructure
