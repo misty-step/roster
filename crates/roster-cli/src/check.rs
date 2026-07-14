@@ -5,12 +5,12 @@
 //! `primitives/`, including untracked non-ignored files so a new primitive is
 //! gated before its first commit.
 
+use crate::process;
 use anyhow::{Context, Result, ensure};
 use std::{
     collections::BTreeSet,
     fs,
     path::{Path, PathBuf},
-    process::Command,
 };
 
 pub fn run(root: &Path) -> Result<bool> {
@@ -239,7 +239,7 @@ fn check_review_due(path: &Path, content: &str, warnings: &mut Vec<String>) {
 }
 
 fn tracked_files(root: &Path) -> Result<Vec<PathBuf>> {
-    let output = Command::new("git")
+    let output = process::isolated("git", &Default::default())
         .args([
             "ls-files",
             "--cached",

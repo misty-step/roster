@@ -14,6 +14,8 @@ pub struct Receipt {
     pub role: String,
     pub purpose: String,
     pub harness: String,
+    pub harness_version: String,
+    pub preflight_passed: bool,
     pub model: String,
     pub reasoning: Option<String>,
     pub args: Vec<String>,
@@ -40,6 +42,8 @@ pub fn record(
     manifest: &BundleManifest,
     bundle: Option<PathBuf>,
     started_at: DateTime<Utc>,
+    harness_version: &str,
+    preflight_passed: bool,
     exit_code: Option<i32>,
 ) -> Result<PathBuf> {
     let receipt = Receipt {
@@ -51,6 +55,8 @@ pub fn record(
         role: manifest.role.clone(),
         purpose: manifest.purpose.clone(),
         harness: manifest.harness.to_string(),
+        harness_version: harness_version.to_owned(),
+        preflight_passed,
         model: manifest.model.clone(),
         reasoning: manifest.reasoning.clone(),
         args: manifest.args.clone(),

@@ -127,6 +127,10 @@ fn dispatch_dry_run_is_transparent_and_rescue_has_no_roster_context() {
         ])
         .assert()
         .success()
+        .stderr(predicate::str::contains(
+            "Dry run only: live adapter preflight was not executed.",
+        ))
+        .stdout(predicate::str::contains("&& env -i "))
         .stdout(predicate::str::contains("CODEX_HOME="))
         .stdout(predicate::str::contains("codex"))
         .stdout(predicate::str::contains("--disable apps"))
@@ -175,6 +179,31 @@ fn dispatch_dry_run_is_transparent_and_rescue_has_no_roster_context() {
         .success()
         .stdout(predicate::str::contains("CODEX_HOME="))
         .stdout(predicate::str::contains("--disable apps"));
+}
+
+#[test]
+fn rescue_uses_the_same_clean_declared_environment() {
+    let temp = tempfile::tempdir().expect("temp");
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "claude",
+        r#"test -z "${SHOULD_NOT_SURVIVE:-}"
+test -z "${OPENAI_API_KEY:-}"
+test "$MINT_BASE_URL" = "http://mint.test"
+test "$1" = --safe-mode"#,
+    );
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("SHOULD_NOT_SURVIVE", "ambient-canary")
+        .env("OPENAI_API_KEY", "ambient-secret")
+        .env("ROSTER_CHILD_ENV_MINT_BASE_URL", "http://mint.test")
+        .args(["rescue", "claude"])
+        .assert()
+        .success();
 }
 
 #[test]
@@ -349,8 +378,15 @@ fn fake_codex(directory: &Path, launch: &str) {
     write(
         &path,
         &r#"#!/bin/sh
+test -z "${SHOULD_NOT_SURVIVE:-}" || exit 67
+test -z "${OPENAI_API_KEY:-}" || exit 68
+test -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" || exit 69
+test "${CODEX_HOME:-}" != /ambient-codex-home || exit 66
+if [ -n "${EXPECT_MINT_BASE_URL:-}" ]; then
+  test "${MINT_BASE_URL:-}" = "$EXPECT_MINT_BASE_URL" || exit 65
+fi
 if [ "$1" = --version ]; then
-  echo 'codex-cli 0.144.3'
+  echo 'codex-cli 9.9.9'
   exit 0
 fi
 if [ "$1" = app-server ]; then
@@ -465,9 +501,9 @@ cp "$CODEX_HOME/config.toml" "$FAKE_CONFIG""#,
         .expect("bin")
         .env("HOME", &home)
         .env("PATH", path)
-        .env("FAKE_CONFIG", &observed)
-        .env("FAKE_PREFLIGHT", &strict_preflight)
-        .env("FAKE_SYSTEM_SKILL", "1")
+        .env("ROSTER_CHILD_ENV_FAKE_CONFIG", &observed)
+        .env("ROSTER_CHILD_ENV_FAKE_PREFLIGHT", &strict_preflight)
+        .env("ROSTER_CHILD_ENV_FAKE_SYSTEM_SKILL", "1")
         .env("ROSTER_STATE_DIR", temp.path().join("state"))
         .args([
             "--config",
@@ -551,7 +587,7 @@ touch "$FAKE_LAUNCHED""#,
     Command::cargo_bin("roster")
         .expect("bin")
         .env("PATH", path)
-        .env("FAKE_LAUNCHED", &launched)
+        .env("ROSTER_CHILD_ENV_FAKE_LAUNCHED", &launched)
         .env("ROSTER_STATE_DIR", &state)
         .args([
             "--config",
@@ -578,6 +614,8 @@ touch "$FAKE_LAUNCHED""#,
     assert_eq!(receipts.len(), 1, "failed preflight must write one receipt");
     let receipt = fs::read_to_string(receipts[0].path()).expect("preflight receipt");
     assert!(receipt.contains("agent: amos"));
+    assert!(receipt.contains("harness_version: codex-cli 0.144.3"));
+    assert!(receipt.contains("preflight_passed: false"));
     assert!(
         receipt.contains("exit_code: null"),
         "a Harness that never launched has no child exit code: {receipt}"
@@ -617,7 +655,7 @@ touch "$FAKE_LAUNCHED""#,
     Command::cargo_bin("roster")
         .expect("bin")
         .env("PATH", path)
-        .env("FAKE_LAUNCHED", &launched)
+        .env("ROSTER_CHILD_ENV_FAKE_LAUNCHED", &launched)
         .env("ROSTER_STATE_DIR", temp.path().join("state"))
         .args([
             "--config",
@@ -672,7 +710,7 @@ touch "$FAKE_LAUNCHED""#,
     Command::cargo_bin("roster")
         .expect("bin")
         .env("PATH", path)
-        .env("FAKE_LAUNCHED", &launched)
+        .env("ROSTER_CHILD_ENV_FAKE_LAUNCHED", &launched)
         .env("ROSTER_STATE_DIR", temp.path().join("state"))
         .args([
             "--config",
@@ -704,6 +742,12 @@ fn dispatch_preserves_child_exit_code_and_cleans_failed_run() {
     Command::cargo_bin("roster")
         .expect("bin")
         .env("PATH", path)
+        .env("SHOULD_NOT_SURVIVE", "ambient-canary")
+        .env("OPENAI_API_KEY", "ambient-secret")
+        .env("OP_SERVICE_ACCOUNT_TOKEN", "ambient-vault-token")
+        .env("ROSTER_CHILD_ENV_CODEX_HOME", "/ambient-codex-home")
+        .env("ROSTER_CHILD_ENV_EXPECT_MINT_BASE_URL", "http://mint.test")
+        .env("ROSTER_CHILD_ENV_MINT_BASE_URL", "http://mint.test")
         .env("ROSTER_STATE_DIR", &state)
         .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
         .assert()
@@ -716,6 +760,8 @@ fn dispatch_preserves_child_exit_code_and_cleans_failed_run() {
         .path();
     let receipt = fs::read_to_string(receipt).expect("named receipt body");
     assert!(receipt.contains("schema_version: roster.receipt.v2"));
+    assert!(receipt.contains("harness_version: codex-cli 9.9.9"));
+    assert!(receipt.contains("preflight_passed: true"));
     assert!(receipt.contains("agent: amos"));
     assert!(receipt.contains("binding: amos"));
     assert!(receipt.contains("role: orchestrator"));
@@ -747,10 +793,10 @@ fn termination_signal_is_forwarded_to_the_harness_child() {
     let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
     let roster = assert_cmd::cargo::cargo_bin!("roster");
     let mut child = StdCommand::new(roster)
-        .env("PATH", path)
+        .env("PATH", &path)
         .env("ROSTER_STATE_DIR", temp.path().join("state"))
-        .env("FAKE_READY", &ready)
-        .env("FAKE_CAUGHT", &caught)
+        .env("ROSTER_CHILD_ENV_FAKE_READY", &ready)
+        .env("ROSTER_CHILD_ENV_FAKE_CAUGHT", &caught)
         .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
         .spawn()
         .expect("spawn roster");
@@ -771,7 +817,7 @@ fn termination_signal_is_forwarded_to_the_harness_child() {
 }
 
 #[test]
-fn claude_preflight_is_version_pinned_and_launches_in_the_selected_workspace() {
+fn claude_preflight_accepts_new_versions_and_launches_in_the_selected_workspace() {
     let temp = tempfile::tempdir().expect("temp");
     let config = fixture(temp.path());
     let body = fs::read_to_string(&config)
@@ -784,7 +830,7 @@ fn claude_preflight_is_version_pinned_and_launches_in_the_selected_workspace() {
     fake_harness(
         &bin,
         "claude",
-        "if [ \"$1\" = --version ]; then echo '2.1.207 (Claude Code)'; exit 0; fi\nif [ \"$1\" = plugin ]; then exit 0; fi\nprintf '%s' \"$PWD\" > \"$FAKE_PWD\"",
+        "if [ \"$1\" = --version ]; then echo '9.9.9 (Claude Code)'; exit 0; fi\ncase \" $* \" in *' --roster-invalid-probe '*) echo \"error: unknown option '--roster-invalid-probe'\" >&2; exit 1;; esac\nif [ \"$1\" = plugin ]; then exit 0; fi\nprintf '%s' \"$PWD\" > \"$FAKE_PWD\"",
     );
     let workspace = temp.path().join("workspace");
     fs::create_dir_all(&workspace).expect("workspace");
@@ -793,7 +839,7 @@ fn claude_preflight_is_version_pinned_and_launches_in_the_selected_workspace() {
     Command::cargo_bin("roster")
         .expect("bin")
         .env("PATH", path)
-        .env("FAKE_PWD", &observed)
+        .env("ROSTER_CHILD_ENV_FAKE_PWD", &observed)
         .env("ROSTER_STATE_DIR", temp.path().join("state"))
         .args([
             "--config",
@@ -813,6 +859,39 @@ fn claude_preflight_is_version_pinned_and_launches_in_the_selected_workspace() {
 }
 
 #[test]
+fn claude_missing_required_capability_stops_before_launch() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config)
+        .expect("config")
+        .replace("harness: codex", "harness: claude")
+        .replace("args: [--search]", "args: []");
+    write(&config, &body);
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "claude",
+        "if [ \"$1\" = --version ]; then echo '9.9.9 (Claude Code)'; exit 0; fi\ncase \" $* \" in *' --strict-mcp-config '*) echo \"error: unknown option '--strict-mcp-config'\" >&2; echo \"error: unknown option '--roster-invalid-probe'\" >&2; exit 1;; esac\nif [ \"$1\" = plugin ]; then exit 0; fi\ntouch \"$FAKE_LAUNCHED\"",
+    );
+    let launched = temp.path().join("launched");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_CHILD_ENV_FAKE_LAUNCHED", &launched)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "Claude adapter arguments were rejected before launch: error: unknown option '--strict-mcp-config'",
+        ))
+        .stderr(predicate::str::contains("Launching amos (claude)").not());
+    assert!(!launched.exists(), "unsupported Claude CLI must not launch");
+}
+
+#[test]
 fn omp_preflight_reads_the_live_runtime_inventory() {
     let temp = tempfile::tempdir().expect("temp");
     let config = fixture(temp.path());
@@ -826,7 +905,7 @@ fn omp_preflight_reads_the_live_runtime_inventory() {
     fake_harness(
         &bin,
         "omp",
-        r#"if [ "$1" = --version ]; then echo 'omp v16.4.4'; exit 0; fi
+        r#"if [ "$1" = --version ]; then echo 'omp v99.0.0'; exit 0; fi
 prompt=''
 append_seen=false
 append='undeclared'
@@ -848,17 +927,28 @@ if $rpc; then
   esac
   read request
   printf '%s\n' '{"type":"ready"}'
-  python3 -c 'import json,re,sys; normalized = re.sub(r"\n{3,}", "\n", sys.argv[1]); print(json.dumps({"id":"roster-preflight","type":"response","command":"get_state","success":True,"data":{"model":{"id":"gpt-test"},"thinkingLevel":"high","systemPrompt":[normalized + "\n# Runtime context","<skill name=\"deliver\">"],"dumpTools":[]}}))' "$prompt"
+  python3 -c 'import json,re,sys; normalized = re.sub(r"\n{3,}", "\n", sys.argv[1]); print(json.dumps({"id":"roster-preflight","type":"response","command":"get_state","success":True,"data":{"model":{"id":sys.argv[2]},"thinkingLevel":"high","systemPrompt":[normalized + "\n# Runtime context","<skill name=\"deliver\">"],"dumpTools":[]}}))' "$prompt" "${FAKE_MODEL:-gpt-test}"
 fi"#,
     );
     let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
     Command::cargo_bin("roster")
         .expect("bin")
-        .env("PATH", path)
+        .env("PATH", &path)
         .env("ROSTER_STATE_DIR", temp.path().join("state"))
         .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
         .assert()
         .success();
+
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_CHILD_ENV_FAKE_MODEL", "undeclared-model")
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("OMP model isolation drift"))
+        .stderr(predicate::str::contains("Launching amos (omp)").not());
 }
 
 #[test]
@@ -940,7 +1030,9 @@ fn authority_requests_are_explicit_receipted_and_fail_closed() {
     fake_harness(
         provider.parent().expect("provider parent"),
         "authority-provider",
-        r#"printf '%s|%s|%s' "$ROSTER_AUTHORITY_AGENT" "$1" "$2" > "$AUTHORITY_OBSERVED"
+        r#"test -z "${SHOULD_NOT_SURVIVE:-}"
+test -z "${OPENAI_API_KEY:-}"
+printf '%s|%s|%s' "$ROSTER_AUTHORITY_AGENT" "$1" "$2" > "$AUTHORITY_OBSERVED"
 [ "$2" = deploy ]"#,
     );
     let body = fs::read_to_string(&config).expect("config");
@@ -958,7 +1050,9 @@ fn authority_requests_are_explicit_receipted_and_fail_closed() {
         command
             .env("ROSTER_AGENT", "amos")
             .env("ROSTER_STATE_DIR", &state)
-            .env("AUTHORITY_OBSERVED", &observed)
+            .env("ROSTER_CHILD_ENV_AUTHORITY_OBSERVED", &observed)
+            .env("SHOULD_NOT_SURVIVE", "ambient-canary")
+            .env("OPENAI_API_KEY", "ambient-secret")
             .args([
                 "--config",
                 config.to_str().unwrap(),

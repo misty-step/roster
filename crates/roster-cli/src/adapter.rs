@@ -1,4 +1,4 @@
-use crate::receipt;
+use crate::{process, receipt};
 use anyhow::{Context, Result, bail};
 use chrono::Utc;
 use roster_core::{BundleManifest, Harness, ResolvedAgent, ResolvedMcp};
@@ -11,7 +11,7 @@ use std::{
     os::unix::fs::symlink,
     os::unix::process::ExitStatusExt,
     path::{Path, PathBuf},
-    process::{Command, ExitStatus, Stdio},
+    process::{ExitStatus, Stdio},
     sync::{
         Arc,
         atomic::{AtomicI32, Ordering},
@@ -78,12 +78,15 @@ pub fn dispatch(
     let mut invocation = prepare(agent, workspace)?;
     invocation.bundle.as_mut().expect("dispatch bundle").keep = keep_bundle;
     if dry_run {
+        eprintln!("Dry run only: live adapter preflight was not executed.");
         print_invocation(&invocation);
         return Ok(());
     }
     eprintln!("Preparing {} ({})…", agent.name, agent.harness);
     std::io::stderr().flush()?;
     let started_at = Utc::now();
+    let harness_version = observe_version(&invocation);
+    eprintln!("Adapter target: {} {harness_version}", agent.harness);
     if let Err(preflight_error) = preflight(agent, workspace, &invocation) {
         let receipt_path = match receipt::record(
             invocation
@@ -100,6 +103,8 @@ pub fn dispatch(
                     .join("bundle")
             }),
             started_at,
+            &harness_version,
+            false,
             None,
         ) {
             Ok(path) => path,
@@ -140,6 +145,8 @@ pub fn dispatch(
                 .join("bundle")
         }),
         started_at,
+        &harness_version,
+        true,
         status.code(),
     )?;
     invocation
@@ -309,7 +316,7 @@ fn prepare_claude(
         "--setting-sources=".into(),
         "--system-prompt-file".into(),
         bundle.join("AGENTS.md").display().to_string(),
-        "--plugin-dir-no-mcp".into(),
+        "--plugin-dir".into(),
         plugin.display().to_string(),
         "--strict-mcp-config".into(),
         "--mcp-config".into(),
@@ -502,7 +509,6 @@ fn mcp_json(mcps: &[ResolvedMcp]) -> Value {
 fn preflight(agent: &ResolvedAgent, workspace: &Path, invocation: &Invocation) -> Result<()> {
     match agent.harness {
         Harness::Codex => {
-            require_version(invocation, &["--version"], &["codex-cli 0.144.3"])?;
             let actual_skills = codex_enabled_skills(invocation, workspace)?;
             let skill_root = PathBuf::from(
                 invocation
@@ -531,10 +537,9 @@ fn preflight(agent: &ResolvedAgent, workspace: &Path, invocation: &Invocation) -
                     "Codex skill isolation drift: expected {expected_skills:?}, loaded {actual_skills:?}"
                 );
             }
-            let output = Command::new(&invocation.command)
+            let output = process::isolated(&invocation.command, &invocation.env)
                 .args(["mcp", "--disable", "apps", "list", "--json"])
                 .current_dir(workspace)
-                .envs(&invocation.env)
                 .output()
                 .context("inspect isolated Codex MCP catalog")?;
             if !output.status.success() {
@@ -566,10 +571,9 @@ fn codex_enabled_skills(
     invocation: &Invocation,
     workspace: &Path,
 ) -> Result<Vec<(String, PathBuf, String)>> {
-    let mut child = Command::new(&invocation.command)
+    let mut child = process::isolated(&invocation.command, &invocation.env)
         .args(["app-server", "--strict-config", "--listen", "stdio://"])
         .current_dir(workspace)
-        .envs(&invocation.env)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -720,12 +724,11 @@ fn codex_enabled_skills(
 }
 
 fn preflight_claude(agent: &ResolvedAgent, invocation: &Invocation) -> Result<()> {
-    require_version(invocation, &["--version"], &["2.1.207"])?;
-    let plugin = invocation_arg(invocation, "--plugin-dir-no-mcp")?;
-    let output = Command::new("claude")
+    require_accepted_arguments(invocation)?;
+    let plugin = invocation_arg(invocation, "--plugin-dir")?;
+    let output = process::isolated(&invocation.command, &invocation.env)
         .args(["plugin", "validate", "--strict", plugin])
         .current_dir(&invocation.cwd)
-        .envs(&invocation.env)
         .output()
         .context("validate isolated Claude plugin")?;
     if !output.status.success() {
@@ -752,7 +755,6 @@ fn preflight_claude(agent: &ResolvedAgent, invocation: &Invocation) -> Result<()
 }
 
 fn preflight_omp(agent: &ResolvedAgent, invocation: &Invocation) -> Result<()> {
-    require_version(invocation, &["--version"], &["omp v16.4.4", "omp/16.4.4"])?;
     let output = omp_rpc_state(invocation, !agent.mcps.is_empty())?;
     let state = output
         .lines()
@@ -839,11 +841,10 @@ fn preflight_omp(agent: &ResolvedAgent, invocation: &Invocation) -> Result<()> {
 }
 
 fn omp_rpc_state(invocation: &Invocation, wait_for_mcps: bool) -> Result<String> {
-    let mut command = Command::new(&invocation.command);
+    let mut command = process::isolated(&invocation.command, &invocation.env);
     command
         .args(&invocation.args)
         .args(["--mode", "rpc", "--no-session"])
-        .envs(&invocation.env)
         .current_dir(&invocation.cwd)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
@@ -892,30 +893,40 @@ fn omp_rpc_state(invocation: &Invocation, wait_for_mcps: bool) -> Result<String>
     String::from_utf8(stdout).context("OMP isolation probe emitted non-UTF-8 output")
 }
 
-fn require_version(invocation: &Invocation, args: &[&str], supported: &[&str]) -> Result<()> {
-    let output = Command::new(&invocation.command)
-        .args(args)
+fn observe_version(invocation: &Invocation) -> String {
+    let output = process::isolated(&invocation.command, &invocation.env)
+        .arg("--version")
         .current_dir(&invocation.cwd)
-        .envs(&invocation.env)
-        .output()
-        .with_context(|| format!("probe {} version", invocation.command))?;
+        .output();
+    let Ok(output) = output else {
+        return "version unavailable".to_owned();
+    };
     if !output.status.success() {
-        bail!(
-            "{} version probe failed: {}",
-            invocation.command,
-            bounded_stderr(&output.stderr)
-        );
+        return format!("version unavailable (exit {:?})", output.status.code());
     }
-    let actual = String::from_utf8_lossy(&output.stdout);
-    if !supported
-        .iter()
-        .any(|expected| actual.trim().starts_with(expected))
-    {
-        bail!(
-            "{} adapter supports {supported:?}; live version is {:?}",
-            invocation.command,
-            actual.trim()
-        );
+    let version = String::from_utf8_lossy(&output.stdout)
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    if version.is_empty() {
+        "version unavailable (empty output)".to_owned()
+    } else {
+        version.chars().take(200).collect()
+    }
+}
+
+fn require_accepted_arguments(invocation: &Invocation) -> Result<()> {
+    const SENTINEL: &str = "--roster-invalid-probe";
+    let output = process::isolated(&invocation.command, &invocation.env)
+        .args(&invocation.args)
+        .arg(SENTINEL)
+        .current_dir(&invocation.cwd)
+        .output()
+        .with_context(|| format!("probe {} argument parser", invocation.command))?;
+    let stderr = bounded_stderr(&output.stderr);
+    let first_diagnostic = stderr.lines().find(|line| !line.trim().is_empty());
+    if output.status.success() || !first_diagnostic.is_some_and(|line| line.contains(SENTINEL)) {
+        bail!("Claude adapter arguments were rejected before launch: {stderr}");
     }
     Ok(())
 }
@@ -986,9 +997,12 @@ fn toml_key(value: &str) -> String {
 
 fn print_invocation(invocation: &Invocation) {
     print!(
-        "cd {} && ",
+        "cd {} && env -i ",
         shell_word(&invocation.cwd.display().to_string())
     );
+    for (key, value) in process::visible_parent_environment() {
+        print!("{key}={} ", shell_word(&value));
+    }
     for (key, value) in &invocation.env {
         print!("{key}={} ", shell_word(value));
     }
@@ -1011,11 +1025,8 @@ fn shell_word(value: &str) -> String {
 }
 
 fn run_invocation(invocation: &Invocation) -> Result<ExitStatus> {
-    let mut command = Command::new(&invocation.command);
-    command
-        .args(&invocation.args)
-        .envs(&invocation.env)
-        .current_dir(&invocation.cwd);
+    let mut command = process::isolated(&invocation.command, &invocation.env);
+    command.args(&invocation.args).current_dir(&invocation.cwd);
     let child_pid = Arc::new(AtomicI32::new(0));
     let mut signals = Signals::new([libc::SIGINT, libc::SIGTERM, libc::SIGHUP, libc::SIGQUIT])?;
     let signal_handle = signals.handle();

@@ -73,7 +73,7 @@ roster list                    # effective agents for this workspace
 roster show amos               # binding plus exact resolved composition
 roster resolve amos --output /tmp/amos
 roster dispatch amos           # resolve, project, and launch
-roster dispatch amos --dry-run # inspect the exact launch command
+roster dispatch amos --dry-run # inspect command only; does not run preflight
 roster resolve --using amos --as dependency-scout \
   --purpose "Map one dependency." \
   --include core/pack:engineering-core \
@@ -122,7 +122,9 @@ Each Tier 1 adapter creates a private projection:
   project-doc read to avoid duplicate instructions. Strict config-loader,
   enabled-skill inventory, and MCP-inventory preflights all pass before launch.
 - Claude Code starts with no inherited setting sources, one ephemeral plugin,
-  one strict MCP file, and the resolved runtime instructions.
+  one strict MCP file, and the resolved runtime instructions. Its preflight
+  verifies every projected CLI flag against the live capability surface,
+  strictly validates the generated plugin, and checks the exact MCP projection.
 - OMP receives a private agent directory, explicit skills, and an isolation
   overlay that disables ambient discovery.
 
@@ -136,13 +138,27 @@ Raw `codex`, `claude`, and `omp` remain the direct escape hatches. `roster
 rescue` creates an intentionally context-free repair session when composition
 itself is broken.
 
+Adapter compatibility is capability-based, not patch-version allowlisted.
+Harness versions are diagnostic evidence in launch output and receipts; the
+concrete preflight for the projected config, skills, MCPs, model, and supported
+flags decides whether dispatch may launch. `--dry-run` deliberately skips those
+live probes and says so on stderr.
+
+Every process Roster starts—preflight, final Harness, rescue, catalog check,
+and optional authority provider—uses one clean environment constructor. It
+starts empty, restores a small OS/runtime allowlist, maps explicitly supplied
+`ROSTER_CHILD_ENV_<NAME>` values to `<NAME>`, then applies Roster's projection
+last. This gives workstation configuration a value-free declaration seam
+without making Roster a credential reader or resolver. Runtime values are
+never printed by dry-run or persisted in receipts.
+
 ## Receipts and optional authority
 
 Dispatch writes a bounded, redacted receipt under
 `~/.local/state/roster/receipts/` (or `$ROSTER_STATE_DIR`). It records identity,
 binding, role, exact effective primitive identities, workspace, config, model,
-Harness, clocks, exit status, and retained bundle path—never prompts,
-environment values, or credentials.
+Harness and observed version, preflight result, clocks, exit status, and
+retained bundle path—never prompts, environment values, or credentials.
 Preflight failures are receipted before the temporary projection is removed;
 their child exit status is empty because the Harness never launched.
 Bundles use `roster.bundle.v2` and dispatch receipts use `roster.receipt.v2`;

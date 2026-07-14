@@ -1,6 +1,7 @@
 mod adapter;
 mod check;
 mod picker;
+mod process;
 mod receipt;
 
 use anyhow::{Context, Result, anyhow, bail};
@@ -263,10 +264,12 @@ fn request_authority(
         .authority()
         .context("no authority provider is configured; operation denied")?;
     let agent = env::var("ROSTER_AGENT").unwrap_or_else(|_| "unknown".to_owned());
-    let status = std::process::Command::new(&provider.command)
+    let authority_env = [("ROSTER_AUTHORITY_AGENT".to_owned(), agent.clone())]
+        .into_iter()
+        .collect();
+    let status = process::isolated(&provider.command, &authority_env)
         .args(&provider.args)
         .arg(capability)
-        .env("ROSTER_AUTHORITY_AGENT", &agent)
         .status()
         .with_context(|| format!("invoke authority provider {}", provider.command))?;
     receipt::record_authority(
