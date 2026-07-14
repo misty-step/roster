@@ -527,7 +527,11 @@ if [ "$1" = app-server ]; then
   exit 0
 fi
 if [ "$1" = mcp ]; then
-  printf '[]\n'
+  if [ -n "$FAKE_MCP_NAME" ]; then
+    printf '[{"name":"%s","enabled":true}]\n' "$FAKE_MCP_NAME"
+  else
+    printf '[]\n'
+  fi
   exit 0
 fi
 __LAUNCH__
@@ -754,6 +758,74 @@ cp "$CODEX_HOME/config.toml" "$FAKE_CONFIG""#,
                     && rule.get("enabled").and_then(toml::Value::as_bool) == Some(false)
             }),
         "invalid ambient skills must remain explicitly disabled"
+    );
+}
+
+#[test]
+fn codex_projection_forwards_declared_stdio_mcp_environment_by_name() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let role = temp.path().join("source/roles/orchestrator.yaml");
+    let role_body = fs::read_to_string(&role).expect("role");
+    write(
+        &role,
+        &role_body.replace(
+            "  - core/skill:deliver\n",
+            "  - core/skill:deliver\n  - core/mcp:powder\n",
+        ),
+    );
+    write(
+        &temp.path().join("source/primitives/mcps/registry.yaml"),
+        "schema_version: roster.mcp_registry.v1\nprovenance: fixture\nmcps:\n  - id: powder\n    status: available\n    transport: stdio\n    command: powder-mcp\n    env_refs:\n      - POWDER_API_BASE_URL\n      - POWDER_API_KEY\n",
+    );
+    let home = temp.path().join("home");
+    write(&home.join(".codex/auth.json"), "{}\n");
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_codex(
+        &bin,
+        "cp \"$CODEX_HOME/config.toml\" \"$FAKE_CONFIG\"\nexit 0",
+    );
+    let observed = temp.path().join("observed-config.toml");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("HOME", &home)
+        .env("PATH", path)
+        .env("ROSTER_CHILD_ENV_FAKE_CONFIG", &observed)
+        .env("ROSTER_CHILD_ENV_FAKE_MCP_NAME", "powder")
+        .env(
+            "ROSTER_CHILD_ENV_POWDER_API_BASE_URL",
+            "https://powder.example.test",
+        )
+        .env("ROSTER_CHILD_ENV_POWDER_API_KEY", "fixture-placeholder")
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .success();
+
+    let projected: toml::Value =
+        toml::from_str(&fs::read_to_string(observed).expect("projected Codex config"))
+            .expect("valid projected Codex config");
+    let powder = projected
+        .get("mcp_servers")
+        .and_then(|servers| servers.get("powder"))
+        .expect("projected powder MCP");
+    assert_eq!(
+        powder
+            .get("env_vars")
+            .and_then(toml::Value::as_array)
+            .map(|values| values
+                .iter()
+                .filter_map(toml::Value::as_str)
+                .collect::<Vec<_>>()),
+        Some(vec!["POWDER_API_BASE_URL", "POWDER_API_KEY"]),
+        "Codex otherwise strips the declared variables before spawning powder-mcp"
+    );
+    assert!(
+        powder.get("env").is_none(),
+        "the projection must forward names, never embed secret values"
     );
 }
 
