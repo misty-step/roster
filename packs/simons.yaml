@@ -1,0 +1,6 @@
+schema_version: roster.pack.v1
+name: simons
+description: Autonomous, audited, benchmark-relative public-equity trading.
+include:
+  - core/guidance:simons
+  - core/skill:orient
