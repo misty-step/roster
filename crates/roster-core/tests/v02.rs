@@ -102,6 +102,46 @@ fn nearest_config_replaces_home_instead_of_merging() {
 }
 
 #[test]
+fn harness_defaults_select_only_explicit_matching_agents() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let root = temp.path().join("source");
+    source(&root, "core", "powder");
+    let path = temp.path().join("config.yaml");
+    write(
+        &path,
+        &format!(
+            "schema_version: roster.config.v1\ndefaults:\n  codex: amos\nsources:\n  core: {}\nagents:\n  amos:\n    description: Codex lead\n    role: core/role:orchestrator\n    model: test/model\n    harness: codex\n",
+            root.display()
+        ),
+    );
+
+    let roster = Roster::load_config(&path).expect("load explicit default");
+    assert_eq!(
+        roster.default_agent(Harness::Codex).expect("codex default"),
+        "amos"
+    );
+    let error = roster
+        .default_agent(Harness::Claude)
+        .expect_err("missing default must fail");
+    assert!(
+        error.to_string().contains("no default claude agent"),
+        "{error}"
+    );
+
+    let wrong_harness = fs::read_to_string(&path)
+        .expect("config")
+        .replace("defaults:\n  codex: amos", "defaults:\n  claude: amos");
+    write(&path, &wrong_harness);
+    let error = Roster::load_config(&path).expect_err("cross-harness default must fail");
+    assert!(error.to_string().contains("uses harness codex"), "{error}");
+
+    let unknown = wrong_harness.replace("claude: amos", "claude: unknown");
+    write(&path, &unknown);
+    let error = Roster::load_config(&path).expect_err("unknown default must fail");
+    assert!(error.to_string().contains("unknown agent"), "{error}");
+}
+
+#[test]
 fn bundle_contains_only_the_resolved_role_primitives() {
     let temp = tempfile::tempdir().expect("tempdir");
     let home = temp.path().join("home");

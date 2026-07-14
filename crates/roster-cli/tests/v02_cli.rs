@@ -63,6 +63,111 @@ fn list_and_show_use_the_explicit_config() {
 }
 
 #[test]
+fn dispatch_selects_an_explicit_harness_default() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config).expect("config");
+    write(
+        &config,
+        &body.replace("sources:\n", "defaults:\n  codex: amos\nsources:\n"),
+    );
+
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "dispatch",
+            "--default",
+            "codex",
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("ROSTER_AGENT=amos"))
+        .stdout(predicate::str::contains(" codex --strict-config"));
+}
+
+#[test]
+fn dispatch_default_fails_clearly_when_unconfigured() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "dispatch",
+            "--default",
+            "claude",
+            "--dry-run",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("no default claude agent"));
+}
+
+#[test]
+fn harness_defaults_always_use_nearest_config_discovery() {
+    let temp = tempfile::tempdir().expect("temp");
+    let inherited = fixture(temp.path());
+    let inherited_body = fs::read_to_string(&inherited).expect("inherited config");
+    write(
+        &inherited,
+        &inherited_body.replace("sources:\n", "defaults:\n  codex: amos\nsources:\n"),
+    );
+    let workspace = temp.path().join("work/r90/project");
+    let local = temp.path().join("work/r90/.roster/config.yaml");
+    write(
+        &local,
+        &inherited_body
+            .replace("sources:\n", "defaults:\n  codex: odysseus\nsources:\n")
+            .replace("  amos:\n", "  odysseus:\n"),
+    );
+    fs::create_dir_all(&workspace).expect("workspace");
+
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("ROSTER_CONFIG", &inherited)
+        .args([
+            "--cwd",
+            workspace.to_str().unwrap(),
+            "dispatch",
+            "--default",
+            "codex",
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("ROSTER_AGENT=odysseus"))
+        .stdout(predicate::str::contains("ROSTER_AGENT=amos").not());
+
+    let home = temp.path().join("home");
+    let home_config = home.join(".roster/config.yaml");
+    write(
+        &home_config,
+        &fs::read_to_string(&inherited).expect("home config"),
+    );
+    let configless = home.join("elsewhere");
+    fs::create_dir_all(&configless).expect("home workspace");
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("HOME", &home)
+        .env("ROSTER_CONFIG", &local)
+        .args([
+            "--cwd",
+            configless.to_str().unwrap(),
+            "dispatch",
+            "--default",
+            "codex",
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("ROSTER_AGENT=amos"));
+}
+
+#[test]
 fn list_keeps_an_invalid_agent_visible_but_disabled() {
     let temp = tempfile::tempdir().expect("temp");
     let config = fixture(temp.path());
@@ -1115,7 +1220,7 @@ fn check_validates_an_explicit_config_graph_and_rejects_no_catalog() {
         ])
         .assert()
         .success()
-        .stdout(predicate::str::contains("roster graph: ok (11 agents"));
+        .stdout(predicate::str::contains("roster graph: ok (12 agents"));
 
     let temp = tempfile::tempdir().expect("temp");
     Command::cargo_bin("roster")

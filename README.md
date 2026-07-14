@@ -48,6 +48,8 @@ sharing is always explicit through `imports` or `sources`.
 
 ```yaml
 schema_version: roster.config.v1
+defaults:
+  codex: amos
 sources:
   core: /absolute/path/to/roster
 agents:
@@ -73,6 +75,7 @@ roster list                    # effective agents for this workspace
 roster show amos               # binding plus exact resolved composition
 roster resolve amos --output /tmp/amos
 roster dispatch amos           # resolve, project, and launch
+roster dispatch --default codex # launch this config's explicit Codex default
 roster dispatch amos --dry-run # inspect command only; does not run preflight
 roster resolve --using amos --as dependency-scout \
   --purpose "Map one dependency." \
@@ -87,6 +90,15 @@ roster inspect amos            # effective config, graph, recent receipts
 roster check                   # config graph plus public-catalog gate
 roster rescue codex            # raw skeletal Harness for Roster repair
 ```
+
+`defaults` is an optional, strict Harness-to-agent map for stable shell
+shortcuts. The named agent must exist in the same effective config and use the
+mapped Harness. Roster never guesses a default from role names, declaration
+order, or workspace paths. This lets `roster dispatch --default claude` select
+Kaylee under the home config and Penelope under an R90-local config while both
+identities remain honest. Unless `--config` is passed explicitly, this shortcut
+performs ordinary nearest-config discovery and does not inherit a running
+agent's `ROSTER_CONFIG` pin.
 
 `resolve` emits the canonical bundle:
 

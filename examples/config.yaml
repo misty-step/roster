@@ -1,4 +1,8 @@
 schema_version: roster.config.v1
+defaults:
+  codex: amos
+  claude: kaylee
+  omp: urza
 sources:
   core: ..
 agents:
@@ -16,6 +20,13 @@ agents:
     reasoning: high
     harness: claude
     args: [--dangerously-skip-permissions]
+  urza:
+    description: OMP orchestrator for broad software work.
+    role: core/role:orchestrator
+    model: claude-fable-5
+    reasoning: high
+    harness: omp
+    args: [--approval-mode, yolo]
   hephaestus:
     description: Builder for one accepted software change.
     role: core/role:builder

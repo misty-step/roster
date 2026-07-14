@@ -77,6 +77,19 @@ impl Roster {
         self.config.agents.get(name)
     }
 
+    pub fn default_agent(&self, harness: Harness) -> Result<&str, RosterError> {
+        self.config
+            .defaults
+            .get(&harness)
+            .map(String::as_str)
+            .ok_or_else(|| {
+                RosterError::Validation(format!(
+                    "no default {harness} agent is declared in {}",
+                    self.config_path.display()
+                ))
+            })
+    }
+
     pub fn authority(&self) -> Option<&Authority> {
         self.config.authority.as_ref()
     }
@@ -364,6 +377,8 @@ struct Config {
     schema_version: String,
     #[serde(default)]
     imports: Vec<PathBuf>,
+    #[serde(default)]
+    defaults: BTreeMap<Harness, String>,
     sources: BTreeMap<String, PathBuf>,
     agents: BTreeMap<String, Agent>,
     #[serde(default)]
@@ -391,7 +406,7 @@ pub struct Authority {
     pub args: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "kebab-case")]
 pub enum Harness {
     Codex,
@@ -824,6 +839,7 @@ fn load_config_tree(path: &Path, visited: &mut BTreeSet<PathBuf>) -> Result<Conf
     let mut combined = Config {
         schema_version: CONFIG_SCHEMA.to_owned(),
         imports: Vec::new(),
+        defaults: BTreeMap::new(),
         sources: BTreeMap::new(),
         agents: BTreeMap::new(),
         authority: None,
@@ -839,6 +855,14 @@ fn load_config_tree(path: &Path, visited: &mut BTreeSet<PathBuf>) -> Result<Conf
 }
 
 fn merge_config(target: &mut Config, source: Config, origin: &Path) -> Result<(), RosterError> {
+    for (harness, agent) in source.defaults {
+        if target.defaults.insert(harness, agent).is_some() {
+            return Err(RosterError::Validation(format!(
+                "duplicate default {harness} agent while importing {}",
+                origin.display()
+            )));
+        }
+    }
     for (id, path) in source.sources {
         if target.sources.insert(id.clone(), path).is_some() {
             return Err(RosterError::Validation(format!(
@@ -902,6 +926,21 @@ fn validate_config(path: &Path, config: &Config) -> Result<(), RosterError> {
         }
         Identity::from_str(&agent.role)?;
         validate_agent_args(name, agent)?;
+    }
+    for (harness, name) in &config.defaults {
+        let agent = config.agents.get(name).ok_or_else(|| {
+            RosterError::Validation(format!(
+                "{} declares default {harness} unknown agent {name:?}",
+                path.display()
+            ))
+        })?;
+        if agent.harness != *harness {
+            return Err(RosterError::Validation(format!(
+                "{} declares {name:?} as default {harness} agent, but it uses harness {}",
+                path.display(),
+                agent.harness
+            )));
+        }
     }
     Ok(())
 }

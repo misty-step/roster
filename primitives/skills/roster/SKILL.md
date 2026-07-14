@@ -31,12 +31,22 @@ contract for what it will and won't do.
 
 ```sh
 roster dispatch <agent>
+roster dispatch --default <codex|claude|omp>
 ```
 
 This resolves the agent's full graph into a temporary, isolated bundle,
 launches its harness in the current workspace, and removes the projection
 after exit. The dispatched agent gets its own role's skills and MCPs — not
 yours.
+
+`--default` is for stable operator shortcuts. It resolves only the explicit
+Harness mapping in the effective config, so the same command can launch Kaylee
+under the home config and Penelope under an R90-local config. It never infers
+from a role, declaration order, or filesystem path. Use a named agent for
+delegation; use the Harness default only when the operator has intentionally
+asked for that workspace's default interactive agent. Unless `--config` is
+explicit, `--default` discovers from the current workspace instead of inheriting
+the running agent's `ROSTER_CONFIG` pin.
 
 Commission outcome-shaped lanes: give the agent a role-appropriate objective,
 exact scope, an oracle it can run, the output shape you need back, and hard

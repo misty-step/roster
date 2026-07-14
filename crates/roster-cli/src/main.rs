@@ -80,16 +80,23 @@ struct AgentSelection {
     /// Launch this named agent definition and its complete role.
     #[arg(
         value_name = "AGENT",
-        required_unless_present = "using",
-        conflicts_with = "using"
+        required_unless_present_any = ["using", "default_harness"],
+        conflicts_with_all = ["using", "default_harness"]
     )]
     agent: Option<String>,
+    /// Launch the effective config's explicitly declared default for this Harness.
+    #[arg(
+        long = "default",
+        value_name = "HARNESS",
+        conflicts_with_all = ["agent", "using"]
+    )]
+    default_harness: Option<Harness>,
     /// Borrow only this agent's Harness, model, reasoning, and native arguments.
     #[arg(
         long,
         value_name = "AGENT",
-        required_unless_present = "agent",
-        conflicts_with = "agent",
+        required_unless_present_any = ["agent", "default_harness"],
+        conflicts_with_all = ["agent", "default_harness"],
         requires_all = ["as_name", "purpose", "include"]
     )]
     using: Option<String>,
@@ -137,7 +144,7 @@ fn run(cli: Cli) -> Result<()> {
             print_resolved(&roster.resolve(&agent)?);
         }
         Some(Command::Resolve { selection, output }) => {
-            let roster = load(&cli.config, &cwd)?;
+            let roster = load_selection(&cli.config, &cwd, &selection)?;
             let manifest = resolve_selection(&roster, &selection)?.write_bundle(&output, &cwd)?;
             print!("{}", serde_yaml::to_string(&manifest)?);
         }
@@ -146,7 +153,7 @@ fn run(cli: Cli) -> Result<()> {
             dry_run,
             keep_bundle,
         }) => {
-            let roster = load(&cli.config, &cwd)?;
+            let roster = load_selection(&cli.config, &cwd, &selection)?;
             adapter::dispatch(
                 &resolve_selection(&roster, &selection)?,
                 &cwd,
@@ -221,6 +228,11 @@ fn resolve_selection(roster: &Roster, selection: &AgentSelection) -> Result<Reso
     if let Some(agent) = &selection.agent {
         return roster.resolve(agent).map_err(Into::into);
     }
+    if let Some(harness) = selection.default_harness {
+        return roster
+            .resolve(roster.default_agent(harness)?)
+            .map_err(Into::into);
+    }
     roster
         .resolve_ad_hoc(
             selection.using.as_deref().context("missing --using")?,
@@ -236,6 +248,18 @@ fn load(config: &Option<PathBuf>, cwd: &std::path::Path) -> Result<Roster> {
     match config.as_ref().or(runtime_config.as_ref()) {
         Some(path) => Roster::load_config(path).map_err(Into::into),
         None => Roster::discover(cwd).map_err(Into::into),
+    }
+}
+
+fn load_selection(
+    config: &Option<PathBuf>,
+    cwd: &std::path::Path,
+    selection: &AgentSelection,
+) -> Result<Roster> {
+    if selection.default_harness.is_some() && config.is_none() {
+        Roster::discover(cwd).map_err(Into::into)
+    } else {
+        load(config, cwd)
     }
 }
 
@@ -334,7 +358,7 @@ fn init(cwd: &std::path::Path, source: &std::path::Path) -> Result<()> {
     }
     fs::create_dir_all(&directory)?;
     let body = format!(
-        "schema_version: roster.config.v1\nsources:\n  core: {}\nagents:\n  amos:\n    description: Default Codex orchestrator\n    role: core/role:orchestrator\n    model: gpt-5.6\n    reasoning: high\n    harness: codex\n    args: []\n",
+        "schema_version: roster.config.v1\ndefaults:\n  codex: amos\nsources:\n  core: {}\nagents:\n  amos:\n    description: Default Codex orchestrator\n    role: core/role:orchestrator\n    model: gpt-5.6\n    reasoning: high\n    harness: codex\n    args: []\n",
         source.display()
     );
     fs::write(&path, body)?;
