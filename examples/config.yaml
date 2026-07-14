@@ -73,7 +73,7 @@ agents:
     harness: claude
     args: [--permission-mode, plan]
   smith:
-    description: Agent creator who designs, builds, evaluates, and iterates agents.
+    description: Evidence-driven agent engineer for Roster roles and primitives.
     role: core/role:agent-creator
     model: gpt-5.6-sol
     reasoning: high

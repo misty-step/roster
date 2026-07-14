@@ -1,5 +1,5 @@
 schema_version: roster.role.v2
 name: agent-creator
-description: Design, implement, evaluate, and iterate agent definitions.
+description: Turn capability gaps into the smallest proven agent compositions.
 include:
   - core/pack:agent-creation
