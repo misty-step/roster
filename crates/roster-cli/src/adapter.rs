@@ -440,11 +440,19 @@ fn codex_config(
     for item in &agent.mcps {
         document.push_str(&format!("\n[mcp_servers.{}]\n", toml_key(&item.id)));
         match item.transport.as_deref() {
-            Some("stdio") => document.push_str(&format!(
-                "command = {:?}\nargs = {}\n",
-                item.command.as_deref().context("stdio MCP command")?,
-                serde_json::to_string(&item.args)?
-            )),
+            Some("stdio") => {
+                document.push_str(&format!(
+                    "command = {:?}\nargs = {}\n",
+                    item.command.as_deref().context("stdio MCP command")?,
+                    serde_json::to_string(&item.args)?
+                ));
+                if !item.env_refs.is_empty() {
+                    document.push_str(&format!(
+                        "env_vars = {}\n",
+                        serde_json::to_string(&item.env_refs)?
+                    ));
+                }
+            }
             Some("http") => document.push_str(&format!(
                 "url = {:?}\n",
                 item.url.as_deref().context("http MCP URL")?
