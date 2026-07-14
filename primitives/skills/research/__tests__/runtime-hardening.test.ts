@@ -233,17 +233,24 @@ describe("research runtime hardening", () => {
 
   test("xAI provider maps citations from Responses API payload", async () => {
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = (async () =>
-      new Response(
+    let observedRequest: Request | null = null;
+    globalThis.fetch = (async (input, init) => {
+      observedRequest = new Request(input, init);
+      return new Response(
         JSON.stringify({
           output_text: "Grounded answer",
           citations: ["https://x.ai/docs", "https://docs.x.ai/search"],
         }),
         { status: 200, headers: { "content-type": "application/json" } }
-      )) as typeof fetch;
+      );
+    }) as typeof fetch;
 
     try {
-      const provider = new XaiProvider("test-key", "grok-test");
+      const provider = new XaiProvider(
+        "grok-test",
+        "http://mint.example/proxy/https/api.x.ai/v1/",
+        "http://mint.example"
+      );
       const results = await provider.search({
         query: "what are people saying about Grok search",
         command: "web",
@@ -256,6 +263,12 @@ describe("research runtime hardening", () => {
         "https://docs.x.ai/search",
       ]);
       expect(results[0].snippet).toBe("Grounded answer");
+      expect(observedRequest?.url).toBe(
+        "http://mint.example/proxy/https/api.x.ai/v1/responses"
+      );
+      expect(observedRequest?.headers.get("authorization")).toBe(
+        "Bearer __mint.xai.default__"
+      );
     } finally {
       globalThis.fetch = originalFetch;
     }

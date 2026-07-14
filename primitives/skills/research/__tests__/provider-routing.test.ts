@@ -8,7 +8,8 @@ describe("provider routing", () => {
       { command: "web", query: "what are people saying about Exa MCP" },
       {
         EXA_API_KEY: "exa-key",
-        XAI_API_KEY: "xai-key",
+        MINT_BASE_URL: "http://mint.example",
+        XAI_BASE_URL: "http://mint.example/proxy/https/api.x.ai/v1",
         BRAVE_API_KEY: "brave-key",
       }
     );
@@ -21,7 +22,8 @@ describe("provider routing", () => {
       { command: "web-news", query: "latest Grok search API changes" },
       {
         EXA_API_KEY: "exa-key",
-        XAI_API_KEY: "xai-key",
+        MINT_BASE_URL: "http://mint.example",
+        XAI_BASE_URL: "http://mint.example/proxy/https/api.x.ai/v1",
         BRAVE_API_KEY: "brave-key",
       }
     );
@@ -35,11 +37,37 @@ describe("provider routing", () => {
       {
         CONTEXT7_API_KEY: "context-key",
         EXA_API_KEY: "exa-key",
-        XAI_API_KEY: "xai-key",
+        MINT_BASE_URL: "http://mint.example",
+        XAI_BASE_URL: "http://mint.example/proxy/https/api.x.ai/v1",
       }
     );
 
     expect(providers.map((provider) => provider.name)).toEqual(["context7", "exa"]);
+  });
+
+  test("rejects direct-vendor and arbitrary xAI base URLs", () => {
+    for (const XAI_BASE_URL of [
+      "https://api.x.ai/v1",
+      "https://attacker.example/proxy/https/api.x.ai/v1",
+      "http://mint.example/proxy/https/api.x.ai/v1/responses",
+      "http://mint.example/proxy/https/api.x.ai/v1?redirect=vendor",
+    ]) {
+      expect(() =>
+        buildProviders(
+          { command: "web", query: "what are people saying about Grok" },
+          { MINT_BASE_URL: "http://mint.example", XAI_BASE_URL }
+        )
+      ).toThrow("XAI_BASE_URL must equal http://mint.example/proxy/https/api.x.ai/v1");
+    }
+  });
+
+  test("rejects xAI configuration without a declared Mint origin", () => {
+    expect(() =>
+      buildProviders(
+        { command: "web", query: "what are people saying about Grok" },
+        { XAI_BASE_URL: "http://mint.example/proxy/https/api.x.ai/v1" }
+      )
+    ).toThrow("MINT_BASE_URL is required for xAI");
   });
 
   test("keeps Exa Agent off by default for ordinary deep research", () => {

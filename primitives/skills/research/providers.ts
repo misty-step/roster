@@ -406,22 +406,26 @@ export class ExaAgentProvider {
 
 export class XaiProvider implements ProviderAdapter {
   readonly name = "xai" as const;
-  private readonly apiKey: string;
   private readonly model: string;
+  private readonly baseUrl: string;
 
-  constructor(apiKey: string, model = process.env.XAI_SEARCH_MODEL ?? "grok-4.3") {
-    this.apiKey = apiKey;
+  constructor(
+    model = process.env.XAI_SEARCH_MODEL ?? "grok-4.3",
+    baseUrl = process.env.XAI_BASE_URL ?? "",
+    mintBaseUrl = process.env.MINT_BASE_URL ?? ""
+  ) {
     this.model = model;
+    this.baseUrl = exactMintXaiBaseUrl(baseUrl, mintBaseUrl);
   }
 
   async search(request: SearchRequest): Promise<SearchResult[]> {
     const useXSearch = /\b(people saying|sentiment|trending|discourse|twitter|x\/twitter|social|viral|posts?|handles?)\b/i.test(
       request.query
     );
-    const response = await fetchWithTimeout(this.name, "https://api.x.ai/v1/responses", {
+    const response = await fetchWithTimeout(this.name, `${this.baseUrl}/responses`, {
       method: "POST",
       headers: {
-        authorization: `Bearer ${this.apiKey}`,
+        authorization: "Bearer __mint.xai.default__",
         "content-type": "application/json",
       },
       body: JSON.stringify({
@@ -470,6 +474,37 @@ export class XaiProvider implements ProviderAdapter {
         source_provider: "xai" as const,
       }));
   }
+}
+
+function exactMintXaiBaseUrl(baseUrl: string, mintBaseUrl: string): string {
+  const configuredMint = mintBaseUrl.trim();
+  if (!configuredMint) {
+    throw new Error("MINT_BASE_URL is required for xAI; direct vendor access is unsupported");
+  }
+
+  let mint: URL;
+  try {
+    mint = new URL(configuredMint);
+  } catch {
+    throw new Error("MINT_BASE_URL must be an absolute HTTP(S) origin");
+  }
+  if (
+    !["http:", "https:"].includes(mint.protocol) ||
+    mint.username ||
+    mint.password ||
+    mint.search ||
+    mint.hash ||
+    (mint.pathname !== "/" && mint.pathname !== "")
+  ) {
+    throw new Error("MINT_BASE_URL must be an absolute HTTP(S) origin");
+  }
+
+  const expected = `${mint.origin}/proxy/https/api.x.ai/v1`;
+  const configured = baseUrl.trim().replace(/\/+$/, "");
+  if (configured !== expected) {
+    throw new Error(`XAI_BASE_URL must equal ${expected}`);
+  }
+  return expected;
 }
 
 export class BraveProvider implements ProviderAdapter {
