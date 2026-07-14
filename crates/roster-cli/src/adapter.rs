@@ -1,7 +1,7 @@
 use crate::receipt;
 use anyhow::{Context, Result, bail};
 use chrono::Utc;
-use roster_core::{Harness, ResolvedAgent, ResolvedMcp};
+use roster_core::{BundleManifest, Harness, ResolvedAgent, ResolvedMcp};
 use serde_json::{Map, Value, json};
 use signal_hook::iterator::Signals;
 use std::{
@@ -33,6 +33,7 @@ struct Invocation {
 #[derive(Debug)]
 struct RunBundle {
     path: PathBuf,
+    manifest: Option<BundleManifest>,
     keep: bool,
     cleaned: bool,
 }
@@ -41,6 +42,7 @@ impl RunBundle {
     fn new(path: PathBuf) -> Self {
         Self {
             path,
+            manifest: None,
             keep: false,
             cleaned: false,
         }
@@ -52,6 +54,12 @@ impl RunBundle {
         }
         self.cleaned = true;
         Ok(())
+    }
+
+    fn manifest(&self) -> &BundleManifest {
+        self.manifest
+            .as_ref()
+            .expect("dispatch bundle manifest must exist after preparation")
     }
 }
 
@@ -78,8 +86,11 @@ pub fn dispatch(
     let started_at = Utc::now();
     if let Err(preflight_error) = preflight(agent, workspace, &invocation) {
         let receipt_path = match receipt::record(
-            agent,
-            workspace.to_path_buf(),
+            invocation
+                .bundle
+                .as_ref()
+                .expect("dispatch bundle")
+                .manifest(),
             keep_bundle.then(|| {
                 invocation
                     .bundle
@@ -115,8 +126,11 @@ pub fn dispatch(
     std::io::stderr().flush()?;
     let status = run_invocation(&invocation)?;
     let path = receipt::record(
-        agent,
-        workspace.to_path_buf(),
+        invocation
+            .bundle
+            .as_ref()
+            .expect("dispatch bundle")
+            .manifest(),
         keep_bundle.then(|| {
             invocation
                 .bundle
@@ -202,9 +216,9 @@ fn prepare(agent: &ResolvedAgent, workspace: &Path) -> Result<Invocation> {
         std::process::id(),
         agent.name
     ));
-    let guard = RunBundle::new(run_root.clone());
+    let mut guard = RunBundle::new(run_root.clone());
     let bundle = run_root.join("bundle");
-    agent.write_bundle(&bundle, workspace)?;
+    guard.manifest = Some(agent.write_bundle(&bundle, workspace)?);
     let mut invocation = match agent.harness {
         Harness::Codex => prepare_codex(agent, workspace, &bundle, &run_root)?,
         Harness::Claude => prepare_claude(agent, workspace, &bundle, &run_root)?,

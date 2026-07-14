@@ -14,7 +14,7 @@ const CONFIG_SCHEMA: &str = "roster.config.v1";
 const ROLE_SCHEMA: &str = "roster.role.v2";
 const PACK_SCHEMA: &str = "roster.pack.v1";
 const MCP_SCHEMA: &str = "roster.mcp_registry.v1";
-const MANIFEST_SCHEMA: &str = "roster.bundle.v1";
+const MANIFEST_SCHEMA: &str = "roster.bundle.v2";
 
 pub fn discover_config(start: &Path, home: &Path) -> Result<PathBuf, RosterError> {
     let start = absolute(start)?;
@@ -108,14 +108,82 @@ impl Roster {
             )));
         }
 
+        self.resolve_includes(
+            name,
+            name,
+            &agent.description,
+            &role.name,
+            &role.description,
+            &role.include,
+            agent.clone(),
+            role_identity.to_string(),
+        )
+    }
+
+    pub fn resolve_ad_hoc(
+        &self,
+        binding: &str,
+        name: &str,
+        purpose: &str,
+        include: &[String],
+    ) -> Result<ResolvedAgent, RosterError> {
+        if !is_slug(name) {
+            return Err(RosterError::Validation(format!(
+                "unsafe ad-hoc agent name {name:?}"
+            )));
+        }
+        if self.agent(name).is_some() {
+            return Err(RosterError::Validation(format!(
+                "ad-hoc agent name {name:?} conflicts with a declared agent"
+            )));
+        }
+        let purpose = purpose.trim();
+        if purpose.is_empty() {
+            return Err(RosterError::Validation(
+                "ad-hoc purpose must not be empty".to_owned(),
+            ));
+        }
+        if include.is_empty() {
+            return Err(RosterError::Validation(
+                "ad-hoc composition must include at least one primitive or pack".to_owned(),
+            ));
+        }
+        let agent = self
+            .agent(binding)
+            .cloned()
+            .ok_or_else(|| RosterError::UnknownAgent(binding.to_owned()))?;
+        self.resolve_includes(
+            name,
+            binding,
+            purpose,
+            "ad-hoc",
+            purpose,
+            include,
+            agent,
+            format!("ad-hoc/role:{name}"),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn resolve_includes(
+        &self,
+        name: &str,
+        binding: &str,
+        description: &str,
+        role_name: &str,
+        role_description: &str,
+        include: &[String],
+        agent: Agent,
+        via_root: String,
+    ) -> Result<ResolvedAgent, RosterError> {
         let mut flattened = Vec::new();
         let mut pack_stack = BTreeSet::new();
-        for include in &role.include {
+        for include in include {
             self.expand(
                 include,
                 &mut flattened,
                 &mut pack_stack,
-                &[role_identity.to_string()],
+                std::slice::from_ref(&via_root),
             )?;
         }
 
@@ -210,13 +278,14 @@ impl Roster {
 
         Ok(ResolvedAgent {
             name: name.to_owned(),
-            description: agent.description.clone(),
-            role: role.name,
-            role_description: role.description,
-            model: agent.model.clone(),
-            reasoning: agent.reasoning.clone(),
+            binding: binding.to_owned(),
+            description: description.to_owned(),
+            role: role_name.to_owned(),
+            role_description: role_description.to_owned(),
+            model: agent.model,
+            reasoning: agent.reasoning,
             harness: agent.harness,
-            args: agent.args.clone(),
+            args: agent.args,
             guidance,
             skills,
             mcps,
@@ -458,6 +527,7 @@ impl std::ops::Deref for ResolvedMcp {
 #[derive(Debug, Clone)]
 pub struct ResolvedAgent {
     pub name: String,
+    pub binding: String,
     pub description: String,
     pub role: String,
     pub role_description: String,
@@ -508,7 +578,9 @@ impl ResolvedAgent {
         let manifest = BundleManifest {
             schema_version: MANIFEST_SCHEMA.to_owned(),
             agent: self.name.clone(),
+            binding: self.binding.clone(),
             role: self.role.clone(),
+            purpose: self.description.clone(),
             model: self.model.clone(),
             reasoning: self.reasoning.clone(),
             harness: self.harness,
@@ -622,7 +694,9 @@ struct McpProjection {
 pub struct BundleManifest {
     pub schema_version: String,
     pub agent: String,
+    pub binding: String,
     pub role: String,
+    pub purpose: String,
     pub model: String,
     pub reasoning: Option<String>,
     pub harness: Harness,

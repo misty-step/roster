@@ -5,8 +5,9 @@ the live fleet and source-qualified graph before authoring. Decide which layer
 is actually missing: no agent, reuse, another binding of an existing role, a
 new role, a reusable pack, guidance, an on-demand skill, or an MCP capability.
 Create no definition when an existing agent or a one-off dispatch already
-closes the measured gap. Compose upward from existing primitives only when the
-capability must recur. Different semantics require a role;
+closes the measured gap. A one-off dispatch uses an explicit ephemeral role;
+it never augments a named agent's role. Compose upward from existing primitives
+only when the capability must recur. Different durable semantics require a role;
 model, Harness, reasoning, permissions, and native args belong only in the
 agent binding.
 

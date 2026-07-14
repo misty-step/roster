@@ -43,10 +43,29 @@ exact scope, an oracle it can run, the output shape you need back, and hard
 boundaries. Give fresh critics (reviewer, verifier) only the artifact and the
 oracle — never the author's reasoning trail.
 
+For a one-off composition that does not deserve a durable role yet, resolve or
+dispatch an ephemeral role:
+
+```sh
+roster dispatch \
+  --using <binding-agent> \
+  --as <runtime-name> \
+  --purpose "<one concise why>" \
+  --include <source/pack:name-or-primitive> \
+  --include <source/skill:name>
+```
+
+`--using` supplies only the configured Harness, model, reasoning, and native
+arguments. Its role contributes nothing. The repeatable `--include` values are
+the complete role and use the same additive resolver as declared roles. Use
+`roster resolve` with the same selector and `--output` to inspect the exact
+bundle. Promote a composition to a named role when it recurs or becomes part of
+an operating contract.
+
 ## Ground rules
 
 - One card, one lane: a dispatched agent works one commissioned outcome.
 - Don't chain dispatches to simulate a pipeline the operator didn't ask for;
   each hop loses context and costs attention.
-- If the right agent doesn't exist, record an agent-creation gap for the
-  operator — do not improvise a role.
+- If no named agent fits, use an explicit ad-hoc role for one-off work. Record
+  an agent-creation gap only when the composition should recur.

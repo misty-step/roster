@@ -42,12 +42,16 @@ sessions, caches, UI preferences, and native configuration.
   or another runtime.
 - An **agent definition** binds `name + role + model + Harness + optional args`.
   It does not add primitives outside its role.
+- An **ad-hoc role** is one ephemeral `include` list supplied at resolve or
+  dispatch time. It borrows only the runtime binding from a named agent, never
+  that agent's role, and is not written back to configuration.
 - An **agent instance** is that definition running in an environment. Roster
   does not supervise the instance or own its run history.
 
-If two agents need different primitives, they have different roles. This keeps
-the effective behavior legible and prevents a second composition language from
-growing inside launch configuration.
+If two durable agents need different primitives, they have different roles. A
+one-off lane may use an ad-hoc role through the same additive include language;
+recurring compositions graduate into declarations. This keeps effective
+behavior legible without filling the curated library with disposable roles.
 
 ## The library
 
@@ -97,6 +101,13 @@ Guidance is a first-class primitive for concise, always-loaded philosophy,
 principles, preferences, and practices. Skills remain triggered workflows; MCP
 declarations make tools available. Guidance should not grow into another name
 for a skill or a verbose system prompt.
+
+Ad-hoc resolution is not role augmentation. The selected binding contributes
+its Harness, model, reasoning, and validated native arguments; its role
+contributes zero primitives. The ephemeral include list replaces semantic
+composition completely, expands through the same resolver, and appears as an
+ad-hoc provenance root in the manifest. Roster never persists it. This is one
+composition language with two lifetimes, not a hidden override layer.
 
 ## The resolved bundle
 
@@ -197,11 +208,13 @@ router:
 
 The CLI is small: bare `roster` opens the agent picker; `init`, `list`, `show`,
 `resolve`, `dispatch`, `inspect`, `rescue`, and `check` cover the public
-surface. A hidden `authority request` seam supports an optional provider for
-one named mid-session operation without making credentials or permissions part
-of agent composition. Roster does not need a standing MCP server, HTTP API,
-web UI, sync daemon, or workstation doctor until real demand proves the
-filesystem and CLI insufficient.
+surface. `resolve` and `dispatch` accept either one named agent or an explicit
+ephemeral selection (`--using`, `--as`, `--purpose`, repeatable `--include`). A
+hidden `authority request` seam supports an optional provider for one named
+mid-session operation without making credentials or permissions part of agent
+composition. Roster does not need a standing MCP server, HTTP API, web UI,
+sync daemon, or workstation doctor until real demand proves the filesystem and
+CLI insufficient.
 
 ## Non-goals
 
@@ -229,11 +242,19 @@ Curated skills, external provenance, and useful plain-file declarations remain.
 The deterministic spine is now validation, resolution, manifest production,
 receipts, and thin launch mechanics.
 
+Ad-hoc dispatch deliberately advances bundles to `roster.bundle.v2` and
+dispatch receipts to `roster.receipt.v2`. Both now retain the runtime binding,
+purpose, and exact effective composition evidence. Roster is pre-1.0: v1
+consumers must upgrade rather than receive a compatibility translation that
+would erase the new audit contract.
+
 ## What excellent looks like
 
 Today, one private role can compose public primitives, resolve to a bundle
 whose router and provenance are obvious, and launch through Codex, Claude Code,
-or OMP without changing permanent Harness configuration.
+or OMP without changing permanent Harness configuration. One-off lanes can
+compose the same primitives ephemerally without creating declaration debris or
+inheriting an unrelated role.
 
 In the medium term, control planes such as Bitterblossom consume the same
 bundle contract as local dispatch, while eval evidence—not remembered model

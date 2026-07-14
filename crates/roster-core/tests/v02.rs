@@ -159,6 +159,176 @@ fn bundle_contains_only_the_resolved_role_primitives() {
 }
 
 #[test]
+fn ad_hoc_resolution_replaces_the_binding_role_with_exact_includes() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let source_root = temp.path().join("source");
+    source(&source_root, "core", "powder");
+    write(
+        &source_root.join("primitives/guidance/focus.md"),
+        "# Focus\n\nInvestigate only the commissioned seam.\n",
+    );
+    write(
+        &source_root.join("primitives/skills/research/SKILL.md"),
+        "---\nname: research\ndescription: Research one question.\n---\n\nResearch it.\n",
+    );
+    write(
+        &source_root.join("packs/scout.yaml"),
+        "schema_version: roster.pack.v1\nname: scout\ninclude:\n  - core/guidance:focus\n  - core/skill:research\n  - core/mcp:powder\n",
+    );
+    config(
+        &temp.path().join("config.yaml"),
+        "core",
+        &source_root,
+        "amos",
+        "codex",
+    );
+    let roster = Roster::load_config(temp.path().join("config.yaml")).expect("load");
+
+    let resolved = roster
+        .resolve_ad_hoc(
+            "amos",
+            "dependency-scout",
+            "Map one dependency before implementation.",
+            &[
+                "core/pack:scout".to_owned(),
+                "core/skill:research".to_owned(),
+            ],
+        )
+        .expect("resolve ad-hoc role");
+
+    assert_eq!(resolved.name, "dependency-scout");
+    assert_eq!(resolved.binding, "amos");
+    assert_eq!(resolved.role, "ad-hoc");
+    assert_eq!(resolved.harness, Harness::Codex);
+    assert_eq!(resolved.model, "test/model");
+    assert_eq!(
+        resolved
+            .guidance
+            .iter()
+            .map(|item| item.identity.as_str())
+            .collect::<Vec<_>>(),
+        ["core/guidance:focus"]
+    );
+    assert_eq!(
+        resolved
+            .skills
+            .iter()
+            .map(|item| item.identity.as_str())
+            .collect::<Vec<_>>(),
+        ["core/skill:research"]
+    );
+    assert_eq!(resolved.mcps[0].identity, "core/mcp:powder");
+    assert!(
+        resolved
+            .skills
+            .iter()
+            .all(|item| item.identity != "core/skill:deliver"),
+        "the binding role must contribute zero primitives"
+    );
+    assert!(
+        resolved
+            .guidance
+            .iter()
+            .all(|item| item.identity != "core/guidance:identity"),
+        "the binding role must contribute zero primitives"
+    );
+    assert_eq!(
+        resolved.skills[0].via,
+        vec![
+            vec![
+                "ad-hoc/role:dependency-scout".to_owned(),
+                "core/pack:scout".to_owned()
+            ],
+            vec!["ad-hoc/role:dependency-scout".to_owned()]
+        ]
+    );
+}
+
+#[test]
+fn ad_hoc_resolution_fails_closed_on_invalid_compositions() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let source_root = temp.path().join("source");
+    source(&source_root, "core", "powder");
+    config(
+        &temp.path().join("config.yaml"),
+        "core",
+        &source_root,
+        "amos",
+        "codex",
+    );
+    let roster = Roster::load_config(temp.path().join("config.yaml")).expect("load");
+
+    for (name, purpose, include, expected) in [
+        (
+            "../escape",
+            "purpose",
+            vec!["core/skill:deliver"],
+            "unsafe ad-hoc agent name",
+        ),
+        (
+            "scout",
+            "",
+            vec!["core/skill:deliver"],
+            "purpose must not be empty",
+        ),
+        (
+            "scout",
+            "purpose",
+            vec![],
+            "include at least one primitive or pack",
+        ),
+        (
+            "scout",
+            "purpose",
+            vec!["core/role:orchestrator"],
+            "roles cannot include roles",
+        ),
+        (
+            "amos",
+            "purpose",
+            vec!["core/skill:deliver"],
+            "conflicts with a declared agent",
+        ),
+    ] {
+        let include = include.into_iter().map(str::to_owned).collect::<Vec<_>>();
+        let error = roster
+            .resolve_ad_hoc("amos", name, purpose, &include)
+            .expect_err("invalid ad-hoc composition must fail");
+        assert!(error.to_string().contains(expected), "{error}");
+    }
+
+    let error = roster
+        .resolve_ad_hoc(
+            "missing",
+            "scout",
+            "purpose",
+            &["core/skill:deliver".to_owned()],
+        )
+        .expect_err("missing binding must fail");
+    assert!(error.to_string().contains("unknown agent"), "{error}");
+
+    let config_path = temp.path().join("config.yaml");
+    let body = fs::read_to_string(&config_path)
+        .expect("config")
+        .replace("core/role:orchestrator", "core/role:missing");
+    write(&config_path, &body);
+    let roster = Roster::load_config(&config_path).expect("load structurally valid binding");
+    assert!(
+        roster.resolve("amos").is_err(),
+        "declared role is unavailable"
+    );
+    let resolved = roster
+        .resolve_ad_hoc(
+            "amos",
+            "scout",
+            "purpose",
+            &["core/skill:deliver".to_owned()],
+        )
+        .expect("unrelated binding role must not affect an ad-hoc role");
+    assert_eq!(resolved.skills[0].identity, "core/skill:deliver");
+}
+
+#[test]
 fn secret_shaped_files_and_symlinks_are_rejected_before_bundle_creation() {
     use std::os::unix::fs::symlink;
 

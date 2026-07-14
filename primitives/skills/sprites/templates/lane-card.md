@@ -31,6 +31,8 @@ roster dispatch <agent>
 # role is resolved independently; child-only primitives never load in the lead.
 ```
 
-If no declared agent fits, add a role and atomic agent binding to the applicable
-Roster config rather than adding primitives at launch. Durable evidence belongs
-on the Powder card; Roster writes the local dispatch receipt automatically.
+If no declared agent fits one lane, use Roster's explicit ad-hoc selector and
+make its repeatable `--include` values the complete ephemeral role. Add a role
+and atomic binding only when that composition should recur. Durable evidence
+belongs on the Powder card; Roster writes the local dispatch receipt
+automatically.

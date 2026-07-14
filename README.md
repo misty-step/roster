@@ -31,11 +31,13 @@ sessions, caches, preferences, and raw Harness commands remain user-owned.
 - An **agent definition** binds a name, description, role, model, Harness,
   and safe native arguments. Any agent may dispatch any other agent; the
   `roster` skill teaches the CLI mechanics.
+- An **ad-hoc role** is an ephemeral include list for one lane. It borrows a
+  named agent's runtime binding but none of that agent's role primitives.
 - An **agent instance** is that definition running in a workspace.
 
-Agents do not add primitives outside their role. If two agents need different
-behavior, define two roles. Composition is source-qualified and additive: there
-are no implicit overrides.
+Durable agents do not add primitives outside their role. If behavior recurs,
+define another role. For one-off work, resolve an ad-hoc role through the same
+source-qualified additive include language; there are no implicit overrides.
 
 ## Configuration hierarchy
 
@@ -72,6 +74,15 @@ roster show amos               # binding plus exact resolved composition
 roster resolve amos --output /tmp/amos
 roster dispatch amos           # resolve, project, and launch
 roster dispatch amos --dry-run # inspect the exact launch command
+roster resolve --using amos --as dependency-scout \
+  --purpose "Map one dependency." \
+  --include core/pack:engineering-core \
+  --include core/skill:research \
+  --output /tmp/dependency-scout
+roster dispatch --using amos --as dependency-scout \
+  --purpose "Map one dependency." \
+  --include core/pack:engineering-core \
+  --include core/skill:research
 roster inspect amos            # effective config, graph, recent receipts
 roster check                   # config graph plus public-catalog gate
 roster rescue codex            # raw skeletal Harness for Roster repair
@@ -89,8 +100,15 @@ manifest.yaml
 The generated `AGENTS.md` identifies the role and routes the model to exactly
 the selected guidance, skills, and MCPs. `manifest.yaml` records
 source-qualified identities, inclusion chains, workspace-context sources and
-digests, file digests, model, Harness, and safe launch arguments. Runtime bundles are deleted by default;
-`dispatch --keep-bundle` retains one for inspection.
+digests, file digests, purpose, binding, model, Harness, and safe launch
+arguments. Runtime bundles are deleted by default; `dispatch --keep-bundle`
+retains one for inspection.
+
+`--using` supplies only Harness, model, reasoning, and validated native
+arguments. The repeatable `--include` flags are the complete ephemeral role;
+the named binding's role is not merged. Resolution is memory-only. If the same
+composition becomes useful repeatedly, promote it to a declared role and agent
+instead of preserving command-line folklore.
 
 ## Isolation and escape hatches
 
@@ -111,7 +129,8 @@ Each Tier 1 adapter creates a private projection:
 The adapter preserves the child exit code and forwards termination signals.
 If an exact projection cannot be proved, dispatch fails closed. Native child
 agents inherit too much parent context in current Tier 1 Harnesses, so resolved
-guidance directs primary agents to dispatch named Roster agents instead.
+guidance directs primary agents to dispatch independently resolved named or
+ad-hoc Roster agents instead.
 
 Raw `codex`, `claude`, and `omp` remain the direct escape hatches. `roster
 rescue` creates an intentionally context-free repair session when composition
@@ -121,10 +140,13 @@ itself is broken.
 
 Dispatch writes a bounded, redacted receipt under
 `~/.local/state/roster/receipts/` (or `$ROSTER_STATE_DIR`). It records identity,
-workspace, config, model, Harness, clocks, exit status, and retained bundle
-path—never prompts, environment values, or credentials.
+binding, role, exact effective primitive identities, workspace, config, model,
+Harness, clocks, exit status, and retained bundle path—never prompts,
+environment values, or credentials.
 Preflight failures are receipted before the temporary projection is removed;
 their child exit status is empty because the Harness never launched.
+Bundles use `roster.bundle.v2` and dispatch receipts use `roster.receipt.v2`;
+the v2 audit fields intentionally replace the pre-1.0 v1 schemas.
 
 A config may declare an optional external authority command. Inside a launched
 session, `roster authority request <capability>` asks that provider to grant,

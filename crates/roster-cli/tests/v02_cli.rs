@@ -103,7 +103,10 @@ fn resolve_writes_an_exact_bundle_and_reports_its_manifest() {
         ])
         .assert()
         .success()
-        .stdout(predicate::str::contains("agent: amos"));
+        .stdout(predicate::str::contains("schema_version: roster.bundle.v2"))
+        .stdout(predicate::str::contains("agent: amos"))
+        .stdout(predicate::str::contains("binding: amos"))
+        .stdout(predicate::str::contains("purpose: Codex lead"));
     assert!(bundle.join("skills/deliver/SKILL.md").is_file());
 }
 
@@ -172,6 +175,173 @@ fn dispatch_dry_run_is_transparent_and_rescue_has_no_roster_context() {
         .success()
         .stdout(predicate::str::contains("CODEX_HOME="))
         .stdout(predicate::str::contains("--disable apps"));
+}
+
+#[test]
+fn resolve_and_dispatch_accept_one_explicit_ad_hoc_composition() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let config_before = fs::read(&config).expect("config before");
+    let bundle = temp.path().join("bundle");
+
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "resolve",
+            "--using",
+            "amos",
+            "--as",
+            "one-off",
+            "--purpose",
+            "Verify one exact seam.",
+            "--include",
+            "core/skill:deliver",
+            "--output",
+            bundle.to_str().unwrap(),
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("agent: one-off"))
+        .stdout(predicate::str::contains("binding: amos"))
+        .stdout(predicate::str::contains("role: ad-hoc"));
+    let agents = fs::read_to_string(bundle.join("AGENTS.md")).expect("AGENTS.md");
+    assert!(agents.contains("# one-off"));
+    assert!(agents.contains("Verify one exact seam."));
+    assert!(agents.contains("skills/deliver/SKILL.md"));
+    assert!(!agents.contains("Coordinate work."));
+
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "resolve",
+            "--using",
+            "amos",
+            "--as",
+            "one-off",
+            "--purpose",
+            "Verify one exact seam.",
+            "--include",
+            "core/skill:deliver",
+            "--output",
+            bundle.to_str().unwrap(),
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "bundle destination already exists",
+        ));
+
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "dispatch",
+            "--using",
+            "amos",
+            "--as",
+            "one-off",
+            "--purpose",
+            "Verify one exact seam.",
+            "--include",
+            "core/skill:deliver",
+            "--dry-run",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("ROSTER_AGENT=one-off"))
+        .stdout(predicate::str::contains("gpt-test"));
+
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "dispatch",
+            "--using",
+            "amos",
+            "--as",
+            "one-off",
+            "--purpose",
+            "missing includes",
+            "--dry-run",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--include"));
+    assert_eq!(fs::read(&config).expect("config after"), config_before);
+    assert!(
+        !temp.path().join("source/roles/one-off.yaml").exists(),
+        "ad-hoc resolution must not persist a generated role"
+    );
+}
+
+#[test]
+fn ad_hoc_dispatch_receipt_retains_the_exact_effective_composition() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_codex(&bin, "exit 0");
+    let state = temp.path().join("state");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_STATE_DIR", &state)
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--cwd",
+            temp.path().to_str().unwrap(),
+            "dispatch",
+            "--using",
+            "amos",
+            "--as",
+            "one-off",
+            "--purpose",
+            "Verify one exact seam.",
+            "--include",
+            "core/skill:deliver",
+        ])
+        .assert()
+        .success();
+
+    let receipt_path = fs::read_dir(state.join("receipts"))
+        .expect("receipts")
+        .next()
+        .expect("one receipt")
+        .expect("receipt entry")
+        .path();
+    let receipt = fs::read_to_string(receipt_path).expect("receipt body");
+    assert!(receipt.contains("schema_version: roster.receipt.v2"));
+    assert!(receipt.contains("agent: one-off"));
+    assert!(receipt.contains("binding: amos"));
+    assert!(receipt.contains("role: ad-hoc"));
+    assert!(receipt.contains("purpose: Verify one exact seam."));
+    assert!(receipt.contains("reasoning: high"));
+    assert!(receipt.contains("- --search"));
+    assert!(receipt.contains("identity: core/skill:deliver"));
+    assert!(receipt.contains("ad-hoc/role:one-off"));
+    assert!(receipt.contains("guidance: []"));
+    assert!(receipt.contains("mcps: []"));
+    assert!(receipt.contains("AGENTS.md: sha256:"));
+
+    let receipt: serde_yaml::Value = serde_yaml::from_str(&receipt).expect("receipt yaml");
+    assert!(receipt["bundle"].is_null());
+    assert!(
+        !state.join("runs").exists()
+            || fs::read_dir(state.join("runs"))
+                .expect("runs")
+                .next()
+                .is_none(),
+        "default-deleted dispatch must retain evidence in the receipt, not the run tree"
+    );
 }
 
 fn fake_codex(directory: &Path, launch: &str) {
@@ -538,6 +708,20 @@ fn dispatch_preserves_child_exit_code_and_cleans_failed_run() {
         .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
         .assert()
         .code(42);
+    let receipt = fs::read_dir(state.join("receipts"))
+        .expect("receipts")
+        .next()
+        .expect("named receipt")
+        .expect("receipt entry")
+        .path();
+    let receipt = fs::read_to_string(receipt).expect("named receipt body");
+    assert!(receipt.contains("schema_version: roster.receipt.v2"));
+    assert!(receipt.contains("agent: amos"));
+    assert!(receipt.contains("binding: amos"));
+    assert!(receipt.contains("role: orchestrator"));
+    assert!(receipt.contains("purpose: Codex lead"));
+    assert!(receipt.contains("identity: core/guidance:lead"));
+    assert!(receipt.contains("AGENTS.md: sha256:"));
     assert!(
         !state.join("runs").exists()
             || fs::read_dir(state.join("runs"))

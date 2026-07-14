@@ -4,7 +4,7 @@ mod picker;
 mod receipt;
 
 use anyhow::{Context, Result, anyhow, bail};
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use roster_core::{Harness, ResolvedAgent, Roster, RosterError};
 use std::{env, fs, io::IsTerminal, path::PathBuf};
 
@@ -41,13 +41,15 @@ enum Command {
     Show { agent: String },
     /// Resolve one agent into an immutable bundle without launching it.
     Resolve {
-        agent: String,
+        #[command(flatten)]
+        selection: AgentSelection,
         #[arg(long)]
         output: PathBuf,
     },
-    /// Launch one atomic agent definition.
+    /// Launch one named agent or one explicit ephemeral composition.
     Dispatch {
-        agent: String,
+        #[command(flatten)]
+        selection: AgentSelection,
         #[arg(long)]
         dry_run: bool,
         /// Retain the runtime bundle after the Harness exits.
@@ -70,6 +72,35 @@ enum Command {
         #[command(subcommand)]
         command: AuthorityCommand,
     },
+}
+
+#[derive(Debug, Args)]
+struct AgentSelection {
+    /// Launch this named agent definition and its complete role.
+    #[arg(
+        value_name = "AGENT",
+        required_unless_present = "using",
+        conflicts_with = "using"
+    )]
+    agent: Option<String>,
+    /// Borrow only this agent's Harness, model, reasoning, and native arguments.
+    #[arg(
+        long,
+        value_name = "AGENT",
+        required_unless_present = "agent",
+        conflicts_with = "agent",
+        requires_all = ["as_name", "purpose", "include"]
+    )]
+    using: Option<String>,
+    /// Runtime name for an ephemeral role.
+    #[arg(long = "as", value_name = "NAME", requires = "using")]
+    as_name: Option<String>,
+    /// Concise purpose injected as the ephemeral role description.
+    #[arg(long, value_name = "TEXT", requires = "using")]
+    purpose: Option<String>,
+    /// Exact primitive or pack to include; repeat for the complete composition.
+    #[arg(long, value_name = "IDENTITY", requires = "using")]
+    include: Vec<String>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -104,18 +135,23 @@ fn run(cli: Cli) -> Result<()> {
             let roster = load(&cli.config, &cwd)?;
             print_resolved(&roster.resolve(&agent)?);
         }
-        Some(Command::Resolve { agent, output }) => {
+        Some(Command::Resolve { selection, output }) => {
             let roster = load(&cli.config, &cwd)?;
-            let manifest = roster.resolve(&agent)?.write_bundle(&output, &cwd)?;
+            let manifest = resolve_selection(&roster, &selection)?.write_bundle(&output, &cwd)?;
             print!("{}", serde_yaml::to_string(&manifest)?);
         }
         Some(Command::Dispatch {
-            agent,
+            selection,
             dry_run,
             keep_bundle,
         }) => {
             let roster = load(&cli.config, &cwd)?;
-            adapter::dispatch(&roster.resolve(&agent)?, &cwd, dry_run, keep_bundle)?;
+            adapter::dispatch(
+                &resolve_selection(&roster, &selection)?,
+                &cwd,
+                dry_run,
+                keep_bundle,
+            )?;
         }
         Some(Command::Inspect { agent }) => {
             let roster = load(&cli.config, &cwd)?;
@@ -178,6 +214,20 @@ fn run(cli: Cli) -> Result<()> {
         }) => request_authority(&cli.config, &cwd, &capability)?,
     }
     Ok(())
+}
+
+fn resolve_selection(roster: &Roster, selection: &AgentSelection) -> Result<ResolvedAgent> {
+    if let Some(agent) = &selection.agent {
+        return roster.resolve(agent).map_err(Into::into);
+    }
+    roster
+        .resolve_ad_hoc(
+            selection.using.as_deref().context("missing --using")?,
+            selection.as_name.as_deref().context("missing --as")?,
+            selection.purpose.as_deref().context("missing --purpose")?,
+            &selection.include,
+        )
+        .map_err(Into::into)
 }
 
 fn load(config: &Option<PathBuf>, cwd: &std::path::Path) -> Result<Roster> {
@@ -251,6 +301,7 @@ fn print_agents(roster: &Roster) {
 
 fn print_resolved(agent: &ResolvedAgent) {
     println!("name: {}", agent.name);
+    println!("binding: {}", agent.binding);
     println!("description: {}", agent.description);
     println!("role: {}", agent.role);
     println!("harness: {}", agent.harness);
