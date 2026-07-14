@@ -43,7 +43,7 @@ mcps:
       - health checks
       - production debugging
     transport: stdio
-    command: /Users/phaedrus/Development/canary/bin/canary
+    command: canary
     args:
       - mcp-server
     env_refs:
@@ -60,10 +60,6 @@ mcps:
       must not be polled after it returned Poll::Ready(None)" while starting
       the Context7 HTTP/SSE MCP session; keep the role reference resolvable
       without enabling the server.
-
-  - id: conviction
-    status: external
-    notes: Contextual MCP referenced by the Simons role.
 
   - id: crucible
     status: available
@@ -125,10 +121,7 @@ mcps:
       - audit tail (read-only)
       - proxy-contract usage docs
     transport: stdio
-    command: bash
-    args:
-      - -lc
-      - cd /Users/phaedrus/Development/mint && exec cargo run --locked -q -p mint-mcp
+    command: mint-mcp
 
   - id: overmind
     status: available
@@ -140,7 +133,7 @@ mcps:
       - read fleet summary
       - read own-session snapshot (usage, status, policy state)
     transport: stdio
-    command: /Users/phaedrus/Development/overmind/target/release/overmind
+    command: overmind
     args:
       - mcp
       - --api-base
@@ -159,35 +152,21 @@ mcps:
       - operator input requests
       - work status tracking
     transport: stdio
-    command: bash
-    args:
-      - -lc
-      - >-
-        export OP_SERVICE_ACCOUNT_TOKEN="${OP_SERVICE_ACCOUNT_TOKEN:-$(security
-        find-generic-password -a "$USER" -s op-agent -w 2>/dev/null)}"
-        OP_LOAD_DESKTOP_APP_SETTINGS=false OP_CACHE=false; set -a; source
-        ~/.secrets; set +a; if [[ "$POWDER_API_BASE_URL" == op://* ]]; then
-        POWDER_API_BASE_URL="$(op read "$POWDER_API_BASE_URL")"; fi;
-        POWDER_API_KEY="$(security find-generic-password -a "$USER" -s
-        powder-admin-key -w 2>/dev/null || op read "$POWDER_API_KEY")"; export
-        POWDER_API_BASE_URL POWDER_API_KEY POWDER_MCP_TOOLSETS=all; exec
-        powder-mcp
+    command: powder-mcp
     env_refs:
       - POWDER_API_BASE_URL
       - POWDER_API_KEY
-    notes: The owner orchestrator resolves the sanctioned Keychain admin credential.
+    notes: >-
+      The operator environment supplies endpoint and credential references;
+      Roster does not read a vault, Keychain, or secrets file.
 
   - id: qmd
     status: available
     transport: stdio
-    command: /Users/phaedrus/.bun/bin/qmd
+    command: qmd
     args:
       - mcp
-    notes: Project-scoped qmd shape found under the daybook Claude config.
-
-  - id: robinhood-trading
-    status: external
-    notes: Required MCP referenced by the Simons role.
+    notes: The operator installs qmd on PATH and supplies project scope privately.
 
   - id: todoist
     status: available

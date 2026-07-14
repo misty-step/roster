@@ -3,10 +3,126 @@ use std::fs;
 use std::path::PathBuf;
 
 #[test]
+fn public_library_contains_no_operator_identifiers() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let output = std::process::Command::new("git")
+        .args(["ls-files", "-z"])
+        .current_dir(&root)
+        .output()
+        .expect("list tracked public-library files");
+    assert!(output.status.success(), "git ls-files failed");
+
+    let mut findings = Vec::new();
+    for raw_path in output.stdout.split(|byte| *byte == 0) {
+        if raw_path.is_empty() {
+            continue;
+        }
+        let path = PathBuf::from(String::from_utf8_lossy(raw_path).as_ref());
+        let Ok(content) = fs::read_to_string(root.join(&path)) else {
+            continue;
+        };
+        for (line_index, line) in content.lines().enumerate() {
+            let labels = public_library_privacy_findings(line);
+            for label in labels {
+                findings.push(format!("{}:{}: {label}", path.display(), line_index + 1));
+            }
+        }
+    }
+
+    assert!(
+        findings.is_empty(),
+        "public library contains operator-specific material:\n{}",
+        findings.join("\n")
+    );
+}
+
+fn public_library_privacy_findings(line: &str) -> Vec<&'static str> {
+    let mut findings = Vec::new();
+    let macos_home_prefix = concat!("/", "Users", "/");
+    let tailnet_suffix = concat!(".ts", ".net");
+
+    if line.contains(macos_home_prefix) {
+        findings.push("absolute macOS home path");
+    }
+    if line.contains(tailnet_suffix) {
+        findings.push("private Tailnet hostname");
+    }
+    if email_addresses(line).any(|email| !allowed_public_email(email)) {
+        findings.push("non-allowlisted email address");
+    }
+
+    findings
+}
+
+fn email_addresses(line: &str) -> impl Iterator<Item = &str> {
+    line.match_indices('@').filter_map(|(at, _)| {
+        let bytes = line.as_bytes();
+        let mut start = at;
+        while start > 0 && is_email_local_byte(bytes[start - 1]) {
+            start -= 1;
+        }
+        let mut end = at + 1;
+        while end < bytes.len() && is_email_domain_byte(bytes[end]) {
+            end += 1;
+        }
+
+        let email = &line[start..end];
+        let domain = email.split_once('@')?.1;
+        let looks_like_format_string = email[..at - start].contains('%');
+        (!looks_like_format_string
+            && start < at
+            && domain.contains('.')
+            && domain
+                .rsplit_once('.')
+                .is_some_and(|(_, suffix)| suffix.chars().all(|ch| ch.is_ascii_alphabetic())))
+        .then_some(email)
+    })
+}
+
+fn is_email_local_byte(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'%' | b'+' | b'-')
+}
+
+fn is_email_domain_byte(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-')
+}
+
+fn allowed_public_email(email: &str) -> bool {
+    let Some((local, domain)) = email.rsplit_once('@') else {
+        return false;
+    };
+    domain == "example.com"
+        || domain == "users.noreply.github.com"
+        || (local == "hey" && domain == "herdr.dev")
+}
+
+#[test]
+fn public_library_privacy_oracle_is_structural() {
+    let home = concat!("/", "Users", "/", "someone-else", "/work");
+    let tailnet = concat!("service.example", ".ts", ".net");
+    let private_email = concat!("operator", "@", "personal.dev");
+
+    assert_eq!(
+        public_library_privacy_findings(home),
+        ["absolute macOS home path"]
+    );
+    assert_eq!(
+        public_library_privacy_findings(tailnet),
+        ["private Tailnet hostname"]
+    );
+    assert_eq!(
+        public_library_privacy_findings(private_email),
+        ["non-allowlisted email address"]
+    );
+    assert!(public_library_privacy_findings("person@example.com").is_empty());
+    assert!(public_library_privacy_findings("%s@github.com").is_empty());
+}
+
+#[test]
 fn every_example_agent_resolves_from_the_public_library() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let roster = Roster::load_config(root.join("examples/config.yaml")).expect("load example");
-    assert_eq!(roster.agents().len(), 12);
+    assert_eq!(roster.agents().len(), 13);
     for name in roster.agents().keys() {
         let resolved = roster
             .resolve(name)

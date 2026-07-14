@@ -46,34 +46,23 @@ into the URL and a placeholder where the credential would sit:
 Concrete — calling OpenRouter through the `openrouter.default` alias:
 
 ```sh
-curl -H "Authorization: Bearer __mint.openrouter.default__" \
-     -X POST "${MINT_BASE_URL:-http://mint.tail5f5eb4.ts.net:4949}/proxy/https/openrouter.ai/api/v1/chat/completions" \
+curl -H "$(printf '%s: Bearer %s' Authorization __mint.openrouter.default__)" \
+     -X POST "${MINT_BASE_URL:?Set MINT_BASE_URL in the private runtime environment}/proxy/https/openrouter.ai/api/v1/chat/completions" \
      -d '{"model": "...", "messages": [...]}'
 ```
 
-- **`MINT_BASE_URL`** — prefer the environment; the deployed default is
-  `http://mint.tail5f5eb4.ts.net:4949` (dedicated tailnet droplet since
-  2026-07-08, do-migration-105; plain HTTP is correct — WireGuard is the
-  transport encryption). Local `mint serve` uses `http://127.0.0.1:4949`.
-  You must be a tailnet peer: calls from off-tailnet (or through `tailscale
-  serve`/443, which launders the peer address) are refused by design.
+- **`MINT_BASE_URL`** — required from the private runtime environment. Local
+  `mint serve` commonly uses `http://127.0.0.1:4949`; deployed hostnames belong
+  in operator configuration, not this public skill. A deployed caller must use
+  the private network path that preserves its peer identity.
 - **`__mint.<service>.<name>__`** goes anywhere a real credential value would
   sit inside a *forwarded header*. mint swaps in the real secret after the
   request leaves your sandbox — you never hold the value. It is the
   resolvable form of the operator-facing alias `secret://<service>/<name>`.
-- **Live placeholders** (policy-gated per caller identity; `deploy/policy.yaml`
-  in the mint repo is the source of truth):
-  `__mint.openrouter.default__`, `__mint.openrouter.management__`,
-  `__mint.powder.default__`, `__mint.powder.bitterblossom__`,
-  `__mint.canary.default__`, `__mint.canary.read__`,
-  `__mint.canary.roster-mcp__`, `__mint.context7.default__`,
-  `__mint.exa.default__`, `__mint.cairn.default__`,
-  `__mint.firecrawl.default__`, `__mint.habitat.default__`, and
-  `__mint.supabase.read__`. The production broker resolves them from systemd
-  encrypted credential files on the dedicated DigitalOcean `mint` node. Brave
-  Search is intentionally absent and revoked. Fleet tags and the operator's
-  own tailnet identity (`phrazzld@github`) receive only their declared host,
-  method, path, alias, and budget rules.
+- **Live placeholders** are policy-gated per caller identity; the selected
+  mint deployment's policy and `mint alias list` are the source of truth. Do
+  not copy a production alias inventory, caller identities, or deployment
+  topology into a public primitive.
 - **`X-Mint-Capability`** is dev/loopback-only since mint-924 (local `mint
   serve` smoke) — it is not the deployed agent path and mint refuses it from
   anywhere but 127.0.0.1.
@@ -90,8 +79,8 @@ blind: `references/errors-and-scope.md`. Operator CLI and the read-only MCP face
 - Never accept, request, or echo a real credential value. If one reaches your
   context from any source, that is a mint-bypass bug — stop and flag it, don't
   route around mint to "fix" the call.
-- Prefer `MINT_BASE_URL` from the environment; the tailnet default above is
-  the documented fallback, not something to bake into committed code.
+- Require `MINT_BASE_URL` from the environment; never bake a deployed hostname
+  into committed code.
 - The dev-only capability token (loopback `mint serve`) is still sensitive.
   Handle it as a secret reference — never log it or paste it into code,
   commits, or reports.

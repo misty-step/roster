@@ -73,8 +73,8 @@ passes that artifact is miscalibrated. Preserve it as an immutable fixture
 beside a known passing reference; on disagreement, fix the rubric rather than
 overruling the human.
 
-Rejected artifact:
-`https://sanctum.tail5f5eb4.ts.net/artifacts/a/aesthetic-nav-lab-001/`.
+Rejected artifact: private run `aesthetic-nav-lab-001`; its operator-specific
+artifact URL is intentionally omitted from the public fixture notes.
 
 ## Cadence
 

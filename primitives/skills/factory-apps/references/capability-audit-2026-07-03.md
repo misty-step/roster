@@ -17,39 +17,39 @@ snapshot, not a product status source.
 ## Evidence Read
 
 - Canary:
-  - `/Users/phaedrus/Development/canary/README.md`
-  - `/Users/phaedrus/Development/canary/docs/factory-fleet-integration.md`
-  - `/Users/phaedrus/Development/canary/docs/compatibility-policy.md`
-  - `/Users/phaedrus/Development/canary/clients/typescript/package.json`
-  - `/Users/phaedrus/Development/canary/.agents/skills/canary-qa/SKILL.md`
-  - `/Users/phaedrus/Development/canary/.agents/skills/canary-deploy/SKILL.md`
+  - `$HOME/Development/canary/README.md`
+  - `$HOME/Development/canary/docs/factory-fleet-integration.md`
+  - `$HOME/Development/canary/docs/compatibility-policy.md`
+  - `$HOME/Development/canary/clients/typescript/package.json`
+  - `$HOME/Development/canary/.agents/skills/canary-qa/SKILL.md`
+  - `$HOME/Development/canary/.agents/skills/canary-deploy/SKILL.md`
 - Powder:
-  - `/Users/phaedrus/Development/powder/SKILL.md`
-  - `/Users/phaedrus/Development/powder/AGENTS.md`
-  - `/Users/phaedrus/Development/powder/README.md`
-  - `/Users/phaedrus/Development/powder/crates/powder-mcp/Cargo.toml`
+  - `$HOME/Development/powder/SKILL.md`
+  - `$HOME/Development/powder/AGENTS.md`
+  - `$HOME/Development/powder/README.md`
+  - `$HOME/Development/powder/crates/powder-mcp/Cargo.toml`
 - Landmark:
-  - `/Users/phaedrus/Development/landmark/README.md`
-  - `/Users/phaedrus/Development/landmark/docs/agent-integration.md`
-  - `/Users/phaedrus/Development/landmark/docs/fleet-integration-playbook.md`
-  - `/Users/phaedrus/Development/landmark/skills/landmark-dogfood/SKILL.md`
-  - `/Users/phaedrus/Development/landmark/package.json`
+  - `$HOME/Development/landmark/README.md`
+  - `$HOME/Development/landmark/docs/agent-integration.md`
+  - `$HOME/Development/landmark/docs/fleet-integration-playbook.md`
+  - `$HOME/Development/landmark/skills/landmark-dogfood/SKILL.md`
+  - `$HOME/Development/landmark/package.json`
 - Aesthetic:
-  - `/Users/phaedrus/Development/aesthetic/README.md`
-  - `/Users/phaedrus/Development/aesthetic/docs/ADOPTING.md`
-  - `/Users/phaedrus/Development/aesthetic/docs/vision.md`
-  - `/Users/phaedrus/Development/aesthetic/law/README.md`
-  - `/Users/phaedrus/Development/aesthetic/package.json`
-  - `/Users/phaedrus/Development/aesthetic/DESIGN.md`
+  - `$HOME/Development/aesthetic/README.md`
+  - `$HOME/Development/aesthetic/docs/ADOPTING.md`
+  - `$HOME/Development/aesthetic/docs/vision.md`
+  - `$HOME/Development/aesthetic/law/README.md`
+  - `$HOME/Development/aesthetic/package.json`
+  - `$HOME/Development/aesthetic/DESIGN.md`
 - Bitterblossom:
-  - `/Users/phaedrus/Development/bitterblossom/skills/bitterblossom/SKILL.md`
-  - `/Users/phaedrus/Development/bitterblossom/README.md`
-  - `/Users/phaedrus/Development/bitterblossom/AGENTS.md`
-  - `/Users/phaedrus/Development/bitterblossom/docs/spine.md`
-  - `/Users/phaedrus/Development/bitterblossom/.agents/skills/bb-dogfood/SKILL.md`
+  - `$HOME/Development/bitterblossom/skills/bitterblossom/SKILL.md`
+  - `$HOME/Development/bitterblossom/README.md`
+  - `$HOME/Development/bitterblossom/AGENTS.md`
+  - `$HOME/Development/bitterblossom/docs/spine.md`
+  - `$HOME/Development/bitterblossom/.agents/skills/bb-dogfood/SKILL.md`
 - Harness/system:
-  - `/Users/phaedrus/Development/harness-kit/skills/harness-engineering/references/preferred-stack.md`
-  - `/Users/phaedrus/.codex/config.toml` server names only; credential values were not copied
+  - `$HOME/Development/harness-kit/skills/harness-engineering/references/preferred-stack.md`
+  - `$HOME/.codex/config.toml` server names only; credential values were not copied
   - active Codex tool discovery for factory app MCP names
 
 ## System Configuration Finding

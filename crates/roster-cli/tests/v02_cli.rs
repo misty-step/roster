@@ -1554,7 +1554,7 @@ fn check_validates_an_explicit_config_graph_and_rejects_no_catalog() {
         ])
         .assert()
         .success()
-        .stdout(predicate::str::contains("roster graph: ok (12 agents"));
+        .stdout(predicate::str::contains("roster graph: ok (13 agents"));
 
     let temp = tempfile::tempdir().expect("temp");
     Command::cargo_bin("roster")

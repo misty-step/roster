@@ -54,18 +54,18 @@ hierarchy, restrained color used semantically, progressive disclosure —
 the first viewport carries the verdict, depth unfolds below. Tell a story;
 every claim links to its evidence (the atlas principle applies to pages too).
 
-## Shelf gotcha
+## Publication boundary
 
-`artifact_create.py` mirrors to the Sanctum shelf automatically. Files
-written RAW into `~/artifacts/public/a/<slug>/` serve on the local host only —
-they need the bearer-PUT publish step (see `publish_to_shelf` in
-`~/.factory-lanes/scripts/bridge.py`) or the operator won't find them on
-Sanctum. Bit us live 2026-07-03.
+`artifact_create.py` always writes a local mirror. Remote publication requires
+an operator-configured `ARTIFACT_BASE_URL` plus `ARTIFACTS_API_TOKEN`; the
+public skill contains neither a deployment hostname nor a vault lookup. Files
+written directly into `~/artifacts/public/a/<slug>/` remain local until the
+configured publisher sends them to the shelf.
 
 ## Do it
 
 ```bash
-S=~/Development/roster/primitives/skills/artifact/scripts
+S="$ROSTER_ROOT/primitives/skills/artifact/scripts"
 # quick: markdown in, styled page out
 python3 $S/artifact_create.py --title "Weekly Ops" --slug weekly-ops \
   --tag "Field Memo" --summary "..." --body-file report.md
@@ -76,29 +76,24 @@ python3 $S/artifact_create.py --title "The Factory" --slug factory \
 ```
 
 The script writes a local mirror (`~/artifacts/public/a/<slug>/index.html`),
-then PUTs the page to the box shelf and prints the canonical URL:
-`https://sanctum.tail5f5eb4.ts.net/artifacts/a/<slug>/`. Use a 1–2 word slug.
-Publishing needs `ARTIFACTS_API_TOKEN` (env or `~/.secrets`; canonical copy in
-1Password `op://Agents/ARTIFACTS_API_TOKEN`). `--local-only` skips the PUT.
+then PUTs the page to `$ARTIFACT_BASE_URL` and prints the canonical URL. Use a
+1–2 word slug. Publishing needs `ARTIFACTS_API_TOKEN` from the private runtime
+environment. `--local-only` skips the PUT and does not require a base URL.
 Verify with `curl -s -o /dev/null -w '%{http_code}' <url>` before handing over
 the link. Publish any raw HTML from anywhere on the tailnet with one line:
 
 ```bash
 curl -T page.html -H "Authorization: Bearer $ARTIFACTS_API_TOKEN" \
-  https://sanctum.tail5f5eb4.ts.net/artifacts/a/<slug>/index.html
+  "$ARTIFACT_BASE_URL/a/<slug>/index.html"
 ```
 
 ## Serving
 
-The shelf lives on the DigitalOcean Sanctum host (`apps/artifacts` in the
-Sanctum repo): files on the `/data` volume, served at `…ts.net/artifacts/`,
-indexed newest-first at the bare path, linked from the Sanctum portal at the tailnet root
-(`https://sanctum.tail5f5eb4.ts.net/`). Survives laptop sleep and reboots.
-
-Legacy mirror: `scripts/artifact_serve.py` still serves `~/artifacts/public` on
-`127.0.0.1:8789` under launchd (`com.phaedrus.artifacts.plist`), exposed at
-`serenity.tail5f5eb4.ts.net/artifacts/`. Old links keep resolving; the local
-tree doubles as the shelf's backup. New links always point at Sanctum.
+The operator owns the shelf host, private-network exposure, persistence, and
+service manager. `scripts/artifact_serve.py` is a portable local static server
+for `~/artifacts/public`; deployment-specific URLs and relay integrations enter
+through environment variables or a private source. Roster does not install or
+converge that service.
 
 ## Extending
 

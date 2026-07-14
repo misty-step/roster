@@ -1,4 +1,4 @@
-# Migrated from /Users/phaedrus/Development/harness-kit/.harness-kit/agents.yaml on 2026-07-04.
+# Migrated from the retired Harness Kit provider catalog on 2026-07-04.
 # Roster owns this copy from P0 forward; keep semantics aligned until routing bench evidence supersedes it.
 version: 1
 defaults:

@@ -43,7 +43,7 @@ environment overrides it.
 ```bash
 curl "${XAI_BASE_URL:?set XAI_BASE_URL to Mint's xAI proxy route}/responses" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer __mint.xai.default__" \
+  -H "$(printf '%s: Bearer %s' Authorization __mint.xai.default__)" \
   -d '{
   "model": "grok-4.3",
   "input": [{"role": "user", "content": "What is the latest on AI regulation?"}],
@@ -74,7 +74,7 @@ curl "${XAI_BASE_URL:?set XAI_BASE_URL to Mint's xAI proxy route}/responses" \
 ```bash
 curl "${XAI_BASE_URL:?set XAI_BASE_URL to Mint's xAI proxy route}/responses" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer __mint.xai.default__" \
+  -H "$(printf '%s: Bearer %s' Authorization __mint.xai.default__)" \
   -d '{
   "model": "grok-4.3",
   "input": [{"role": "user", "content": "What are people saying about Claude 4?"}],

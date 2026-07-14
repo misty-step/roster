@@ -22,7 +22,7 @@ registration in `primitives/mcps/registry.yaml`.
 
 | Need | App | First surface | Fallback |
 |---|---|---|---|
-| uptime, incidents, error timelines, health checks, service evidence, production debugging | Canary | Canary MCP when registered | `misty-canary`, `/Users/phaedrus/Development/canary/bin/canary`, API |
+| uptime, incidents, error timelines, health checks, service evidence, production debugging | Canary | Canary MCP when registered | `misty-canary`, `canary` on `PATH`, API |
 | backlog, issue cards, claims, relations, operator input requests, work status | Powder | Powder MCP when configured | `misty-powder`, CLI, API |
 | release intelligence, versions, changelogs, release notes, release kit, fleet adoption | Landmark | `misty-landmark` and `landmark describe --json` / dry-run CLI/action paths | `docs/agent-integration.md`, `docs/fleet-integration-playbook.md` |
 | UI/UX, Misty Step design law, tokens, static design registry, rendered design gate | Aesthetic | `misty-aesthetic`, `@misty-step/aesthetic` package, static API, law gate | `docs/ADOPTING.md`, `DESIGN.md` |
