@@ -27,6 +27,7 @@ struct Invocation {
     command: String,
     args: Vec<String>,
     cwd: PathBuf,
+    disabled_skill_paths: BTreeSet<PathBuf>,
     bundle: Option<RunBundle>,
 }
 
@@ -206,6 +207,7 @@ pub fn rescue(harness: Harness, workspace: &Path, dry_run: bool) -> Result<()> {
         command: harness.command().to_owned(),
         args,
         cwd: workspace.to_path_buf(),
+        disabled_skill_paths: BTreeSet::new(),
         bundle: None,
     };
     if dry_run {
@@ -265,9 +267,15 @@ fn prepare_codex(
     fs::copy(bundle.join("AGENTS.md"), home.join("AGENTS.md"))
         .context("copy Codex instruction projection")?;
     copy_projection_tree(&bundle.join("skills"), &home.join("skills"))?;
+    let disabled_skill_paths = external_skill_paths(workspace)?;
     fs::write(
         home.join("config.toml"),
-        codex_config(agent, workspace, &native_home.join("config.toml"))?,
+        codex_config(
+            agent,
+            workspace,
+            &native_home.join("config.toml"),
+            &disabled_skill_paths,
+        )?,
     )?;
     Ok(Invocation {
         env: BTreeMap::from([
@@ -288,6 +296,7 @@ fn prepare_codex(
             workspace.display().to_string(),
         ],
         cwd: workspace.to_path_buf(),
+        disabled_skill_paths,
         bundle: None,
     })
 }
@@ -345,6 +354,7 @@ fn prepare_claude(
         command: "claude".to_owned(),
         args,
         cwd: workspace.to_path_buf(),
+        disabled_skill_paths: BTreeSet::new(),
         bundle: None,
     })
 }
@@ -399,6 +409,7 @@ fn prepare_omp(
         command: "omp".to_owned(),
         args,
         cwd: workspace.to_path_buf(),
+        disabled_skill_paths: BTreeSet::new(),
         bundle: None,
     })
 }
@@ -407,7 +418,12 @@ fn omp_isolation() -> &'static str {
     "setupVersion: 1\nmcp:\n  enableProjectConfig: false\n  discoveryMode: false\ntools:\n  discoveryMode: off\ndisabledProviders:\n  - agents-md\n  - claude\n  - claude-plugins\n  - cline\n  - codex\n  - cursor\n  - gemini\n  - github\n  - mcp-json\n  - omp-plugins\n  - opencode\n  - ssh-json\n  - vscode\n  - windsurf\n"
 }
 
-fn codex_config(agent: &ResolvedAgent, workspace: &Path, native_config: &Path) -> Result<String> {
+fn codex_config(
+    agent: &ResolvedAgent,
+    workspace: &Path,
+    native_config: &Path,
+    disabled_skill_paths: &BTreeSet<PathBuf>,
+) -> Result<String> {
     let mut document = format!("model = {:?}\nproject_doc_max_bytes = 0\n", agent.model);
     if let Some(reasoning) = &agent.reasoning {
         document.push_str(&format!("model_reasoning_effort = {:?}\n", reasoning));
@@ -436,7 +452,7 @@ fn codex_config(agent: &ResolvedAgent, workspace: &Path, native_config: &Path) -
             other => bail!("unsupported MCP transport {other:?} for {}", item.id),
         }
     }
-    for path in external_skill_paths(workspace)? {
+    for path in disabled_skill_paths {
         document.push_str(&format!(
             "\n[[skills.config]]\npath = {:?}\nenabled = false\n",
             path.display().to_string()
@@ -798,10 +814,21 @@ fn codex_enabled_skills(
             .get("errors")
             .and_then(Value::as_array)
             .context("Codex skills/list omitted errors")?;
-        if !errors.is_empty() {
+        let unexpected_errors = errors
+            .iter()
+            .filter(|error| {
+                let Some(path) = error.get("path").and_then(Value::as_str) else {
+                    return true;
+                };
+                let path = PathBuf::from(path);
+                let path = path.canonicalize().unwrap_or(path);
+                !invocation.disabled_skill_paths.contains(&path)
+            })
+            .collect::<Vec<_>>();
+        if !unexpected_errors.is_empty() {
             bail!(
                 "Codex skill isolation preflight reported errors: {}",
-                serde_json::to_string(errors)?
+                serde_json::to_string(&unexpected_errors)?
             );
         }
         for skill in entry

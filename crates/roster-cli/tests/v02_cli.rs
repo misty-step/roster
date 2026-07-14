@@ -498,6 +498,9 @@ if [ "$1" = app-server ]; then
   [ "$2" = --strict-config ] || exit 76
   [ "$3" = --listen ] || exit 77
   [ "$4" = stdio:// ] || exit 78
+  if [ -n "$EXPECTED_SKILL_PWD" ]; then
+    [ "$(pwd)" = "$EXPECTED_SKILL_PWD" ] || exit 86
+  fi
   [ -z "$FAKE_PREFLIGHT" ] || touch "$FAKE_PREFLIGHT"
   if [ -n "$FAKE_SYSTEM_SKILL" ]; then
     mkdir -p "$CODEX_HOME/skills/.system/intrinsic"
@@ -508,6 +511,14 @@ if [ "$1" = app-server ]; then
   while IFS= read -r request; do
     case "$request" in
       *'"id":"roster-skills"'*)
+        if [ -n "$EXPECTED_SKILL_CWD" ]; then
+          case "$request" in *"$EXPECTED_SKILL_CWD"*) :;; *) exit 87;; esac
+        fi
+        if [ -n "$FAKE_AMBIENT_SKILL" ] && [ -n "$FAKE_INVALID_SKILL" ]; then
+          printf '{"id":"roster-skills","result":{"data":[{"cwd":"fixture","skills":[{"name":"deliver","path":"%s","scope":"user","enabled":true},{"name":"foreign","path":"%s","scope":"repo","enabled":false}],"errors":[{"path":"%s","message":"invalid YAML"}]}]}}\n' \
+            "$CODEX_HOME/skills/deliver/SKILL.md" "$FAKE_AMBIENT_SKILL" "$FAKE_INVALID_SKILL"
+          continue
+        fi
         printf '{"id":"roster-skills","result":{"data":[{"cwd":"fixture","skills":[{"name":"deliver","path":"%s","scope":"user","enabled":true}],"errors":[]}]}}\n' \
           "$CODEX_HOME/skills/deliver/SKILL.md"
         ;;
@@ -560,6 +571,11 @@ fn codex_projection_preserves_native_state_and_blocks_project_config() {
         workspace.join(".agents/skills/foreign"),
     )
     .expect("ambient skill symlink");
+    let invalid_skill = workspace.join(".agents/skills/broken/SKILL.md");
+    write(
+        &invalid_skill,
+        "---\nname: broken\ndescription: Use when: this frontmatter is invalid.\n---\n",
+    );
     let home = temp.path().join("home");
     let codex_home = home.join(".codex");
     fs::create_dir_all(codex_home.join("sessions")).expect("sessions");
@@ -614,6 +630,21 @@ cp "$CODEX_HOME/config.toml" "$FAKE_CONFIG""#,
         .env("ROSTER_CHILD_ENV_FAKE_CONFIG", &observed)
         .env("ROSTER_CHILD_ENV_FAKE_PREFLIGHT", &strict_preflight)
         .env("ROSTER_CHILD_ENV_FAKE_SYSTEM_SKILL", "1")
+        .env("ROSTER_CHILD_ENV_EXPECTED_SKILL_CWD", &selected_workspace)
+        .env(
+            "ROSTER_CHILD_ENV_EXPECTED_SKILL_PWD",
+            selected_workspace
+                .canonicalize()
+                .expect("selected workspace"),
+        )
+        .env(
+            "ROSTER_CHILD_ENV_FAKE_AMBIENT_SKILL",
+            ambient_skill.canonicalize().expect("ambient skill"),
+        )
+        .env(
+            "ROSTER_CHILD_ENV_FAKE_INVALID_SKILL",
+            invalid_skill.canonicalize().expect("invalid skill"),
+        )
         .env("ROSTER_STATE_DIR", temp.path().join("state"))
         .args([
             "--config",
@@ -705,6 +736,24 @@ cp "$CODEX_HOME/config.toml" "$FAKE_CONFIG""#,
                     && rule.get("enabled").and_then(toml::Value::as_bool) == Some(false)
             }),
         "symlinked ambient skills must be disabled by canonical identity"
+    );
+    let invalid_skill = invalid_skill
+        .canonicalize()
+        .expect("canonical invalid skill")
+        .display()
+        .to_string();
+    assert!(
+        projected
+            .get("skills")
+            .and_then(|skills| skills.get("config"))
+            .and_then(toml::Value::as_array)
+            .into_iter()
+            .flatten()
+            .any(|rule| {
+                rule.get("path").and_then(toml::Value::as_str) == Some(invalid_skill.as_str())
+                    && rule.get("enabled").and_then(toml::Value::as_bool) == Some(false)
+            }),
+        "invalid ambient skills must remain explicitly disabled"
     );
 }
 
@@ -1009,6 +1058,60 @@ touch "$FAKE_LAUNCHED""#,
     assert!(
         !launched.exists(),
         "the Harness must not launch with an unexpected enabled skill"
+    );
+}
+
+#[test]
+fn codex_projected_skill_parse_error_stops_before_launch() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let workspace = temp.path().join("workspace");
+    fs::create_dir_all(workspace.join(".git")).expect("workspace");
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "codex",
+        r#"if [ "$1" = --version ]; then echo 'codex-cli 0.144.3'; exit 0; fi
+if [ "$1" = app-server ]; then
+  while IFS= read -r request; do
+    case "$request" in
+      *'"id":"roster-skills"'*)
+        printf '{"id":"roster-skills","result":{"data":[{"cwd":"fixture","skills":[],"errors":[{"path":"%s","message":"invalid YAML"}]}]}}\n' \
+          "$CODEX_HOME/skills/deliver/SKILL.md"
+        ;;
+    esac
+  done
+  exit 0
+fi
+if [ "$1" = mcp ]; then printf '[]\n'; exit 0; fi
+touch "$FAKE_LAUNCHED""#,
+    );
+    let launched = temp.path().join("launched");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_CHILD_ENV_FAKE_LAUNCHED", &launched)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "--cwd",
+            workspace.to_str().unwrap(),
+            "dispatch",
+            "amos",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "Codex skill isolation preflight reported errors:",
+        ))
+        .stderr(predicate::str::contains("invalid YAML"))
+        .stderr(predicate::str::contains("Launching amos (codex)").not());
+    assert!(
+        !launched.exists(),
+        "the Harness must not launch with an invalid projected skill"
     );
 }
 
