@@ -31,17 +31,19 @@ Grok to social sentiment only.
 
 ## API Access
 
-Base URL: `https://api.x.ai/v1`
-Auth: `Authorization: Bearer $XAI_API_KEY`
+Base URL: `XAI_BASE_URL`, which must equal
+`${MINT_BASE_URL}/proxy/https/api.x.ai/v1`. The runtime rejects direct-vendor,
+alternate-origin, query-bearing, and sibling-path values.
+Auth: `Authorization: Bearer __mint.xai.default__`
 API: OpenAI Responses API compatible. Default model: `grok-4.3` unless the
 environment overrides it.
 
 ## Web Search
 
 ```bash
-curl https://api.x.ai/v1/responses \
+curl "${XAI_BASE_URL:?set XAI_BASE_URL to Mint's xAI proxy route}/responses" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $XAI_API_KEY" \
+  -H "Authorization: Bearer __mint.xai.default__" \
   -d '{
   "model": "grok-4.3",
   "input": [{"role": "user", "content": "What is the latest on AI regulation?"}],
@@ -70,9 +72,9 @@ curl https://api.x.ai/v1/responses \
 ## X Search
 
 ```bash
-curl https://api.x.ai/v1/responses \
+curl "${XAI_BASE_URL:?set XAI_BASE_URL to Mint's xAI proxy route}/responses" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $XAI_API_KEY" \
+  -H "Authorization: Bearer __mint.xai.default__" \
   -d '{
   "model": "grok-4.3",
   "input": [{"role": "user", "content": "What are people saying about Claude 4?"}],
@@ -112,7 +114,7 @@ curl https://api.x.ai/v1/responses \
 ```python
 from openai import OpenAI
 
-client = OpenAI(api_key=os.getenv("XAI_API_KEY"), base_url="https://api.x.ai/v1")
+client = OpenAI(api_key="__mint.xai.default__", base_url=os.environ["XAI_BASE_URL"])
 
 response = client.responses.create(
     model="grok-4.3",
@@ -121,34 +123,10 @@ response = client.responses.create(
 )
 ```
 
-### Vercel AI SDK
-```typescript
-import { xai } from '@ai-sdk/xai';
-import { generateText } from 'ai';
-
-const { text, sources } = await generateText({
-  model: xai.responses('grok-4.3'),
-  prompt: query,
-  tools: {
-    x_search: xai.tools.xSearch(),           // X search
-    web_search: xai.tools.webSearch(),        // Web search
-  },
-});
-```
-
-### xAI Native SDK
-```python
-from xai_sdk import Client
-from xai_sdk.chat import user
-from xai_sdk.tools import web_search, x_search
-
-client = Client(api_key=os.getenv("XAI_API_KEY"))
-chat = client.chat.create(
-    model="grok-4.3",
-    tools=[web_search(), x_search()],
-)
-chat.append(user(query))
-```
+The Vercel xAI provider and xAI native SDK examples are intentionally omitted:
+the versions evaluated for this integration do not expose the base-URL seam
+required to force every request through Mint. Use the OpenAI-compatible client
+or Roster's built-in provider above.
 
 ## Citations
 
@@ -162,5 +140,5 @@ Responses include `response.citations` with source URLs. Always cite them.
 - `allowed_domains` / `excluded_domains` cannot be combined in one request
 - `allowed_x_handles` / `excluded_x_handles` cannot be combined in one request
 - In the Roster runtime, xAI is a retrieval/discourse provider when
-  `XAI_API_KEY` is set. It is routed before Exa for social/discourse queries
+  `XAI_BASE_URL` is set. It is routed before Exa for social/discourse queries
   and after Exa for recency corroboration.

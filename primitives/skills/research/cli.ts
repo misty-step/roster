@@ -69,7 +69,7 @@ export async function runResearch(
 
   if (providers.length === 0) {
     throw new Error(
-      "no retrieval providers configured; set CONTEXT7_API_KEY and/or EXA_API_KEY and/or XAI_API_KEY and/or BRAVE_API_KEY"
+      "no retrieval providers configured; set CONTEXT7_API_KEY and/or EXA_API_KEY and/or MINT_BASE_URL + XAI_BASE_URL and/or BRAVE_API_KEY"
     );
   }
 
@@ -163,18 +163,18 @@ export function buildProviders(
 ): ProviderAdapter[] {
   const providers: ProviderAdapter[] = [];
   const useContext7 = Boolean(env.CONTEXT7_API_KEY) && isDocsLookup(input.query, input.command);
-  const useXai = Boolean(env.XAI_API_KEY) && isSocialDiscourseQuery(input.query);
+  const useXai = Boolean(env.XAI_BASE_URL) && isSocialDiscourseQuery(input.query);
   if (useContext7) {
     providers.push(new Context7Provider(env.CONTEXT7_API_KEY!));
   }
   if (useXai) {
-    providers.push(new XaiProvider(env.XAI_API_KEY!));
+    providers.push(new XaiProvider(env.XAI_SEARCH_MODEL, env.XAI_BASE_URL, env.MINT_BASE_URL));
   }
   if (env.EXA_API_KEY) {
     providers.push(new ExaProvider(env.EXA_API_KEY));
   }
-  if (env.XAI_API_KEY && !useXai && isTimeSensitiveQuery(input.query, input.command)) {
-    providers.push(new XaiProvider(env.XAI_API_KEY));
+  if (env.XAI_BASE_URL && !useXai && isTimeSensitiveQuery(input.query, input.command)) {
+    providers.push(new XaiProvider(env.XAI_SEARCH_MODEL, env.XAI_BASE_URL, env.MINT_BASE_URL));
   }
   if (env.BRAVE_API_KEY) {
     providers.push(new BraveProvider(env.BRAVE_API_KEY));

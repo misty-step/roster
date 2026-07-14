@@ -97,8 +97,8 @@ Use when the user provides a seed exemplar — find more projects like it.
 Use xAI X Search to find projects developers praise for performance:
 
 ```bash
-curl -s https://api.x.ai/v1/responses \
-  -H "Authorization: Bearer $XAI_API_KEY" \
+curl -s "${XAI_BASE_URL:?set XAI_BASE_URL to Mint's xAI proxy route}/responses" \
+  -H "Authorization: Bearer __mint.xai.default__" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "grok-4.20-beta-latest-non-reasoning",
