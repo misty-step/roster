@@ -2,8 +2,8 @@
 """artifact_serve — minimal static server for the artifacts root.
 
 Hermes-independent replacement for hermes_artifact_server.py. Serves
-~/artifacts/public on 127.0.0.1:<port>; Tailscale `serve` maps
-https://<host>.ts.net/artifacts -> this. Zero LLM tokens; stdlib only.
+~/artifacts/public on 127.0.0.1:<port>; an operator-owned private-network
+proxy may expose it. Zero LLM tokens; stdlib only.
 Directory requests resolve to index.html.
 
 Also carries one scoped relay route, /api/bridge-answer, so the Bridge
@@ -17,23 +17,31 @@ import argparse
 import functools
 import json
 import os
+import shlex
 import subprocess
 import urllib.error
 import urllib.request
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 HOME = os.path.expanduser("~")
-BRIDGE_KEY_PATH = os.path.join(HOME, ".factory-lanes", ".powder-bridge-key")
-BRIDGE_SCRIPT = os.path.join(HOME, ".factory-lanes", "scripts", "bridge.py")
-POWDER_BASE = "https://sanctum.tail5f5eb4.ts.net:10001"
+BRIDGE_KEY_PATH = os.environ.get(
+    "POWDER_BRIDGE_KEY_PATH",
+    os.path.join(HOME, ".config", "artifact-server", "powder-bridge-key"),
+)
+BRIDGE_SCRIPT = os.environ.get("ARTIFACT_BRIDGE_SCRIPT", "")
+POWDER_BASE = os.environ.get("POWDER_API_BASE_URL", "").rstrip("/")
+ARTIFACT_HOME_URL = os.environ.get("ARTIFACT_HOME_URL", "/")
+SCRATCHPAD_API = os.environ.get("ARTIFACT_SCRATCHPAD_API", "/api/scratchpad")
+RETRO_COMMAND = os.environ.get("ARTIFACT_RETRO_COMMAND", "")
+RETRO_WORKSPACE = os.environ.get("ARTIFACT_RETRO_WORKSPACE", HOME)
+RETRO_BASE_URL = os.environ.get("ARTIFACT_RETRO_BASE_URL", "").rstrip("/")
 
 
 class Handler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache")
-        # The Bridge page is mirrored on the Sanctum tailnet host.
-        # but the answer relay lives only here; cross-origin POSTs are
-        # tailnet-private, so a permissive origin is acceptable.
+        # A private deployment may mirror the Bridge page on another origin;
+        # deployments that expose this server must constrain network access.
         self.send_header("Access-Control-Allow-Origin", "*")
         super().end_headers()
 
@@ -57,10 +65,10 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_error(404)
 
     # ------ Scratchpad: the operator's pile of conversations-to-have ------
-    # (operator ruling 2026-07-07: not powder — not specced work; not
-    # monologue — no acted-upon state. A dictation target on Sanctum that
-    # the lead chews through on request and marks discussed.)
-    SCRATCH_STORE = os.path.join(HOME, ".factory-lanes", "scratchpad.jsonl")
+    SCRATCH_STORE = os.environ.get(
+        "ARTIFACT_SCRATCH_STORE",
+        os.path.join(HOME, ".local", "state", "artifact-server", "scratchpad.jsonl"),
+    )
 
     def _scratch_entries(self):
         entries = []
@@ -75,6 +83,7 @@ class Handler(SimpleHTTPRequestHandler):
         return entries
 
     def _scratch_write(self, entries):
+        os.makedirs(os.path.dirname(self.SCRATCH_STORE), exist_ok=True)
         tmp = self.SCRATCH_STORE + ".tmp"
         with open(tmp, "w") as f:
             for e in entries:
@@ -158,14 +167,14 @@ button{{font:600 13px -apple-system,sans-serif;padding:.45rem .8rem;border:1px s
 .st{{font-weight:600;color:#0a7d5f}} .done .st{{color:#999}}
 .t{{white-space:pre-wrap}} .oc{{margin-top:.4rem;font-size:14px;color:#555;border-top:1px dashed #ddd;padding-top:.35rem}}
 a.home{{font-size:13px;color:#666;text-decoration:none}}</style></head><body>
-<a class="home" href="https://sanctum.tail5f5eb4.ts.net/">⌂ Sanctum</a>
+<a class="home" href="{_h.escape(ARTIFACT_HOME_URL, quote=True)}">⌂ Home</a>
 <h1>Scratchpad</h1>
 <div class="sub">The pile: things to discuss when there's bandwidth. Dictate freely — nothing here interrupts current work. Say "check the scratchpad" to chew through it.</div>
 <textarea id="tx" placeholder="Scribble, dictate, dump…"></textarea>
 <div class="bar"><button onclick="add()">Add to the pile</button></div>
 <div id="list">{"".join(rows) or '<div class="sub">Empty pile.</div>'}</div>
 <script>
-var API="https://serenity.tail5f5eb4.ts.net/artifacts/api/scratchpad";
+var API={json.dumps(SCRATCHPAD_API)};
 function add(){{var t=document.getElementById('tx').value.trim();if(!t)return;
 fetch(API,{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{text:t}})}}).then(r=>r.json()).then(j=>{{if(j.ok)location.reload();else alert(j.error)}}).catch(e=>alert(e))}}
 function tog(id){{fetch(API+'/toggle',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{id:id}})}}).then(()=>location.reload())}}
@@ -195,26 +204,12 @@ function tog(id){{fetch(API+'/toggle',{{method:'POST',headers:{{'Content-Type':'
         window = (q.get("window", ["daily"])[0] or "daily").strip()
         if window not in ("daily", "weekly", "custom"):
             return self._json(400, {"error": "window must be daily|weekly|custom"})
-        # Resolve the synthesis key at run time (keychain -> op service account
-        # -> op read); launchd context has no secrets env, and ~/.secrets does
-        # not carry OPENROUTER_API_KEY. Nothing is persisted; fleet-retro still
-        # fails open to tables+banner if resolution fails.
-        #
-        # harness-kit-914: `op run --env-file ~/.secrets --` replaces the bare
-        # `source ~/.secrets`, resolving its op:// references to real values
-        # for this subprocess's env (not just injecting the literal reference
-        # string) -- keeps weave's own env-first resolution path always
-        # populated so its ~/.secrets-file-parse fallback never has to fire
-        # (that fallback's own op:// awareness is weave-925, separate card).
+        if not RETRO_COMMAND:
+            return self._json(503, {
+                "error": "ARTIFACT_RETRO_COMMAND is not configured",
+            })
         retro_args = ["--window", window]
-        cmd = ["/bin/zsh", "-c",
-               'export OP_SERVICE_ACCOUNT_TOKEN="${OP_SERVICE_ACCOUNT_TOKEN:-$('
-               'security find-generic-password -a "$USER" -s op-agent -w 2>/dev/null)}"; '
-               'export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-$('
-               'op read "op://Agents/OPENROUTER_API_KEY/credential" 2>/dev/null)}"; '
-               'exec op run --env-file ~/.secrets -- '
-               '/Users/phaedrus/.cargo/bin/cargo run -q -p weave-fleet-retro -- "$@"',
-               "retro"] + retro_args
+        cmd = shlex.split(RETRO_COMMAND) + retro_args
         if window == "custom":
             since = (q.get("since", [""])[0] or "").strip()
             if not since:
@@ -229,15 +224,16 @@ function tog(id){{fetch(API+'/toggle',{{method:'POST',headers:{{'Content-Type':'
                 cmd += ["--until", until]
         try:
             subprocess.Popen(
-                cmd, cwd=os.path.expanduser("~/Development/weave"),
+                cmd, cwd=os.path.expanduser(RETRO_WORKSPACE),
                 stdout=open("/tmp/bridge-retro.log", "ab"),
                 stderr=subprocess.STDOUT,
                 start_new_session=True)
         except OSError as err:
             return self._json(500, {"error": str(err)})
-        base = "https://sanctum.tail5f5eb4.ts.net/artifacts/a/fleet-retro"
-        url = {"daily": f"{base}/daily/index.html",
-               "weekly": f"{base}/weekly/index.html"}.get(window)
+        url = None
+        if RETRO_BASE_URL:
+            url = {"daily": f"{RETRO_BASE_URL}/daily/index.html",
+                   "weekly": f"{RETRO_BASE_URL}/weekly/index.html"}.get(window)
         return self._json(202, {
             "status": "generating",
             "eta": "~2 min",
@@ -246,6 +242,10 @@ function tog(id){{fetch(API+'/toggle',{{method:'POST',headers:{{'Content-Type':'
         })
 
     def _bridge_answer(self):
+        if not POWDER_BASE:
+            return self._json(503, {
+                "error": "POWDER_API_BASE_URL is not configured",
+            })
         length = int(self.headers.get("Content-Length", 0) or 0)
         try:
             body = json.loads(self.rfile.read(length) or b"{}")
@@ -276,6 +276,10 @@ function tog(id){{fetch(API+'/toggle',{{method:'POST',headers:{{'Content-Type':'
             return self._json(502, {"error": f"powder unreachable: {err}"})
 
     def _bridge_refresh(self):
+        if not BRIDGE_SCRIPT:
+            return self._json(503, {
+                "error": "ARTIFACT_BRIDGE_SCRIPT is not configured",
+            })
         r = subprocess.run(
             ["python3", BRIDGE_SCRIPT], capture_output=True, text=True, timeout=30
         )

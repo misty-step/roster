@@ -201,39 +201,13 @@ def ensure_copy_button(doc: str) -> str:
             doc = re.sub(r"(<body[^>]*>)", r"\1\n" + HEADER.format(tag="Artifact"), doc, count=1)
     if 'id="cp"' in doc and "data-hk-artifact-copy" not in doc and "</body>" in doc:
         doc = doc.replace("</body>", COPY_HANDLER_SNIPPET + "\n</body>", 1)
-    # The floating home button is retired (operator ruling 2026-07-06,
-    # bastion-918): the shelf injects the Sanctum super-footer at serve
-    # time, so authored pages carry no home affordance of their own.
+    # The shelf may inject its own footer at serve time, so authored pages
+    # carry no deployment-specific home affordance.
     return doc
 
 
-def _resolve_op_ref(value):
-    """Resolve an `op://vault/item/field` reference via `op read`; return the
-    value unchanged if it isn't a reference. Lets callers work whether
-    ~/.secrets holds a raw value or an op:// reference (harness-kit-914)."""
-    if not value.startswith("op://"):
-        return value
-    try:
-        import subprocess
-        result = subprocess.run(["op", "read", value], capture_output=True, text=True, timeout=10)
-        return result.stdout.strip() if result.returncode == 0 else ""
-    except (OSError, ImportError):
-        return ""
-
-
 def _artifacts_token():
-    tok = os.environ.get("ARTIFACTS_API_TOKEN", "")
-    if tok:
-        return _resolve_op_ref(tok)
-    try:
-        with open(os.path.expanduser("~/.secrets")) as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("export ARTIFACTS_API_TOKEN="):
-                    return _resolve_op_ref(line.split("=", 1)[1].strip().strip('"'))
-    except OSError:
-        pass
-    return ""
+    return os.environ.get("ARTIFACTS_API_TOKEN", "")
 
 
 def publish(base_url, slug, doc, mtime=None):
@@ -357,7 +331,7 @@ def update_index(root, base_url, entry, local_only):
 
 
 def publish_file(base_url, slug, name, content):
-    token = os.environ.get("ARTIFACTS_API_TOKEN", "")
+    token = _artifacts_token()
     if not token:
         return False
     target = f"{base_url.rstrip('/')}/a/{slug}/{name}"
@@ -422,10 +396,16 @@ def main():
     ap.add_argument("--html-file")
     ap.add_argument("--body-file")
     ap.add_argument("--root", default=os.path.expanduser("~/artifacts/public"))
-    ap.add_argument("--base-url", default="https://sanctum.tail5f5eb4.ts.net/artifacts")
+    ap.add_argument("--base-url", default=os.environ.get("ARTIFACT_BASE_URL"))
     ap.add_argument("--local-only", action="store_true",
                     help="skip the remote PUT; write only the local mirror")
     a = ap.parse_args()
+
+    if not a.base_url:
+        if a.local_only:
+            a.base_url = "http://127.0.0.1:8789"
+        else:
+            ap.error("--base-url or ARTIFACT_BASE_URL is required unless --local-only is set")
 
     if a.reindex:
         n = reindex(a.root, a.base_url, a.local_only)

@@ -90,3 +90,10 @@ agents:
     reasoning: high
     harness: codex
     args: [--search, --dangerously-bypass-approvals-and-sandbox]
+  simons:
+    description: Autonomous public-equity trader for an explicitly authorized account.
+    role: core/role:simons
+    model: gpt-5.6-sol
+    reasoning: high
+    harness: codex
+    args: [--search, --dangerously-bypass-approvals-and-sandbox]

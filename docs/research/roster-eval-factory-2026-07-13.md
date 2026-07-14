@@ -95,21 +95,22 @@ roster graph: ok (1 agents from /tmp/roster-smith-luna.yaml)
 
 The live `roster show smith` binding was `agent-creator`, Codex,
 `gpt-5.6-luna`, xhigh, with the guidance, skill, and MCP composition listed
-above. The published work contract returned HTTP 200 from
-https://sanctum.tail5f5eb4.ts.net/artifacts/a/roster-eval-factory/.
+above. The published private work contract returned HTTP 200; its
+operator-specific artifact URL is intentionally omitted from this public
+transcript.
 
 The fresh resolved-bundle proof used the effective temporary config
 `/tmp/roster-smith-luna.yaml` and these exact commands from the Roster checkout:
 
 ```sh
-cargo run --locked -p roster-cli -- --config /tmp/roster-smith-luna.yaml --cwd /Users/phaedrus/Development/roster check
-cargo run --locked -p roster-cli -- --config /tmp/roster-smith-luna.yaml --cwd /Users/phaedrus/Development/roster show smith
-cargo run --locked -p roster-cli -- --config /tmp/roster-smith-luna.yaml --cwd /Users/phaedrus/Development/roster resolve smith --output /Users/phaedrus/Development/crucible/runs/local/roster-resolved-smith-bundle-20260714
-cargo run --locked -p roster-cli -- --config /tmp/roster-smith-luna.yaml --cwd /Users/phaedrus/Development/roster dispatch smith --dry-run
+cargo run --locked -p roster-cli -- --config /tmp/roster-smith-luna.yaml --cwd "$ROSTER_ROOT" check
+cargo run --locked -p roster-cli -- --config /tmp/roster-smith-luna.yaml --cwd "$ROSTER_ROOT" show smith
+cargo run --locked -p roster-cli -- --config /tmp/roster-smith-luna.yaml --cwd "$ROSTER_ROOT" resolve smith --output "$CRUCIBLE_ROOT/runs/local/roster-resolved-smith-bundle-20260714"
+cargo run --locked -p roster-cli -- --config /tmp/roster-smith-luna.yaml --cwd "$ROSTER_ROOT" dispatch smith --dry-run
 ```
 
 All four exited 0. The retained bundle is
-`/Users/phaedrus/Development/crucible/runs/local/roster-resolved-smith-bundle-20260714/`
+`$CRUCIBLE_ROOT/runs/local/roster-resolved-smith-bundle-20260714/`
 (`AGENTS.md`, `skills/`, `mcps.yaml`, and `manifest.yaml`); its manifest names
 the `agent-creator` role, the selected guidance/skills/MCPs, and the
 `gpt-5.6-luna` Codex binding.
@@ -120,13 +121,13 @@ The spec validated as runnable. The CLI run used the Roster spec and retained
 these artifacts:
 
 - DeepSeek report and evidence:
-  `/Users/phaedrus/Development/crucible/runs/local/roster-card-oracle-triage-v0-20260713/run-report.json`
+  `$CRUCIBLE_ROOT/runs/local/roster-card-oracle-triage-v0-20260713/run-report.json`
   and `prompt-run.json` — 31/32, Wilson 95% [0.8426, 0.9945].
 - GLM report and evidence:
-  `/Users/phaedrus/Development/crucible/runs/local/roster-card-oracle-triage-v0-20260713-glm/run-report.json`
+  `$CRUCIBLE_ROOT/runs/local/roster-card-oracle-triage-v0-20260713-glm/run-report.json`
   and `prompt-run.json` — 32/32, Wilson 95% [0.8928, 1.0000].
 - Paired comparison ledger:
-  `/Users/phaedrus/Development/crucible/runs/local/roster-card-oracle-triage-v0-20260713/crucible-runs.sqlite`.
+  `$CRUCIBLE_ROOT/runs/local/roster-card-oracle-triage-v0-20260713/crucible-runs.sqlite`.
 
 The comparison delta was 0.03125. Crucible classified the paired McNemar
 result as `inside_noise_floor`, with resolution ratio 0.1311 and required N
@@ -151,9 +152,9 @@ retained bundle's `AGENTS.md` and whose task context is the retained bundle's
 `skills/powder/SKILL.md`:
 
 - Spec and full resolved system prompt:
-  `/Users/phaedrus/Development/crucible/runs/local/roster-resolved-bundle-oracle-v0-20260714/spec.json`
+  `$CRUCIBLE_ROOT/runs/local/roster-resolved-bundle-oracle-v0-20260714/spec.json`
 - Retained Crucible report and model output/transcript evidence:
-  `/Users/phaedrus/Development/crucible/runs/local/roster-resolved-bundle-oracle-v0-20260714/run/run-report.json`
+  `$CRUCIBLE_ROOT/runs/local/roster-resolved-bundle-oracle-v0-20260714/run/run-report.json`
   and `prompt-run.json`
 - Result: `resolved-powder-claimability` returned `DECLINE` as expected for a
   card with no acceptance criteria; deterministic rubric 1/1, Wilson 95%

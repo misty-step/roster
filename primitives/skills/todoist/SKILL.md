@@ -13,7 +13,7 @@ argument-hint: "[add <nl task> | today | inbox | upcoming | done <id>]"
 # /todoist
 
 Todoist is the operator's task system of record (migrated off Google Tasks for
-agent-friendliness). Two surfaces, one account (`phraznikov@gmail.com`):
+agent-friendliness). Two surfaces, one operator-configured account:
 
 | Surface | Use it for | How |
 |---|---|---|

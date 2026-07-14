@@ -62,15 +62,15 @@ Use these commands from local checkouts with credentials supplied by the
 environment or the Agents vault:
 
 ```sh
-/Users/phaedrus/Development/canary/bin/canary integrate status /path/to/repo \
+canary integrate status /path/to/repo \
   --service <canary-service> \
   --production-url <health-url> \
   --json
 
-/Users/phaedrus/Development/canary/bin/canary errors <canary-service> \
+canary errors <canary-service> \
   --window 1h --json
 
-/Users/phaedrus/Development/landmark/target/debug/landmark setup \
+landmark setup \
   --repo-root /path/to/repo \
   --dry-run --error-format json
 
@@ -78,10 +78,10 @@ curl -fsS -H "Authorization: Bearer $POWDER_API_KEY" \
   "$POWDER_API_BASE_URL/api/v1/cards?repo=misty-step%2F<repo>&limit=100"
 ```
 
-The canonical Powder instance is on the DigitalOcean Sanctum host: use
-`https://sanctum.tail5f5eb4.ts.net:10001` as `$POWDER_API_BASE_URL` (reachable
-from any device on the tailnet). The old standalone `powder` Fly app and its
-`127.0.0.1:14030` local proxy are retired.
+Set `$POWDER_API_BASE_URL` through the operator's private environment to the
+canonical deployed instance. Public doctrine names the environment contract,
+not one operator's host. Retired instance URLs and local proxies must not be
+kept as fallbacks.
 
 ## Waivers
 

@@ -67,6 +67,15 @@ public library without being committed. `roster init --source <checkout>`
 creates a deliberately small local starting point and refuses to overwrite an
 existing config.
 
+The public checkout contains portable declarations only. Public MCP commands
+name binaries expected on `PATH`; deployment endpoints and runtime values enter
+through declared environment references. Operator home paths, private hostnames,
+account-specific authority, vault/Keychain lookup commands, and machine-local
+registrations belong in an explicit private source beside the operator config.
+Historical evidence uses symbolic roots such as `$ROSTER_ROOT` and
+`$CRUCIBLE_ROOT`. This keeps the public graph reproducible without turning
+Roster into a workstation configuration manager.
+
 ## Use
 
 ```sh
