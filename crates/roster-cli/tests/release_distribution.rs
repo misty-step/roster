@@ -238,6 +238,7 @@ fn release_workflow_keeps_version_intelligence_provenance_and_live_replay() {
         "CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: rust-lld",
         "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: rust-lld",
         "--changelog-file CHANGELOG.md",
+        "--fallback-models google/gemini-2.5-flash,anthropic/claude-haiku-4.5",
         "accept:\n    needs: build",
         "publish:\n    needs: [validate, build, accept]",
         "cold-start:\n    needs: publish",
