@@ -12,28 +12,28 @@ agents:
     model: gpt-5.6-sol
     reasoning: high
     harness: codex
-    args: [--search, --dangerously-bypass-approvals-and-sandbox]
+    args: [--search, --sandbox, workspace-write, --ask-for-approval, on-request]
   kaylee:
     description: Claude orchestrator for broad software work.
     role: core/role:orchestrator
     model: claude-fable-5
     reasoning: high
     harness: claude
-    args: [--dangerously-skip-permissions]
+    args: [--permission-mode, acceptEdits]
   urza:
     description: OMP orchestrator for broad software work.
     role: core/role:orchestrator
     model: claude-fable-5
     reasoning: high
     harness: omp
-    args: [--approval-mode, yolo]
+    args: [--approval-mode, write]
   hephaestus:
     description: Builder for one accepted software change.
     role: core/role:builder
     model: gpt-5.6-luna
     reasoning: high
     harness: codex
-    args: [--search, --dangerously-bypass-approvals-and-sandbox]
+    args: [--search, --sandbox, workspace-write, --ask-for-approval, on-request]
   cerberus:
     description: Fresh-context adversarial code reviewer.
     role: core/role:code-reviewer
@@ -54,7 +54,7 @@ agents:
     model: claude-fable-5
     reasoning: high
     harness: claude
-    args: [--dangerously-skip-permissions]
+    args: [--permission-mode, acceptEdits]
   ripley:
     description: Reproduce-first production incident investigator.
     role: core/role:incident-investigator
@@ -89,11 +89,4 @@ agents:
     model: gpt-5.6-sol
     reasoning: high
     harness: codex
-    args: [--search, --dangerously-bypass-approvals-and-sandbox]
-  simons:
-    description: Autonomous public-equity trader for an explicitly authorized account.
-    role: core/role:simons
-    model: gpt-5.6-sol
-    reasoning: high
-    harness: codex
-    args: [--search, --dangerously-bypass-approvals-and-sandbox]
+    args: [--search, --sandbox, workspace-write, --ask-for-approval, on-request]

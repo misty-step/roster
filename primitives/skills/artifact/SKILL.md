@@ -1,19 +1,19 @@
 ---
 name: artifact
 description: |
-  Produce a consistently-styled, self-contained HTML report served privately over
-  Tailscale. One house template (Silver Age comic-ops palette, dark/light toggle,
+  Produce a consistently-styled, self-contained HTML report served from a local
+  static directory. One house template (Silver Age comic-ops palette, dark/light toggle,
   and a mandatory copy-page button) so every report an agent hands the operator
-  looks and behaves the same. Use when: "make an HTML artifact/report", "serve
-  this over tailscale", "write up a brief/report/dashboard as a page", or any time
+  looks and behaves the same. Use when: "make an HTML artifact/report", "write
+  up a brief/report/dashboard as a page", or any time
   you'd otherwise dump a long analysis into chat. Trigger: /artifact.
-argument-hint: "[--title <t> --slug <s> --body-file <f>|--html-file <f>] [--local-only]"
+argument-hint: "[--title <t> --slug <s> --body-file <f>|--html-file <f>]"
 ---
 
 # /artifact
 
-The operator reads reports as HTML pages over Tailscale, not as chat walls. This
-skill is the single source of truth for how those pages look and what they can do.
+The operator reads reports as local HTML pages, not as chat walls. This skill is
+the single source of truth for how those pages look and what they can do.
 
 ## The contract every artifact honors
 
@@ -28,7 +28,7 @@ skill is the single source of truth for how those pages look and what they can d
 - **Informational, not decorative.** Tables, callouts, diagrams that carry
   information prose can't. See the aesthetic repo for the deeper design language.
 
-## Information design doctrine (operator ruling, 2026-07-03)
+## Information design doctrine
 
 "It's a little bit silly to be leaning into HTML and then still have it be one
 long-ass pile of text." An artifact that is a Markdown report in a browser has
@@ -40,9 +40,9 @@ content earns:
 2. **Structure** — tables for enumerable facts, callouts for rulings, phase
    lanes for sequence, comparison grids for alternatives. Layout IS analysis.
 3. **Diagrams & generated images** — when shape carries the meaning (system
-   maps, flows, timelines). Nano Banana renders legible labeled infographics
-   in ~4s for ~$0.03 (`GEMINI_API_KEY` is in the env) — use it liberally for
-   informational images, never decoration.
+   maps, flows, timelines). Use an operator-selected local or external image
+   tool when it is available and appropriate; keep the artifact portable and
+   never assume a provider, key, or deployment.
 4. **Interactive & animated** — drill-downs, toggles, simulations, canvas/
    three.js/WebGL — when the reader needs to *explore* (a graph, a
    before/after, a what-if), not just read. Inline the library or keep it
@@ -56,11 +56,11 @@ every claim links to its evidence (the atlas principle applies to pages too).
 
 ## Publication boundary
 
-`artifact_create.py` always writes a local mirror. Remote publication requires
-an operator-configured `ARTIFACT_BASE_URL` plus `ARTIFACTS_API_TOKEN`; the
-public skill contains neither a deployment hostname nor a vault lookup. Files
-written directly into `~/artifacts/public/a/<slug>/` remain local until the
-configured publisher sends them to the shelf.
+`artifact_create.py` always writes a local mirror. Remote publication and
+deployment belong to an external shelf or operator-owned product; this public
+primitive contains no publisher, token lookup, or network mutation. Generated
+URLs are restricted to an HTTP loopback origin; `--base-url` is presentation
+metadata, not a deployment hook.
 
 ## Do it
 
@@ -75,25 +75,24 @@ python3 $S/artifact_create.py --title "The Factory" --slug factory \
   --tag "Field Memo" --html-file factory.html
 ```
 
-The script writes a local mirror (`~/artifacts/public/a/<slug>/index.html`),
-then PUTs the page to `$ARTIFACT_BASE_URL` and prints the canonical URL. Use a
-1–2 word slug. Publishing needs `ARTIFACTS_API_TOKEN` from the private runtime
-environment. `--local-only` skips the PUT and does not require a base URL.
-Verify with `curl -s -o /dev/null -w '%{http_code}' <url>` before handing over
-the link. Publish any raw HTML from anywhere on the tailnet with one line:
-
-```bash
-curl -T page.html -H "Authorization: Bearer $ARTIFACTS_API_TOKEN" \
-  "$ARTIFACT_BASE_URL/a/<slug>/index.html"
-```
+The script writes a local mirror (`~/artifacts/public/a/<slug>/index.html`) and
+prints its local URL. Use a 1–2 word slug. Start the local static server from
+the same artifacts root when the rendered page needs a browser check. Roots,
+input files, and output slug directories fail closed on user-owned symlink
+components so rendering cannot escape the selected local tree. One held root
+descriptor anchors the complete render, registry update, and reindex
+transaction; registry enumeration never re-resolves that root pathname. Each
+leaf replacement exchanges through a private descriptor-held transaction
+directory, so rollback never trusts a public temporary pathname. A failure
+after the rename commit point is reported explicitly as
+`COMMITTED/DURABILITY_UNKNOWN`, never as an ordinary precommit failure.
 
 ## Serving
 
-The operator owns the shelf host, private-network exposure, persistence, and
-service manager. `scripts/artifact_serve.py` is a portable local static server
-for `~/artifacts/public`; deployment-specific URLs and relay integrations enter
-through environment variables or a private source. Roster does not install or
-converge that service.
+`scripts/artifact_serve.py` is a portable local static server for
+`~/artifacts/public`. The operator owns any external exposure, persistence, and
+service manager. Roster does not install, converge, publish, or bridge that
+service.
 
 ## Extending
 

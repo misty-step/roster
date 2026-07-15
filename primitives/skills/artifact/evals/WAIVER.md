@@ -15,4 +15,4 @@ or this waiver is renewed with a fresh reason and date. A stale, silently
 renewed waiver with no new reasoning is itself a finding for `/harness-engineering`'s
 next skill-health audit.
 
-Tracked by Powder `workbench-003`; per-skill proof runs through `/skill-eval`.
+Proof runs through the repository's standard skill-eval process.

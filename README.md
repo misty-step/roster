@@ -59,7 +59,7 @@ agents:
     model: gpt-5.6-sol
     reasoning: high
     harness: codex
-    args: [--search, --dangerously-bypass-approvals-and-sandbox]
+    args: [--search, --sandbox, workspace-write, --ask-for-approval, on-request]
 ```
 
 Private roles and primitives can live beside a private config and compose the

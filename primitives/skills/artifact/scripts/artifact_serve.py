@@ -1,312 +1,171 @@
 #!/usr/bin/env python3
-"""artifact_serve — minimal static server for the artifacts root.
+"""Serve a descriptor-anchored local Artifact tree over static HTTP only."""
 
-Hermes-independent replacement for hermes_artifact_server.py. Serves
-~/artifacts/public on 127.0.0.1:<port>; an operator-owned private-network
-proxy may expose it. Zero LLM tokens; stdlib only.
-Directory requests resolve to index.html.
-
-Also carries one scoped relay route, /api/bridge-answer, so the Bridge
-page (~/.factory-lanes/scripts/bridge.py) can let the operator answer a
-NEEDS YOU question from a text box instead of a copy-pasted curl command.
-The relay forwards to exactly one upstream shape -- POST a powder run
-answer -- using a key read server-side; it is not a general proxy.
-/api/bridge-refresh re-runs bridge.py so the page reflects the answer.
-"""
 import argparse
-import functools
-import json
+import datetime
+import email.utils
 import os
-import shlex
-import subprocess
-import urllib.error
-import urllib.request
-from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+import re
+import stat
+import urllib.parse
+from http import HTTPStatus
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
-HOME = os.path.expanduser("~")
-BRIDGE_KEY_PATH = os.environ.get(
-    "POWDER_BRIDGE_KEY_PATH",
-    os.path.join(HOME, ".config", "artifact-server", "powder-bridge-key"),
-)
-BRIDGE_SCRIPT = os.environ.get("ARTIFACT_BRIDGE_SCRIPT", "")
-POWDER_BASE = os.environ.get("POWDER_API_BASE_URL", "").rstrip("/")
-ARTIFACT_HOME_URL = os.environ.get("ARTIFACT_HOME_URL", "/")
-SCRATCHPAD_API = os.environ.get("ARTIFACT_SCRATCHPAD_API", "/api/scratchpad")
-RETRO_COMMAND = os.environ.get("ARTIFACT_RETRO_COMMAND", "")
-RETRO_WORKSPACE = os.environ.get("ARTIFACT_RETRO_WORKSPACE", HOME)
-RETRO_BASE_URL = os.environ.get("ARTIFACT_RETRO_BASE_URL", "").rstrip("/")
+from artifact_fs import READ_FLAGS, normalized_absolute, open_at, open_child_directory, open_directory, open_regular_at
+
+
+def request_parts(target):
+    """Parse an origin-form request target into safe path components."""
+    if re.search(r"%(?![0-9A-Fa-f]{2})", target):
+        raise ValueError("malformed percent escape")
+    parsed = urllib.parse.urlsplit(target)
+    if parsed.scheme or parsed.netloc or parsed.fragment:
+        raise ValueError("only origin-form local paths are accepted")
+    decoded = urllib.parse.unquote(parsed.path, errors="strict")
+    if not decoded.startswith("/") or any(ord(char) < 32 or ord(char) == 127 for char in decoded):
+        raise ValueError("malformed request path")
+    parts = [part for part in decoded.split("/") if part]
+    if any(part in (".", "..") for part in parts):
+        raise ValueError("relative path component")
+    return parts, decoded.endswith("/"), parsed
 
 
 class Handler(SimpleHTTPRequestHandler):
+    """Static-only handler whose root is a held directory descriptor."""
+
+    def _open_request(self, parts, trailing_slash):
+        directory_fd = os.dup(self.server.root_fd)
+        try:
+            if trailing_slash:
+                for component in parts:
+                    child_fd = open_child_directory(directory_fd, component)
+                    os.close(directory_fd)
+                    directory_fd = child_fd
+                return open_regular_at(directory_fd, "index.html"), False
+
+            if not parts:
+                return None, True
+            for component in parts[:-1]:
+                child_fd = open_child_directory(directory_fd, component)
+                os.close(directory_fd)
+                directory_fd = child_fd
+            leaf_fd = open_at(directory_fd, parts[-1], READ_FLAGS)
+            leaf_stat = os.fstat(leaf_fd)
+            if stat.S_ISDIR(leaf_stat.st_mode):
+                os.close(leaf_fd)
+                return None, True
+            if not stat.S_ISREG(leaf_stat.st_mode):
+                os.close(leaf_fd)
+                raise ValueError("request did not name a regular file")
+            return leaf_fd, False
+        finally:
+            os.close(directory_fd)
+
+    def send_head(self):
+        try:
+            parts, trailing_slash, parsed = request_parts(self.path)
+            file_fd, redirect = self._open_request(parts, trailing_slash)
+        except (OSError, UnicodeError, ValueError):
+            self.send_error(HTTPStatus.NOT_FOUND, "File not found")
+            return None
+
+        if redirect:
+            canonical_path = "/" + "/".join(
+                urllib.parse.quote(component, safe="") for component in parts
+            ) + "/"
+            location = urllib.parse.urlunsplit(("", "", canonical_path, parsed.query, ""))
+            self.send_response(HTTPStatus.MOVED_PERMANENTLY)
+            self.send_header("Location", location)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return None
+
+        file_object = os.fdopen(file_fd, "rb")
+        try:
+            file_stat = os.fstat(file_fd)
+            if "If-Modified-Since" in self.headers and "If-None-Match" not in self.headers:
+                try:
+                    modified_since = email.utils.parsedate_to_datetime(
+                        self.headers["If-Modified-Since"]
+                    )
+                except (TypeError, IndexError, OverflowError, ValueError):
+                    pass
+                else:
+                    if modified_since.tzinfo is None:
+                        modified_since = modified_since.replace(tzinfo=datetime.timezone.utc)
+                    if modified_since.tzinfo is datetime.timezone.utc:
+                        last_modified = datetime.datetime.fromtimestamp(
+                            file_stat.st_mtime, datetime.timezone.utc
+                        )
+                        if last_modified.replace(microsecond=0) <= modified_since:
+                            self.send_response(HTTPStatus.NOT_MODIFIED)
+                            self.end_headers()
+                            file_object.close()
+                            return None
+
+            served_name = parts[-1] if parts and not trailing_slash else "index.html"
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-type", self.guess_type(served_name))
+            self.send_header("Content-Length", str(file_stat.st_size))
+            self.send_header("Last-Modified", self.date_time_string(file_stat.st_mtime))
+            self.end_headers()
+            return file_object
+        except Exception:
+            file_object.close()
+            raise
+
     def end_headers(self):
         self.send_header("Cache-Control", "no-cache")
-        # A private deployment may mirror the Bridge page on another origin;
-        # deployments that expose this server must constrain network access.
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self' data:; script-src 'unsafe-inline'; "
+            "style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; "
+            "object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+        )
         super().end_headers()
 
-    def log_message(self, *args):  # quiet
+    def log_message(self, *args):
         pass
 
-    def do_OPTIONS(self):
-        self.send_response(204)
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.send_header("Access-Control-Max-Age", "86400")
-        self.end_headers()
 
-    def do_POST(self):
-        if self.path == "/api/bridge-answer":
-            return self._bridge_answer()
-        if self.path == "/api/scratchpad":
-            return self._scratchpad_append()
-        if self.path == "/api/scratchpad/toggle":
-            return self._scratchpad_toggle()
-        self.send_error(404)
-
-    # ------ Scratchpad: the operator's pile of conversations-to-have ------
-    SCRATCH_STORE = os.environ.get(
-        "ARTIFACT_SCRATCH_STORE",
-        os.path.join(HOME, ".local", "state", "artifact-server", "scratchpad.jsonl"),
-    )
-
-    def _scratch_entries(self):
-        entries = []
-        try:
-            with open(self.SCRATCH_STORE) as f:
-                for line in f:
-                    line = line.strip()
-                    if line:
-                        entries.append(json.loads(line))
-        except OSError:
-            pass
-        return entries
-
-    def _scratch_write(self, entries):
-        os.makedirs(os.path.dirname(self.SCRATCH_STORE), exist_ok=True)
-        tmp = self.SCRATCH_STORE + ".tmp"
-        with open(tmp, "w") as f:
-            for e in entries:
-                f.write(json.dumps(e) + "\n")
-        os.replace(tmp, self.SCRATCH_STORE)
-
-    def _scratchpad_append(self):
-        length = int(self.headers.get("Content-Length", 0) or 0)
-        try:
-            body = json.loads(self.rfile.read(length) or b"{}")
-        except json.JSONDecodeError:
-            return self._json(400, {"error": "invalid json"})
-        text = str(body.get("text") or "").strip()
-        if not text:
-            return self._json(400, {"error": "text required"})
-        import time as _t
-        entry = {
-            "id": f"sp-{int(_t.time() * 1000)}",
-            "ts": _t.strftime("%Y-%m-%d %H:%M", _t.localtime()),
-            "text": text[:8000],
-            "by": str(body.get("by") or "operator")[:40],
-            "status": "open",
-        }
-        entries = self._scratch_entries()
-        entries.append(entry)
-        self._scratch_write(entries)
-        self._scratch_render(entries)
-        return self._json(200, {"ok": True, "id": entry["id"]})
-
-    def _scratchpad_toggle(self):
-        length = int(self.headers.get("Content-Length", 0) or 0)
-        try:
-            body = json.loads(self.rfile.read(length) or b"{}")
-        except json.JSONDecodeError:
-            return self._json(400, {"error": "invalid json"})
-        eid = str(body.get("id") or "")
-        note = str(body.get("note") or "").strip()
-        entries = self._scratch_entries()
-        hit = False
-        for e in entries:
-            if e["id"] == eid:
-                e["status"] = "discussed" if e.get("status") == "open" else "open"
-                if note:
-                    e["outcome"] = note[:2000]
-                hit = True
-        if not hit:
-            return self._json(404, {"error": "no such entry"})
-        self._scratch_write(entries)
-        self._scratch_render(entries)
-        return self._json(200, {"ok": True})
-
-    def _scratch_render(self, entries):
-        import html as _h
-        rows = []
-        for e in sorted(entries, key=lambda x: x["id"], reverse=True):
-            open_ = e.get("status") == "open"
-            outcome = (
-                f'<div class="oc">→ {_h.escape(e.get("outcome", ""))}</div>'
-                if e.get("outcome") else "")
-            rows.append(
-                f'<div class="e {"open" if open_ else "done"}">'
-                f'<div class="m"><span class="st">{"●" if open_ else "○"} '
-                f'{"open" if open_ else "discussed"}</span>'
-                f'<span>{_h.escape(e["ts"])} · {_h.escape(e.get("by", ""))}</span>'
-                f'<button onclick="tog(\'{e["id"]}\')">'
-                f'{"mark discussed" if open_ else "reopen"}</button></div>'
-                f'<div class="t">{_h.escape(e["text"])}</div>{outcome}</div>')
-        page = f"""<!doctype html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scratchpad</title><style>
-*{{box-sizing:border-box;border-radius:0}}
-body{{margin:0;font:16px/1.55 -apple-system,sans-serif;background:#fafafa;color:#16181d;max-width:44rem;margin:0 auto;padding:1rem}}
-h1{{font-size:1.15rem;margin:.4rem 0 .2rem}} .sub{{font-size:13px;color:#666;margin-bottom:1rem}}
-textarea{{width:100%;min-height:5.5rem;font:inherit;padding:.6rem;border:1px solid #ccc;background:#fff}}
-button{{font:600 13px -apple-system,sans-serif;padding:.45rem .8rem;border:1px solid #16181d;background:#fff;cursor:pointer}}
-.bar{{display:flex;gap:.5rem;justify-content:flex-end;margin:.5rem 0 1.4rem}}
-.e{{border:1px solid #ddd;border-left:3px solid #0a7d5f;background:#fff;padding:.7rem .8rem;margin:.6rem 0}}
-.e.done{{border-left-color:#bbb;opacity:.62}}
-.m{{display:flex;gap:.7rem;align-items:center;font-size:13px;color:#666;margin-bottom:.35rem;flex-wrap:wrap}}
-.m button{{margin-left:auto;font-size:12px;padding:.2rem .5rem}}
-.st{{font-weight:600;color:#0a7d5f}} .done .st{{color:#999}}
-.t{{white-space:pre-wrap}} .oc{{margin-top:.4rem;font-size:14px;color:#555;border-top:1px dashed #ddd;padding-top:.35rem}}
-a.home{{font-size:13px;color:#666;text-decoration:none}}</style></head><body>
-<a class="home" href="{_h.escape(ARTIFACT_HOME_URL, quote=True)}">⌂ Home</a>
-<h1>Scratchpad</h1>
-<div class="sub">The pile: things to discuss when there's bandwidth. Dictate freely — nothing here interrupts current work. Say "check the scratchpad" to chew through it.</div>
-<textarea id="tx" placeholder="Scribble, dictate, dump…"></textarea>
-<div class="bar"><button onclick="add()">Add to the pile</button></div>
-<div id="list">{"".join(rows) or '<div class="sub">Empty pile.</div>'}</div>
-<script>
-var API={json.dumps(SCRATCHPAD_API)};
-function add(){{var t=document.getElementById('tx').value.trim();if(!t)return;
-fetch(API,{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{text:t}})}}).then(r=>r.json()).then(j=>{{if(j.ok)location.reload();else alert(j.error)}}).catch(e=>alert(e))}}
-function tog(id){{fetch(API+'/toggle',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{id:id}})}}).then(()=>location.reload())}}
-</script></body></html>"""
-        out = os.path.join(HOME, "artifacts", "public", "a", "scratchpad")
-        os.makedirs(out, exist_ok=True)
-        with open(os.path.join(out, "index.html"), "w") as f:
-            f.write(page)
-
-    def do_GET(self):
-        if self.path == "/api/bridge-refresh":
-            return self._bridge_refresh()
-        if self.path.startswith("/api/bridge-retro"):
-            return self._bridge_retro()
-        return super().do_GET()
-
-    def _bridge_retro(self):
-        """Operator run-handle for time-based activity reports (operator ask
-        2026-07-06: 'no idea how to see or run time based activity reports').
-        Kicks weave-fleet-retro DETACHED (runs ~1-2 min: repo sweep + powder
-        + render + shelf publish + feed post) and returns immediately with
-        where the result lands. Windows: daily | weekly | custom (since/until
-        RFC3339 or YYYY-MM-DD). The finished report self-announces via the
-        tool's own feed post, so the deck's feed shows it when ready."""
-        from urllib.parse import urlparse, parse_qs
-        q = parse_qs(urlparse(self.path).query)
-        window = (q.get("window", ["daily"])[0] or "daily").strip()
-        if window not in ("daily", "weekly", "custom"):
-            return self._json(400, {"error": "window must be daily|weekly|custom"})
-        if not RETRO_COMMAND:
-            return self._json(503, {
-                "error": "ARTIFACT_RETRO_COMMAND is not configured",
-            })
-        retro_args = ["--window", window]
-        cmd = shlex.split(RETRO_COMMAND) + retro_args
-        if window == "custom":
-            since = (q.get("since", [""])[0] or "").strip()
-            if not since:
-                return self._json(400, {"error": "custom window requires since="})
-            if len(since) == 10:
-                since += "T00:00:00Z"
-            cmd += ["--since", since]
-            until = (q.get("until", [""])[0] or "").strip()
-            if until:
-                if len(until) == 10:
-                    until += "T23:59:59Z"
-                cmd += ["--until", until]
-        try:
-            subprocess.Popen(
-                cmd, cwd=os.path.expanduser(RETRO_WORKSPACE),
-                stdout=open("/tmp/bridge-retro.log", "ab"),
-                stderr=subprocess.STDOUT,
-                start_new_session=True)
-        except OSError as err:
-            return self._json(500, {"error": str(err)})
-        url = None
-        if RETRO_BASE_URL:
-            url = {"daily": f"{RETRO_BASE_URL}/daily/index.html",
-                   "weekly": f"{RETRO_BASE_URL}/weekly/index.html"}.get(window)
-        return self._json(202, {
-            "status": "generating",
-            "eta": "~2 min",
-            "url": url,
-            "note": "the finished report also announces itself on the feed",
-        })
-
-    def _bridge_answer(self):
-        if not POWDER_BASE:
-            return self._json(503, {
-                "error": "POWDER_API_BASE_URL is not configured",
-            })
-        length = int(self.headers.get("Content-Length", 0) or 0)
-        try:
-            body = json.loads(self.rfile.read(length) or b"{}")
-        except json.JSONDecodeError:
-            return self._json(400, {"error": "invalid json"})
-        run_id = str(body.get("run_id") or "").strip()
-        answer = str(body.get("answer") or "").strip()
-        actor = str(body.get("actor") or "operator").strip()
-        if not run_id or not answer:
-            return self._json(400, {"error": "run_id and answer are required"})
-        try:
-            key = open(BRIDGE_KEY_PATH).read().strip()
-        except OSError as err:
-            return self._json(500, {"error": f"no bridge key: {err}"})
-        req = urllib.request.Request(
-            f"{POWDER_BASE}/api/v1/runs/{run_id}/answer",
-            data=json.dumps({"actor": actor, "answer": answer}).encode(),
-            method="POST",
-        )
-        req.add_header("Authorization", f"Bearer {key}")
-        req.add_header("Content-Type", "application/json")
-        try:
-            with urllib.request.urlopen(req, timeout=8) as resp:
-                return self._json(resp.status, json.loads(resp.read()))
-        except urllib.error.HTTPError as err:
-            return self._json(err.code, json.loads(err.read() or b"{}"))
-        except (urllib.error.URLError, TimeoutError) as err:
-            return self._json(502, {"error": f"powder unreachable: {err}"})
-
-    def _bridge_refresh(self):
-        if not BRIDGE_SCRIPT:
-            return self._json(503, {
-                "error": "ARTIFACT_BRIDGE_SCRIPT is not configured",
-            })
-        r = subprocess.run(
-            ["python3", BRIDGE_SCRIPT], capture_output=True, text=True, timeout=30
-        )
-        if r.returncode != 0:
-            return self._json(500, {"error": (r.stderr or r.stdout).strip()[:500]})
-        return self._json(200, {"ok": True})
-
-    def _json(self, status, payload):
-        data = json.dumps(payload).encode()
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(data)))
-        self.end_headers()
-        self.wfile.write(data)
+def port_number(value):
+    port = int(value)
+    if not 0 <= port <= 65535:
+        raise argparse.ArgumentTypeError("port must be between 0 and 65535")
+    return port
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--host", default="127.0.0.1")
-    ap.add_argument("--port", type=int, default=8789)
-    ap.add_argument("--root", default=os.path.expanduser("~/artifacts/public"))
-    a = ap.parse_args()
-    os.makedirs(a.root, exist_ok=True)
-    handler = functools.partial(Handler, directory=a.root)
-    httpd = ThreadingHTTPServer((a.host, a.port), handler)
-    print(f"artifact_serve: {a.host}:{a.port} -> {a.root}")
-    httpd.serve_forever()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--host",
+        choices=("127.0.0.1", "localhost"),
+        default="127.0.0.1",
+        help="loopback address; external exposure belongs to a separate owner",
+    )
+    parser.add_argument("--port", type=port_number, default=8789)
+    parser.add_argument("--root", default=os.path.expanduser("~/artifacts/public"))
+    args = parser.parse_args()
+    args.root = normalized_absolute(args.root)
+
+    try:
+        root_fd = open_directory(args.root, create=True)
+    except (OSError, ValueError) as err:
+        parser.error(str(err))
+
+    server = None
+    try:
+        server = ThreadingHTTPServer((args.host, args.port), Handler)
+        server.root_fd = root_fd
+        bound_host, bound_port = server.server_address[:2]
+        print(f"artifact_serve: {bound_host}:{bound_port} -> {args.root}", flush=True)
+        server.serve_forever()
+    finally:
+        if server is not None:
+            server.server_close()
+        os.close(root_fd)
 
 
 if __name__ == "__main__":
