@@ -1,0 +1,6 @@
+schema_version: roster.pack.v1
+name: starter
+description: Ground and execute scoped repository work without external services.
+include:
+  - core/guidance:engineering
+  - core/skill:orient

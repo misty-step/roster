@@ -1,0 +1,35 @@
+#!/bin/sh
+set -eu
+
+if [ "$#" -ne 2 ]; then
+    echo "usage: fetch-landmark VERSION OUTPUT" >&2
+    exit 2
+fi
+
+version=$1
+output=$2
+case "$version" in
+    v*) tag=$version ;;
+    *) tag="v$version" ;;
+esac
+base="https://github.com/misty-step/landmark/releases/download/$tag"
+case "$(uname -s)-$(uname -m)" in
+    Darwin-arm64) asset=landmark-aarch64-apple-darwin ;;
+    Darwin-x86_64) asset=landmark-x86_64-apple-darwin ;;
+    Linux-aarch64|Linux-arm64) asset=landmark-aarch64-unknown-linux-musl ;;
+    Linux-x86_64) asset=landmark-x86_64-unknown-linux-musl ;;
+    *) echo "fetch-landmark: unsupported host" >&2; exit 2 ;;
+esac
+checksums=$(mktemp "${TMPDIR:-/tmp}/landmark-checksums.XXXXXX")
+trap 'rm -f "$checksums"' EXIT HUP INT TERM
+curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
+    "$base/$asset" --output "$output"
+curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
+    "$base/checksums.txt" --output "$checksums"
+expected=$(grep " $asset\$" "$checksums" | awk '{print $1}')
+actual=$(shasum -a 256 "$output" | awk '{print $1}')
+[ -n "$expected" ] && [ "$actual" = "$expected" ] || {
+    echo "fetch-landmark: checksum mismatch for $tag" >&2
+    exit 1
+}
+chmod 755 "$output"

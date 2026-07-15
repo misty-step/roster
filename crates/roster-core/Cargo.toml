@@ -1,10 +1,16 @@
 [package]
 name = "roster-core"
 version = "0.2.0"
+description = "Deterministic composition engine for exact agent bundles"
 edition.workspace = true
+homepage.workspace = true
 license.workspace = true
+readme = "../../README.md"
 repository.workspace = true
 rust-version.workspace = true
+keywords = ["agents", "ai", "configuration", "provenance"]
+categories = ["config", "development-tools"]
+publish = false
 
 [dependencies]
 serde.workspace = true
