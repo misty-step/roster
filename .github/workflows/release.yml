@@ -188,7 +188,7 @@ jobs:
             --audience developer \
             --changelog-source changelog \
             --version "${GITHUB_REF_NAME#v}" \
-            --changelog-file dist/landmark-technical-changelog.md \
+            --changelog-file CHANGELOG.md \
             --repo-root . \
             --templates-dir .release-tools/landmark/templates/prompts \
             --quality-file dist/landmark-synthesis-quality.txt \
