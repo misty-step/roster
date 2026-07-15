@@ -6,15 +6,23 @@ until the hidden choices are visible and resolved. `/shape`'s own grill step
 (`primitives/skills/shape/SKILL.md`) loads this reference and is the primary
 consumer of the stance. The invocable relative of this posture is
 `primitives/skills/grilling/SKILL.md` ("grill me" trigger phrases fire it
-directly); unlike this lens, it batches every open question per round rather
-than asking one at a time (2026-07-15, roster-grilling-batch — the operator
-dictates and wants a laundry list, not call-and-response).
+directly); it shares this lens's batching doctrine rather than duplicating it
+(2026-07-15, roster-batching-and-reasoning-defaults — one-question-at-a-time is
+revoked everywhere, not just grilling; the operator dictates and wants a
+laundry list, not call-and-response).
 
-1. **One question at a time.** Never batch. Each answer reshapes the next
-   question; a wall of questions is a form, and forms get skimmed.
+1. **Batch every round.** Present ALL currently-open questions at once,
+   grouped by theme, each with your recommended answer and a one-line why.
+   The operator answers whatever subset however he wants — often rambling
+   dictation, any order, partial. Absorb the answers, resolve the decisions
+   they settle, and return the next full batch: unanswered carry-overs +
+   newly-surfaced questions + follow-ups on ambiguous answers. Loop until
+   nothing is open. A single question asked and awaited produces "I agree"
+   turn after turn and wastes the operator's attention.
 2. **Resolve the tree, branch by branch.** Surface the decisions that depend on
-   each other and settle them in dependency order. A load-bearing choice left
-   implicit is a decision deferred to the worst possible moment.
+   each other and settle them within and across batches in dependency order. A
+   load-bearing choice left implicit is a decision deferred to the worst
+   possible moment.
 3. **Recommend an answer.** For every question give your best answer and what
    breaks if it's wrong. An interrogation that only extracts is lazy; the point
    is to move toward a resolved design, not to quiz the operator.
@@ -54,5 +62,5 @@ default posture for contestable framing, not a toll booth on every request.
 Before the substantial work begins:
 
 - Load-bearing decisions still implicit:
-- Next single question (with your recommended answer):
+- Next batch of open questions (each with your recommended answer):
 - What you resolved by exploring instead of asking:

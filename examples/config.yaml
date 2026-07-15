@@ -5,11 +5,17 @@ defaults:
   omp: urza
 sources:
   core: ..
+# Per-agent `reasoning` values follow the 2026-07-15
+# roster-batching-and-reasoning-defaults tier map (no hardcoded universal
+# max; see primitives/providers.yaml and
+# primitives/shared/references/model-capability-ledger.md). Tiers are a
+# starting allocation pending routing-bench evidence, not settled doctrine.
 agents:
   amos:
     description: Codex orchestrator for broad software work.
     role: core/role:orchestrator
     model: gpt-5.6-sol
+    # Lead-level planning/orchestration across an open-ended session.
     reasoning: high
     harness: codex
     args: [--search, --sandbox, workspace-write, --ask-for-approval, on-request]
@@ -17,6 +23,7 @@ agents:
     description: Claude orchestrator for broad software work.
     role: core/role:orchestrator
     model: claude-fable-5
+    # Lead-level planning/orchestration across an open-ended session.
     reasoning: high
     harness: claude
     args: [--permission-mode, acceptEdits]
@@ -24,6 +31,7 @@ agents:
     description: OMP orchestrator for broad software work.
     role: core/role:orchestrator
     model: claude-fable-5
+    # Lead-level planning/orchestration across an open-ended session.
     reasoning: high
     harness: omp
     args: [--approval-mode, write]
@@ -31,13 +39,16 @@ agents:
     description: Builder for one accepted software change.
     role: core/role:builder
     model: gpt-5.6-luna
-    reasoning: high
+    # Standard implementation lane executing an already-decided change.
+    reasoning: medium
     harness: codex
     args: [--search, --sandbox, workspace-write, --ask-for-approval, on-request]
   cerberus:
     description: Fresh-context adversarial code reviewer.
     role: core/role:code-reviewer
     model: gpt-5.6-luna
+    # Whole purpose is hardest-quality adversarial judgment; xhigh kept as
+    # the named exception, eval-pending (not validated against high/medium).
     reasoning: xhigh
     harness: codex
     args: [--search, --sandbox, read-only, --ask-for-approval, never]
@@ -45,6 +56,7 @@ agents:
     description: Independent live-behavior verifier.
     role: core/role:verifier
     model: gpt-5.6-luna
+    # Independent verification against live behavior; deep-review tier.
     reasoning: high
     harness: codex
     args: [--search, --sandbox, read-only, --ask-for-approval, never]
@@ -52,6 +64,7 @@ agents:
     description: Render-first product and interface designer.
     role: core/role:designer
     model: claude-fable-5
+    # Lead-level design judgment over rendered evidence.
     reasoning: high
     harness: claude
     args: [--permission-mode, acceptEdits]
@@ -59,27 +72,35 @@ agents:
     description: Reproduce-first production incident investigator.
     role: core/role:incident-investigator
     model: gpt-5.6-luna
-    reasoning: xhigh
+    # Deep reproduce-and-explain investigation; not an adversarial-critic or
+    # oracle role, so downgraded from the prior unvalidated xhigh to high.
+    reasoning: high
     harness: codex
     args: [--search, --sandbox, read-only, --ask-for-approval, never]
   tars:
     description: Empirical AI capability and routing scout.
     role: core/role:ai-capability-scout
     model: gpt-5.6-luna
-    reasoning: xhigh
+    # Empirical scouting/inventory lane, not deep critique; downgraded from
+    # the prior unvalidated xhigh to medium.
+    reasoning: medium
     harness: codex
     args: [--search, --sandbox, workspace-write, --ask-for-approval, never]
   magellan:
     description: Broad read-only research and repository sweeper.
     role: core/role:research-sweeper
     model: gpt-5.6-luna
-    reasoning: xhigh
+    # Broad research-sweep drudgery, not deep critique; downgraded from the
+    # prior unvalidated xhigh to medium.
+    reasoning: medium
     harness: codex
     args: [--search, --sandbox, read-only, --ask-for-approval, never]
   solomon:
     description: Evidence-backed decision arbiter.
     role: core/role:decision-arbiter
     model: claude-fable-5
+    # Rules from a complete evidence packet; deep-judgment tier, same as
+    # verification, short of the reserved adversarial-critic/oracle xhigh.
     reasoning: high
     harness: claude
     args: [--permission-mode, plan]
@@ -87,6 +108,8 @@ agents:
     description: Evidence-driven agent engineer for Roster roles and primitives.
     role: core/role:agent-creator
     model: gpt-5.6-sol
+    # Designs agent compositions (schema/primitive engineering), not routine
+    # feature implementation; kept at the lead-level design tier.
     reasoning: high
     harness: codex
     args: [--search, --sandbox, workspace-write, --ask-for-approval, on-request]

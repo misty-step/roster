@@ -6,18 +6,24 @@ defaults:
   reasoning: provider-default
   worktree: recommended
   smoke_timeout_s: 30
+  # provider-default means: use the modest fallback each provider below
+  # declares (2026-07-15, roster-batching-and-reasoning-defaults). No
+  # provider hardcodes a universal max anymore; per-role/per-agent
+  # `reasoning` declarations in config.yaml (see examples/config.yaml)
+  # override these fallbacks. These values await routing-bench evidence
+  # per model-capability-ledger.md's "unvalidated default" note.
 providers:
   codex:
     tier: primary
     kind: cli
     probe: codex --version
-    dispatch: codex exec --dangerously-bypass-approvals-and-sandbox --model gpt-5.6-luna --config model_reasoning_effort="xhigh"
+    dispatch: codex exec --dangerously-bypass-approvals-and-sandbox --model gpt-5.6-luna --config model_reasoning_effort="medium"
     output: json
     model: gpt-5.6-luna
-    reasoning: xhigh
+    reasoning: medium
     permissions: dangerous bypass approvals and sandbox
     worktree: recommended
-    smoke: codex exec --dangerously-bypass-approvals-and-sandbox --model gpt-5.6-luna --config model_reasoning_effort="xhigh"
+    smoke: codex exec --dangerously-bypass-approvals-and-sandbox --model gpt-5.6-luna --config model_reasoning_effort="medium"
     # How a NAMED custom subagent gets selected within this harness (roster-915,
     # evidence: ~/.factory-lanes/campaign/roster-910-report.md). Distinct from
     # `dispatch` above, which is about invoking the harness itself, not a
@@ -29,13 +35,13 @@ providers:
     tier: conditional
     kind: cli
     probe: claude --version
-    dispatch: claude -p --dangerously-skip-permissions --permission-mode bypassPermissions --model claude-opus-4-8 --effort xhigh
+    dispatch: claude -p --dangerously-skip-permissions --permission-mode bypassPermissions --model claude-opus-4-8 --effort medium
     output: json
     model: claude-opus-4-8
-    reasoning: xhigh
+    reasoning: medium
     permissions: dangerous skip permissions plus bypass permission mode
     worktree: recommended
-    smoke: claude -p --dangerously-skip-permissions --permission-mode bypassPermissions --model claude-opus-4-8 --effort xhigh
+    smoke: claude -p --dangerously-skip-permissions --permission-mode bypassPermissions --model claude-opus-4-8 --effort medium
     agent_dispatch: in_session_task
     agent_model_override: per_agent_field
     notes: Claude Code CLI; conditional critic or Anthropic-specific lane, not the default roster bias.
@@ -43,7 +49,7 @@ providers:
     tier: primary
     kind: cli
     probe: pi --version
-    dispatch: pi -p --no-extensions --provider openrouter --model moonshotai/kimi-k2.7-code --thinking xhigh --tools read,bash,edit,write,grep,find,ls
+    dispatch: pi -p --no-extensions --provider openrouter --model moonshotai/kimi-k2.7-code --thinking medium --tools read,bash,edit,write,grep,find,ls
     output: json
     model: openrouter/moonshotai/kimi-k2.7-code
     model_variants:
@@ -54,10 +60,10 @@ providers:
       budget_long_context: openrouter/deepseek/deepseek-v4-flash
       alternate_agentic: openrouter/minimax/minimax-m3
       qwen_coder: openrouter/qwen/qwen3-coder-next
-    reasoning: xhigh
+    reasoning: medium
     permissions: full read bash edit write grep find ls tool list
     worktree: recommended
-    smoke: pi -p --no-extensions --provider openrouter --model moonshotai/kimi-k2.7-code --thinking xhigh --tools read,bash,edit,write,grep,find,ls
+    smoke: pi -p --no-extensions --provider openrouter --model moonshotai/kimi-k2.7-code --thinking medium --tools read,bash,edit,write,grep,find,ls
     # Bare pi has no native named-agent registry at all (roster-910/roster-915
     # recon: no `agent`/`agents` subcommand, no `--agent` flag). The richer
     # `spawns:`/aliased-`model:` schema the roster-910 receipt found lives in

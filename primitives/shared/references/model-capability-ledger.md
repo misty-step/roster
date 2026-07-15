@@ -19,6 +19,27 @@ overhaul, root-cause); dispatch weaker models when the invariants are
 written down — and write them down.** Spec specificity is not prose volume;
 it is invariant coverage plus an oracle that exercises the live environment.
 
+## Reasoning effort is an unvalidated default, not a routing decision
+
+`primitives/providers.yaml` used to set `xhigh` as the default reasoning
+effort for every primary provider (codex, claude, pi). No paired eval in
+this repo has tested `xhigh` against `medium` or `high` on representative
+roster tasks — that default was migrated, not derived. Per
+`verification-system-first.md`'s Eval & Benchmark Rigor: before raising
+or defending a reasoning-effort default, cite the paired comparison and
+its confidence interval, not "xhigh is strong" as a standalone claim.
+
+Operator ruling (2026-07-15, roster-batching-and-reasoning-defaults): no
+hardcoded universal max. `providers.yaml` now falls back to `medium`, and
+per-role `reasoning` declarations in `examples/config.yaml` set differentiated
+defaults by job shape (deep review/critique/verification and lead-level
+planning/design → `high`; standard implementation/build → `medium`;
+research/scout/inventory/drudgery → `medium`; `xhigh` reserved for roles
+whose whole purpose is hardest-quality adversarial judgment, e.g. the
+adversarial code-reviewer role). Those tier assignments are a starting
+allocation, not settled doctrine — they, and the `xhigh` carve-out
+specifically, remain open routing-bench work pending paired-eval evidence.
+
 ## GPT-5.5 / codex lanes (default implementation workhorse; xhigh is strong)
 
 - **Good at:** faithful, high-volume spec execution. Same night it introduced

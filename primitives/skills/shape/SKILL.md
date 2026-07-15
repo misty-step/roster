@@ -46,10 +46,11 @@ A shape is ready only when:
   explicit waiver with residual risk.
 
 Resolve facts from the repo and tools. Ask the operator only for a product or
-architecture decision the evidence cannot settle: one question at a time,
-with a recommendation and the cost of being wrong. For a substantial unknown,
-load `primitives/shared/references/interrogate-first.md`; do not manufacture an
-interview when the evidence already decides the branch.
+architecture decision the evidence cannot settle, batched with a
+recommendation and the cost of being wrong for each. For a substantial
+unknown, load `primitives/shared/references/interrogate-first.md` (batching
+doctrine); do not manufacture an interview when the evidence already decides
+the branch.
 
 ## Context packet
 

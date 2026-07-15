@@ -50,11 +50,11 @@ Source: `primitives/providers.yaml`, with command discovery rechecked on
 
 | Provider target | Harness / CLI | Active model id | Dispatch surface | Local probe status |
 |---|---|---|---|---|
-| `codex` | OpenAI Codex CLI | `gpt-5.6-luna` | `codex exec --model gpt-5.6-luna --config model_reasoning_effort="xhigh"` | available |
-| `pi` | Pi coding agent via OpenRouter | `openrouter/moonshotai/kimi-k2.7-code` | `pi -p --no-extensions --provider openrouter --model moonshotai/kimi-k2.7-code --thinking xhigh` | available |
+| `codex` | OpenAI Codex CLI | `gpt-5.6-luna` | `codex exec --model gpt-5.6-luna --config model_reasoning_effort="medium"` | available |
+| `pi` | Pi coding agent via OpenRouter | `openrouter/moonshotai/kimi-k2.7-code` | `pi -p --no-extensions --provider openrouter --model moonshotai/kimi-k2.7-code --thinking medium` | available |
 | `goose` | Goose CLI via OpenRouter | `openrouter/moonshotai/kimi-k2.7-code` | `goose run --provider openrouter --model moonshotai/kimi-k2.7-code --text` | available |
 | `opencode` | OpenCode CLI via OpenRouter | `openrouter/moonshotai/kimi-k2.7-code` | `opencode run --model openrouter/moonshotai/kimi-k2.7-code --variant max --format json` | available |
-| `claude` | Claude Code CLI | `claude-opus-4-8` (also `claude-fable-5`, `claude-sonnet-5`) | `claude -p --model claude-opus-4-8 --effort xhigh` | available; fable-5 verified live as a session model 2026-07-08 |
+| `claude` | Claude Code CLI | `claude-opus-4-8` (also `claude-fable-5`, `claude-sonnet-5`) | `claude -p --model claude-opus-4-8 --effort medium` | available; fable-5 verified live as a session model 2026-07-08 |
 | `agy` | Antigravity CLI | `gemini-3.5-flash` | `agy --dangerously-skip-permissions --print` | available |
 | `cursor-agent` | Cursor Agent CLI | `composer-2.5` | `cursor-agent -p --model composer-2.5` | available |
 | `grok-build` | xAI Grok Build CLI (v0.2.91) | `grok-4.5` (CLI default; `grok-4.3` retained as cheaper 1M-ctx fallback) | `grok --model grok-4.5 --reasoning-effort high -p` (4.5 effort tiers: low/medium/high) | available; grok-4.5 sentinel dispatch passed 2026-07-08 |

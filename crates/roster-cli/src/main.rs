@@ -392,7 +392,7 @@ fn init(
     });
     let model_yaml = serde_json::to_string(model)?;
     let body = format!(
-        "schema_version: roster.config.v1\ndefaults:\n  {harness}: amos\nsources:\n  core: {source_yaml}\nagents:\n  amos:\n    description: Default {harness} starter\n    role: core/role:starter\n    model: {model_yaml}\n    reasoning: high\n    harness: {harness}\n    args: []\n"
+        "schema_version: roster.config.v1\ndefaults:\n  {harness}: amos\nsources:\n  core: {source_yaml}\nagents:\n  amos:\n    description: Default {harness} starter\n    role: core/role:starter\n    model: {model_yaml}\n    reasoning: medium\n    harness: {harness}\n    args: []\n"
     );
     let temporary = directory.join(format!(".config.yaml.tmp-{}", std::process::id()));
     fs::write(&temporary, body)?;
