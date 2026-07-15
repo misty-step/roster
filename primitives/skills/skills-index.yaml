@@ -71,6 +71,6 @@ skills:
   - name: estate-infrastructure
     path: primitives/skills/estate-infrastructure/SKILL.md
   - name: grilling
-    path: primitives/skills/.external/mattpocock-grilling/SKILL.md
+    path: primitives/skills/grilling/SKILL.md
   - name: writing-great-skills
     path: primitives/skills/.external/mattpocock-writing-great-skills/SKILL.md

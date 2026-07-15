@@ -4,9 +4,11 @@ Use before shaping a contestable idea or framing a strategic groom. The posture
 is an interview, not a questionnaire: walk the operator down the decision tree
 until the hidden choices are visible and resolved. `/shape`'s own grill step
 (`primitives/skills/shape/SKILL.md`) loads this reference and is the primary
-consumer of the stance. The upstream of this posture is vendored as an
-invocable skill at `primitives/skills/.external/mattpocock-grilling/SKILL.md`
-("grill me" trigger phrases fire it directly).
+consumer of the stance. The invocable relative of this posture is
+`primitives/skills/grilling/SKILL.md` ("grill me" trigger phrases fire it
+directly); unlike this lens, it batches every open question per round rather
+than asking one at a time (2026-07-15, roster-grilling-batch — the operator
+dictates and wants a laundry list, not call-and-response).
 
 1. **One question at a time.** Never batch. Each answer reshapes the next
    question; a wall of questions is a form, and forms get skimmed.

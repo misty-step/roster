@@ -333,11 +333,12 @@ sources:
   # mattpocock/skills — Matt Pocock's skills collection. Three vendored:
   # `writing-great-skills` (the skill-prose predictability doctrine our
   # skill-authoring-standard builds on), `grilling` (relentless
-  # one-question-at-a-time decision-extraction interview — the upstream of
-  # the house interrogate-first posture; neither /shape nor /council covers
-  # the solo adversarial interview), and `codebase-design` (invocable
-  # deep-module vocabulary: deletion test, seam discipline, design-it-twice —
-  # the skill form of the collapse-toward-declaration doctrine).
+  # decision-extraction interview; kept here for provenance only — superseded
+  # 2026-07-15, roster-grilling-batch, by the roster-authored batching version
+  # at `primitives/skills/grilling/SKILL.md`, which the skills-index now
+  # routes to), and `codebase-design` (invocable deep-module vocabulary:
+  # deletion test, seam discipline, design-it-twice — the skill form of the
+  # collapse-toward-declaration doctrine).
   #
   # FIT NOTE (2026-07-08 scan): the rest of the repo is either
   # tracker-coupled workflow (to-spec/to-tickets/triage/wayfinder duplicate
