@@ -20,7 +20,7 @@ case "$(uname -s)-$(uname -m)" in
     Linux-x86_64) asset=landmark-x86_64-unknown-linux-musl ;;
     *) echo "fetch-landmark: unsupported host" >&2; exit 2 ;;
 esac
-checksums=$(mktemp "${TMPDIR:-/tmp}/landmark-checksums.XXXXXX")
+checksums=$(mktemp)
 trap 'rm -f "$checksums"' EXIT HUP INT TERM
 curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
     "$base/$asset" --output "$output"

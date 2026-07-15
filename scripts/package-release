@@ -30,7 +30,7 @@ for path in LICENSE README.md VISION.md roles packs primitives packaging/install
 done
 
 name="roster-v${version}-${target}"
-work=$(mktemp -d "${TMPDIR:-/tmp}/roster-package.XXXXXX")
+work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 package="$work/$name"
 mkdir -p "$package/bin" "$package/share/roster" "$output_dir"
@@ -43,12 +43,13 @@ cp "$repo_root/LICENSE" "$repo_root/README.md" "$repo_root/VISION.md" "$package/
 # Package exactly the public files Git would ship, including intentional new
 # non-ignored files during local red/green work. Editor debris and ignored
 # secrets never enter an archive merely because they exist in the checkout.
-git -C "$repo_root" ls-files --cached --others --exclude-standard -- roles packs primitives |
-    while IFS= read -r path; do
-        destination="$package/share/roster/$path"
-        mkdir -p "$(dirname -- "$destination")"
-        cp "$repo_root/$path" "$destination"
-    done
+git -C "$repo_root" ls-files --cached --others --exclude-standard -- roles packs primitives \
+    > "$work/files.txt"
+while IFS= read -r path; do
+    destination="$package/share/roster/$path"
+    mkdir -p "$(dirname -- "$destination")"
+    cp "$repo_root/$path" "$destination"
+done < "$work/files.txt"
 printf '%s\n' "$version" > "$package/share/roster/VERSION"
 binary_sha256=$(shasum -a 256 "$package/bin/roster" | awk '{print $1}')
 cat > "$package/release-manifest.json" <<EOF

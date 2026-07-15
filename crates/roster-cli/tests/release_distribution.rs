@@ -215,3 +215,18 @@ fn release_workflow_keeps_version_intelligence_provenance_and_live_replay() {
         );
     }
 }
+
+#[test]
+fn release_shell_surfaces_keep_portable_failure_boundaries() {
+    let root = repository_root();
+    let package = fs::read_to_string(root.join("scripts/package-release")).expect("packager");
+    assert!(package.contains("work=$(mktemp -d)\n"));
+    assert!(package.contains("> \"$work/files.txt\"\n"));
+    assert!(package.contains("done < \"$work/files.txt\"\n"));
+
+    let landmark = fs::read_to_string(root.join("scripts/fetch-landmark")).expect("fetcher");
+    assert!(landmark.contains("checksums=$(mktemp)\n"));
+
+    let get_started = fs::read_to_string(root.join("site/get-started.html")).expect("site docs");
+    assert!(get_started.contains("*) echo \"unsupported host\" &gt;&amp;2; exit 1 ;;"));
+}
