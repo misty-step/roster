@@ -2,6 +2,8 @@ use assert_cmd::prelude::*;
 use predicates::prelude::*;
 use std::{fs, path::PathBuf, process::Command};
 
+const RELEASE_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn repository_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
@@ -27,7 +29,7 @@ fn release_archive_installs_and_drives_the_public_cold_start() {
     Command::new(root.join("scripts/package-release"))
         .args([
             binary.as_os_str(),
-            "0.2.0".as_ref(),
+            RELEASE_VERSION.as_ref(),
             host_target().as_ref(),
             dist.as_os_str(),
         ])
@@ -35,14 +37,17 @@ fn release_archive_installs_and_drives_the_public_cold_start() {
         .assert()
         .success();
 
-    let archive = dist.join(format!("roster-v0.2.0-{}.tar.gz", host_target()));
+    let archive = dist.join(format!(
+        "roster-v{RELEASE_VERSION}-{}.tar.gz",
+        host_target()
+    ));
     assert!(archive.is_file(), "missing {}", archive.display());
     let second_dist = temp.path().join("second-dist");
     fs::create_dir_all(&second_dist).expect("second dist directory");
     Command::new(root.join("scripts/package-release"))
         .args([
             binary.as_os_str(),
-            "0.2.0".as_ref(),
+            RELEASE_VERSION.as_ref(),
             host_target().as_ref(),
             second_dist.as_os_str(),
         ])
@@ -59,7 +64,7 @@ fn release_archive_installs_and_drives_the_public_cold_start() {
         .current_dir(temp.path())
         .args([
             binary.as_os_str(),
-            "0.2.0".as_ref(),
+            RELEASE_VERSION.as_ref(),
             host_target().as_ref(),
             "relative-dist".as_ref(),
         ])
@@ -81,13 +86,15 @@ fn release_archive_installs_and_drives_the_public_cold_start() {
         .assert()
         .success();
 
-    let package = temp.path().join(format!("roster-v0.2.0-{}", host_target()));
+    let package = temp
+        .path()
+        .join(format!("roster-v{RELEASE_VERSION}-{}", host_target()));
     assert!(package.join("LICENSE").is_file());
     let release_manifest: serde_json::Value = serde_json::from_str(
         &fs::read_to_string(package.join("release-manifest.json")).expect("release manifest"),
     )
     .expect("valid release manifest");
-    assert_eq!(release_manifest["version"], "0.2.0");
+    assert_eq!(release_manifest["version"], RELEASE_VERSION);
     assert_eq!(release_manifest["target"], host_target());
     assert_eq!(
         release_manifest["library"],
@@ -97,7 +104,7 @@ fn release_archive_installs_and_drives_the_public_cold_start() {
     assert!(!package.join("share/roster/primitives/.DS_Store").exists());
     assert_eq!(
         fs::read_to_string(package.join("share/roster/VERSION")).expect("version marker"),
-        "0.2.0\n"
+        format!("{RELEASE_VERSION}\n")
     );
 
     let prefix = temp.path().join("prefix");
@@ -112,7 +119,7 @@ fn release_archive_installs_and_drives_the_public_cold_start() {
         .arg("--version")
         .assert()
         .success()
-        .stdout("roster 0.2.0\n");
+        .stdout(format!("roster {RELEASE_VERSION}\n"));
 
     let home = temp.path().join("home");
     let workspace = temp.path().join("workspace");
@@ -182,7 +189,7 @@ fn release_archive_installs_and_drives_the_public_cold_start() {
         .arg("--version")
         .assert()
         .success()
-        .stdout("roster 0.2.0\n");
+        .stdout(format!("roster {RELEASE_VERSION}\n"));
 }
 
 #[test]
@@ -190,27 +197,27 @@ fn release_workflow_keeps_version_intelligence_provenance_and_live_replay() {
     let root = repository_root();
     let changelog = fs::read_to_string(root.join("CHANGELOG.md")).expect("release changelog");
     let release_section = changelog
-        .split("## [0.2.0]")
+        .split(&format!("## [{RELEASE_VERSION}]"))
         .nth(1)
-        .expect("release section [0.2.0] not found");
+        .unwrap_or_else(|| panic!("release section [{RELEASE_VERSION}] not found"));
     let release_section = release_section
         .split("## [")
         .next()
         .expect("release section body");
     assert!(
         release_section.lines().any(|line| line.starts_with("- ")),
-        "release section [0.2.0] needs evidence bullets"
+        "release section [{RELEASE_VERSION}] needs evidence bullets"
     );
     Command::new(root.join("scripts/check-release-version"))
-        .arg("v0.2.0")
+        .arg(format!("v{RELEASE_VERSION}"))
         .assert()
         .success()
-        .stdout("release version: 0.2.0\n");
+        .stdout(format!("release version: {RELEASE_VERSION}\n"));
     Command::new(root.join("scripts/check-release-version"))
-        .arg("v0.2.1")
+        .arg("v99.99.99")
         .assert()
         .failure()
-        .stderr(predicate::str::contains("tag is 0.2.1"));
+        .stderr(predicate::str::contains("tag is 99.99.99"));
     Command::new(root.join("scripts/check-release-version"))
         .arg("v0.2.0-rc.1")
         .assert()
@@ -248,6 +255,9 @@ fn release_workflow_keeps_version_intelligence_provenance_and_live_replay() {
         "accept:\n    needs: build",
         "publish:\n    needs: [validate, build, accept]",
         "cold-start:\n    needs: publish",
+        "previous_tag=$(gh api",
+        "previous-version rollback",
+        "test \"$rollback_version\" = \"${previous_tag#v}\"",
     ] {
         assert!(
             workflow.contains(required),
@@ -279,8 +289,16 @@ fn release_shell_surfaces_keep_portable_failure_boundaries() {
 
     let get_started = fs::read_to_string(root.join("site/get-started.html")).expect("site docs");
     assert!(get_started.contains("*) echo \"unsupported host\" &gt;&amp;2; exit 1 ;;"));
+    assert!(get_started.contains(&format!("version={RELEASE_VERSION}")));
+    assert!(get_started.contains("--prefix \"$PREFIX\""));
 
     let releasing = fs::read_to_string(root.join("docs/RELEASING.md")).expect("release docs");
     assert!(releasing.contains("404) ;;"));
     assert!(releasing.contains("could not prove v0.2.0 is unpublished"));
+
+    let readme = fs::read_to_string(root.join("README.md")).expect("readme");
+    assert!(readme.contains("PREFIX=${PREFIX:-\"$HOME/.local\"}"));
+    assert!(readme.contains("case \"$PREFIX\" in \"\"|/)"));
+    assert!(readme.contains("$PREFIX/bin/roster"));
+    assert!(readme.contains("$PREFIX/share/roster"));
 }

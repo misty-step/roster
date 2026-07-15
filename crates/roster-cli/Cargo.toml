@@ -1,6 +1,6 @@
 [package]
 name = "roster-cli"
-version = "0.2.0"
+version = "0.2.1"
 description = "Compose and launch exact Codex, Claude Code, and OMP agent environments"
 edition.workspace = true
 homepage.workspace = true

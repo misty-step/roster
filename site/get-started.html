@@ -27,7 +27,9 @@
           <p class="ae-lede">Install one binary. Declare the agents you want. Roster loads only the selected role when you launch.</p>
           <section class="msk-release">
             <h2>Install</h2>
-            <pre><code>version=0.2.0
+            <pre><code>version=0.2.1
+PREFIX=${PREFIX:-"$HOME/.local"}
+case "$PREFIX" in ""|/) echo "refusing unsafe prefix: $PREFIX" &gt;&amp;2; exit 2 ;; esac
 case "$(uname -s)-$(uname -m)" in
   Darwin-arm64) target=aarch64-apple-darwin ;;
   Darwin-x86_64) target=x86_64-apple-darwin ;;
@@ -42,8 +44,8 @@ expected=$(grep " $archive$" checksums.txt | awk '{print $1}')
 actual=$(shasum -a 256 "$archive" | awk '{print $1}')
 test -n "$expected" &amp;&amp; test "$actual" = "$expected"
 tar -xzf "$archive"
-"roster-v${version}-${target}/install.sh"
-export PATH="$HOME/.local/bin:$PATH"
+"roster-v${version}-${target}/install.sh" --prefix "$PREFIX"
+export PATH="$PREFIX/bin:$PATH"
 
 mkdir my-roster-workspace &amp;&amp; cd my-roster-workspace
 roster init
