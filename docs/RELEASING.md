@@ -53,7 +53,14 @@ exists and retain the failed run as evidence. An unpublished tag may then be
 deleted and recreated at the corrective commit:
 
 ```sh
-test "$(gh release view v0.2.0 --json tagName 2>/dev/null || true)" = ""
+release_status=$(gh api --include \
+  repos/misty-step/roster/releases/tags/v0.2.0 2>&1 | \
+  sed -n '1s/.* \([0-9][0-9][0-9]\) .*/\1/p')
+case "$release_status" in
+  404) ;;
+  200) echo "v0.2.0 is published; use a new patch version" >&2; exit 1 ;;
+  *) echo "could not prove v0.2.0 is unpublished" >&2; exit 1 ;;
+esac
 git push origin :refs/tags/v0.2.0
 git tag -d v0.2.0
 git tag -a v0.2.0 -m "Roster v0.2.0"
