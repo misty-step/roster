@@ -3,8 +3,8 @@
 
 The house template (CSS + theme toggle + mandatory copy-page button) lives HERE,
 as the single source of truth, so every artifact looks the same and ships the
-same affordances. Hermes-independent: writes to a neutral artifacts root served
-by artifact_serve.py over Tailscale.
+same affordances. It writes to a neutral artifacts root served locally by
+artifact_serve.py.
 
 Usage:
   artifact_create.py --title T --slug S [--summary X] [--tag "Field Memo"]
@@ -16,7 +16,25 @@ Usage:
 --body-file / stdin: markdown, wrapped in the house template.
 """
 import argparse
-import urllib.request, os, sys, json, re, html, datetime
+import datetime
+import errno
+import html
+import json
+import os
+import re
+import stat
+import sys
+from urllib.parse import urlsplit
+
+from artifact_fs import (
+    atomic_write_text,
+    list_names_checked,
+    normalized_absolute,
+    open_absolute_regular,
+    open_child_directory,
+    open_directory,
+    open_regular_at,
+)
 
 HOUSE_CSS = r"""
 img{cursor:zoom-in}
@@ -71,7 +89,7 @@ HOUSE_JS = r"""
   apply();
   var tg=document.getElementById("tg");if(tg)tg.addEventListener("click",function(){cur=order[(order.indexOf(cur)+1)%order.length];try{localStorage.setItem(k,cur)}catch(e){}apply();});
   var cp=document.getElementById("cp"),cpt=document.getElementById("cptxt");
-  // Lightbox: click any content image for full size (operator ask 2026-07-04)
+  // Lightbox: click any content image for full size.
   document.addEventListener("click",function(e){
     var t=e.target;
     if(t.tagName==="IMG"&&!t.closest("a")&&!t.closest("#hk-lb")){
@@ -206,65 +224,84 @@ def ensure_copy_button(doc: str) -> str:
     return doc
 
 
-def _artifacts_token():
-    return os.environ.get("ARTIFACTS_API_TOKEN", "")
-
-
-def publish(base_url, slug, doc, mtime=None):
-    """PUT the page to the box's artifact shelf. Best-effort: the local
-    mirror is already written, so a publish failure warns and returns False
-    instead of failing the run."""
-    token = _artifacts_token()
-    if not token:
-        print("publish skipped: ARTIFACTS_API_TOKEN not set", file=sys.stderr)
-        return False
-    target = f"{base_url.rstrip('/')}/a/{slug}/index.html"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "text/html"}
-    if mtime:
-        headers["X-Artifact-Mtime"] = str(int(mtime))
-    req = urllib.request.Request(target, data=doc.encode(), method="PUT", headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            return 200 <= resp.status < 300
-    except Exception as e:  # noqa: BLE001 — best-effort by design
-        print(f"publish failed ({e}); local mirror still written", file=sys.stderr)
-        return False
-
-
 INDEX_SLUG = "index"
 
 
-def load_registry(root):
-    path = os.path.join(root, "a", INDEX_SLUG, "index.json")
+def prepare_root(path):
+    root = normalized_absolute(path)
+    return root, open_directory(root, create=True)
+
+
+def open_artifact_dir(root_fd, slug):
+    """Create and return an artifact directory anchored below the root fd."""
+    artifacts_fd = None
     try:
-        with open(path) as f:
-            data = json.load(f)
+        artifacts_fd = open_child_directory(root_fd, "a", create=True)
+        return open_child_directory(artifacts_fd, slug, create=True)
+    finally:
+        if artifacts_fd is not None:
+            os.close(artifacts_fd)
+
+
+def read_text(directory_fd, name, errors="strict"):
+    fd = open_regular_at(directory_fd, name)
+    with os.fdopen(fd, encoding="utf-8", errors=errors) as source:
+        return source.read()
+
+
+def read_input(path, label):
+    """Read one regular input through held, no-follow parent descriptors."""
+    try:
+        fd = open_absolute_regular(path)
+    except ValueError as err:
+        raise ValueError(f"{label}: {err}") from err
+    with os.fdopen(fd, encoding="utf-8") as input_file:
+        return input_file.read()
+
+
+def normalize_local_base_url(value):
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError as err:
+        raise ValueError(f"invalid local base URL: {value}") from err
+    if (
+        parsed.scheme != "http"
+        or parsed.hostname not in ("127.0.0.1", "localhost")
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or parsed.path not in ("", "/")
+        or (port is not None and not 1 <= port <= 65535)
+    ):
+        raise ValueError(
+            "--base-url must be an HTTP loopback origin such as "
+            "http://127.0.0.1:8789"
+        )
+    authority = parsed.hostname
+    if port is not None:
+        authority = f"{authority}:{port}"
+    return f"http://{authority}"
+
+
+def load_registry(root_fd):
+    artifacts_fd = index_fd = None
+    try:
+        artifacts_fd = open_child_directory(root_fd, "a")
+        index_fd = open_child_directory(artifacts_fd, INDEX_SLUG)
+        data = json.loads(read_text(index_fd, "index.json"))
         return {e["slug"]: e for e in data.get("artifacts", [])}
-    except (OSError, ValueError, KeyError):
+    except OSError as err:
+        if err.errno in (errno.ENOENT, errno.ENOTDIR):
+            return {}
+        raise
+    except (ValueError, KeyError, TypeError, json.JSONDecodeError):
         return {}
-
-
-def fetch_live_stars(base_url):
-    """GET the shelf's current starred slugs. Best-effort: a stale or
-    unreachable stars store must never block an index write, so callers
-    treat None (fetch failed) as "leave prior starred flags alone"."""
-    target = f"{base_url.rstrip('/')}/stars"
-    try:
-        with urllib.request.urlopen(target, timeout=10) as resp:
-            return set(json.load(resp).get("starred", []))
-    except Exception as e:  # noqa: BLE001 — best-effort by design
-        print(f"live stars fetch skipped ({e}); starred flags left as-is", file=sys.stderr)
-        return None
-
-
-def sync_starred(entries, base_url):
-    """Stamp entry['starred'] from the live stars store. Mutates in place so
-    callers holding the same dict objects (e.g. a registry) see the update."""
-    live = fetch_live_stars(base_url)
-    if live is None:
-        return
-    for e in entries:
-        e["starred"] = e["slug"] in live
+    finally:
+        for directory in (index_fd, artifacts_fd):
+            if directory is not None:
+                os.close(directory)
 
 
 def pin_starred(entries):
@@ -288,7 +325,7 @@ def render_index_html(entries, base_url):
         )
     body = (
         "<h2>Shelf index</h2>"
-        "<p>Every artifact published through the house pipeline, newest first. "
+        "<p>Every locally rendered artifact, newest first. "
         "Machine-readable twin: <a href=\"index.json\">index.json</a>.</p>"
         "<div class='scroll'><table><thead><tr><th>Artifact</th><th>Tag</th><th>Summary</th>"
         "<th>Updated (UTC)</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>"
@@ -296,93 +333,139 @@ def render_index_html(entries, base_url):
     return wrap("Shelf Index", "Registry", f"{len(entries)} artifacts on the shelf.", body)
 
 
-def update_index(root, base_url, entry, local_only):
-    """Upsert one registry entry, rewrite index.json + index.html, publish both.
+def update_index(root_fd, base_url, entry):
+    """Upsert one registry entry and rewrite the local index files.
 
     The registry is itself an artifact (slug "index"): the shelf serves static
-    files only, so the index rides the exact same PUT contract as every page.
-    Best-effort — an index failure must never fail the artifact publish itself.
+    files only, so the index rides the exact same local-file contract as every
+    page. Best-effort — an index failure must never fail the artifact render.
     """
     try:
-        reg = load_registry(root)
+        reg = load_registry(root_fd)
         prev = reg.get(entry["slug"], {})
         entry["created"] = prev.get("created") or entry["updated"]
         reg[entry["slug"]] = {**prev, **entry}
         entries = [e for s, e in reg.items() if s != INDEX_SLUG]
-        sync_starred(entries, base_url)
         entries = pin_starred(entries)
-        idx_dir = os.path.join(root, "a", INDEX_SLUG)
-        os.makedirs(idx_dir, exist_ok=True)
-        payload = {"generated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
-                   "count": len(entries), "artifacts": entries}
-        with open(os.path.join(idx_dir, "index.json"), "w") as f:
-            json.dump(payload, f, indent=1)
-        doc = render_index_html(entries, base_url.rstrip("/"))
-        with open(os.path.join(idx_dir, "index.html"), "w") as f:
-            f.write(doc)
-        if not local_only:
-            publish(base_url, INDEX_SLUG, doc)
-            publish_file(base_url, INDEX_SLUG, "index.json",
-                         json.dumps(payload, indent=1))
-        return len(entries)
+        idx_fd = open_artifact_dir(root_fd, INDEX_SLUG)
+        try:
+            payload = {"generated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+                       "count": len(entries), "artifacts": entries}
+            atomic_write_text(idx_fd, "index.json", json.dumps(payload, indent=1))
+            doc = render_index_html(entries, base_url.rstrip("/"))
+            atomic_write_text(idx_fd, "index.html", doc)
+            return len(entries)
+        finally:
+            os.close(idx_fd)
     except Exception as err:  # noqa: BLE001 — index is best-effort by contract
         print(f"index update skipped ({err})", file=sys.stderr)
         return None
 
 
-def publish_file(base_url, slug, name, content):
-    token = _artifacts_token()
-    if not token:
-        return False
-    target = f"{base_url.rstrip('/')}/a/{slug}/{name}"
-    req = urllib.request.Request(target, data=content.encode(), method="PUT",
-                                 headers={"Authorization": f"Bearer {token}",
-                                          "Content-Type": "application/json"})
-    try:
-        urllib.request.urlopen(req, timeout=15)
-        return True
-    except Exception as e:  # noqa: BLE001
-        print(f"index publish failed ({e}); local copy written", file=sys.stderr)
-        return False
-
-
-def reindex(root, base_url, local_only):
+def reindex(root_fd, base_url):
     """Backfill the registry from the local mirror (title from each page)."""
-    reg = load_registry(root)
-    a_dir = os.path.join(root, "a")
-    for slug in sorted(os.listdir(a_dir)):
-        page = os.path.join(a_dir, slug, "index.html")
-        if slug == INDEX_SLUG or not os.path.isfile(page):
-            continue
-        if slug in reg:
-            continue
+    try:
+        reg = load_registry(root_fd)
+    except OSError:
+        # Reindex can reconstruct metadata from safely opened pages even when
+        # a prior registry leaf is unsafe to read.
+        reg = {}
+    a_fd = open_child_directory(root_fd, "a", create=True)
+    try:
+        for slug in sorted(list_names_checked(a_fd)):
+            if slug == INDEX_SLUG or slug in reg:
+                continue
+            slug_fd = None
+            page_fd = None
+            try:
+                slug_fd = open_child_directory(a_fd, slug)
+                page_fd = open_regular_at(slug_fd, "index.html")
+                page_stat = os.fstat(page_fd)
+                if not stat.S_ISREG(page_stat.st_mode):
+                    continue
+                with os.fdopen(page_fd, encoding="utf-8", errors="ignore") as page_file:
+                    page_fd = None
+                    head = page_file.read(4000)
+            except (OSError, ValueError):
+                continue
+            finally:
+                if page_fd is not None:
+                    os.close(page_fd)
+                if slug_fd is not None:
+                    os.close(slug_fd)
+            m = re.search(r"<title>(.*?)</title>", head, re.S)
+            mtime = datetime.datetime.fromtimestamp(page_stat.st_mtime, datetime.timezone.utc)
+            reg[slug] = {"slug": slug,
+                         "title": (m.group(1).strip() if m else slug),
+                         "tag": "", "summary": "",
+                         "created": mtime.isoformat(timespec="seconds"),
+                         "updated": mtime.isoformat(timespec="seconds")}
+        entries = [e for s, e in reg.items() if s != INDEX_SLUG]
+        entries = pin_starred(entries)
+        idx_fd = open_artifact_dir(root_fd, INDEX_SLUG)
         try:
-            head = open(page, errors="ignore").read(4000)
-        except OSError:
-            continue
-        m = re.search(r"<title>(.*?)</title>", head, re.S)
-        mtime = datetime.datetime.fromtimestamp(os.path.getmtime(page), datetime.timezone.utc)
-        reg[slug] = {"slug": slug,
-                     "title": (m.group(1).strip() if m else slug),
-                     "tag": "", "summary": "",
-                     "created": mtime.isoformat(timespec="seconds"),
-                     "updated": mtime.isoformat(timespec="seconds")}
-    entries = [e for s, e in reg.items() if s != INDEX_SLUG]
-    sync_starred(entries, base_url)
-    entries = pin_starred(entries)
-    idx_dir = os.path.join(root, "a", INDEX_SLUG)
-    os.makedirs(idx_dir, exist_ok=True)
-    payload = {"generated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
-               "count": len(entries), "artifacts": entries}
-    with open(os.path.join(idx_dir, "index.json"), "w") as f:
-        json.dump(payload, f, indent=1)
-    doc = render_index_html(entries, base_url.rstrip("/"))
-    with open(os.path.join(idx_dir, "index.html"), "w") as f:
-        f.write(doc)
-    if not local_only:
-        publish(base_url, INDEX_SLUG, doc)
-        publish_file(base_url, INDEX_SLUG, "index.json", json.dumps(payload, indent=1))
-    return len(entries)
+            payload = {"generated": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+                       "count": len(entries), "artifacts": entries}
+            atomic_write_text(idx_fd, "index.json", json.dumps(payload, indent=1))
+            doc = render_index_html(entries, base_url.rstrip("/"))
+            atomic_write_text(idx_fd, "index.html", doc)
+            return len(entries)
+        finally:
+            os.close(idx_fd)
+    finally:
+        os.close(a_fd)
+
+
+def render_command(a, ap, root_fd):
+    """Run one render/reindex transaction against a single held root FD."""
+    if a.reindex:
+        n = reindex(root_fd, a.base_url)
+        print(json.dumps({"reindexed": n,
+                          "url": f"{a.base_url.rstrip('/')}/a/{INDEX_SLUG}/"}, indent=2))
+        return
+    if not a.title or not a.slug:
+        ap.error("--title and --slug are required (unless --reindex)")
+
+    slug = re.sub(r"[^a-zA-Z0-9-]+", "-", a.slug).strip("-").lower()
+    if not slug:
+        ap.error("--slug must contain at least one letter or digit")
+    if slug == INDEX_SLUG:
+        ap.error(f"--slug {INDEX_SLUG!r} is reserved for the local registry")
+    if a.html_file:
+        try:
+            doc = read_input(a.html_file, "HTML input")
+        except (OSError, ValueError) as err:
+            ap.error(str(err))
+        if "<html" in doc.lower():
+            doc = ensure_copy_button(doc)
+        else:
+            doc = wrap(a.title, a.tag, a.summary, doc)
+    else:
+        if a.body_file:
+            try:
+                md = read_input(a.body_file, "markdown input")
+            except (OSError, ValueError) as err:
+                ap.error(str(err))
+        else:
+            md = sys.stdin.read()
+        doc = wrap(a.title, a.tag, a.summary, md_to_html(md))
+
+    try:
+        dest_dir = open_artifact_dir(root_fd, slug)
+    except (OSError, ValueError) as err:
+        ap.error(str(err))
+    dest = os.path.join(a.root, "a", slug, "index.html")
+    try:
+        atomic_write_text(dest_dir, "index.html", doc)
+    finally:
+        os.close(dest_dir)
+    url = f"{a.base_url.rstrip('/')}/a/{slug}/"
+    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+    indexed = update_index(root_fd, a.base_url,
+                           {"slug": slug, "title": a.title, "tag": a.tag,
+                            "summary": a.summary, "updated": now_iso})
+    print(json.dumps({"slug": slug, "path": dest, "url": url, "bytes": len(doc),
+                      "indexed": indexed, "local_only": True}, indent=2))
 
 
 def main():
@@ -396,50 +479,20 @@ def main():
     ap.add_argument("--html-file")
     ap.add_argument("--body-file")
     ap.add_argument("--root", default=os.path.expanduser("~/artifacts/public"))
-    ap.add_argument("--base-url", default=os.environ.get("ARTIFACT_BASE_URL"))
-    ap.add_argument("--local-only", action="store_true",
-                    help="skip the remote PUT; write only the local mirror")
+    ap.add_argument("--base-url", default="http://127.0.0.1:8789",
+                    help="local serving URL used in generated index links")
     a = ap.parse_args()
 
-    if not a.base_url:
-        if a.local_only:
-            a.base_url = "http://127.0.0.1:8789"
-        else:
-            ap.error("--base-url or ARTIFACT_BASE_URL is required unless --local-only is set")
-
-    if a.reindex:
-        n = reindex(a.root, a.base_url, a.local_only)
-        print(json.dumps({"reindexed": n,
-                          "url": f"{a.base_url.rstrip('/')}/a/{INDEX_SLUG}/"}, indent=2))
-        return
-    if not a.title or not a.slug:
-        ap.error("--title and --slug are required (unless --reindex)")
-
-    slug = re.sub(r"[^a-zA-Z0-9-]+", "-", a.slug).strip("-").lower()
-    if a.html_file:
-        doc = open(os.path.expanduser(a.html_file)).read()
-        if "<html" in doc.lower():
-            doc = ensure_copy_button(doc)
-        else:
-            doc = wrap(a.title, a.tag, a.summary, doc)
-    else:
-        md = open(os.path.expanduser(a.body_file)).read() if a.body_file else sys.stdin.read()
-        doc = wrap(a.title, a.tag, a.summary, md_to_html(md))
-
-    dest_dir = os.path.join(a.root, "a", slug)
-    os.makedirs(dest_dir, exist_ok=True)
-    dest = os.path.join(dest_dir, "index.html")
-    with open(dest, "w") as f:
-        f.write(doc)
-    url = f"{a.base_url.rstrip('/')}/a/{slug}/"
-    published = False if a.local_only else publish(a.base_url, slug, doc, os.path.getmtime(dest))
-    now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
-    indexed = update_index(a.root, a.base_url,
-                           {"slug": slug, "title": a.title, "tag": a.tag,
-                            "summary": a.summary, "updated": now_iso},
-                           a.local_only)
-    print(json.dumps({"slug": slug, "path": dest, "url": url, "bytes": len(doc),
-                      "published": published, "indexed": indexed}, indent=2))
+    root_fd = None
+    try:
+        a.base_url = normalize_local_base_url(a.base_url)
+        a.root, root_fd = prepare_root(a.root)
+        render_command(a, ap, root_fd)
+    except ValueError as err:
+        ap.error(str(err))
+    finally:
+        if root_fd is not None:
+            os.close(root_fd)
 
 
 if __name__ == "__main__":
