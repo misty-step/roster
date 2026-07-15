@@ -182,6 +182,7 @@ jobs:
             --api-key "$OPENROUTER_API_KEY" \
             --api-url https://openrouter.ai/api/v1/chat/completions \
             --model-policy balanced \
+            --fallback-models google/gemini-2.5-flash,anthropic/claude-haiku-4.5 \
             --product-name Roster \
             --product-description "Roster is a small compiler and launcher for exact agent environments." \
             --voice-guide "clear, specific, user-facing" \
