@@ -2,6 +2,10 @@
 set -eu
 export COPYFILE_DISABLE=1
 
+copy_file() {
+    cp -X "$1" "$2" 2>/dev/null || cp "$1" "$2"
+}
+
 if [ "$#" -ne 4 ]; then
     echo "usage: package-release BINARY VERSION TARGET OUTPUT_DIR" >&2
     exit 2
@@ -37,11 +41,13 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 package="$work/$name"
 mkdir -p "$package/bin" "$package/share/roster"
-cp "$binary" "$package/bin/roster"
+copy_file "$binary" "$package/bin/roster"
 chmod 755 "$package/bin/roster"
-cp "$repo_root/packaging/install.sh" "$package/install.sh"
+copy_file "$repo_root/packaging/install.sh" "$package/install.sh"
 chmod 755 "$package/install.sh"
-cp "$repo_root/LICENSE" "$repo_root/README.md" "$repo_root/VISION.md" "$package/"
+for path in LICENSE README.md VISION.md; do
+    copy_file "$repo_root/$path" "$package/$path"
+done
 
 # Package exactly the public files Git would ship, including intentional new
 # non-ignored files during local red/green work. Editor debris and ignored
@@ -51,7 +57,7 @@ git -C "$repo_root" ls-files --cached --others --exclude-standard -- roles packs
 while IFS= read -r path; do
     destination="$package/share/roster/$path"
     mkdir -p "$(dirname -- "$destination")"
-    cp "$repo_root/$path" "$destination"
+    copy_file "$repo_root/$path" "$destination"
 done < "$work/files.txt"
 printf '%s\n' "$version" > "$package/share/roster/VERSION"
 binary_sha256=$(shasum -a 256 "$package/bin/roster" | awk '{print $1}')

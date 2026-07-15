@@ -188,6 +188,19 @@ fn release_archive_installs_and_drives_the_public_cold_start() {
 #[test]
 fn release_workflow_keeps_version_intelligence_provenance_and_live_replay() {
     let root = repository_root();
+    let changelog = fs::read_to_string(root.join("CHANGELOG.md")).expect("release changelog");
+    let release_section = changelog
+        .split("## [0.2.0]")
+        .nth(1)
+        .expect("release section [0.2.0] not found");
+    let release_section = release_section
+        .split("## [")
+        .next()
+        .expect("release section body");
+    assert!(
+        release_section.lines().any(|line| line.starts_with("- ")),
+        "release section [0.2.0] needs evidence bullets"
+    );
     Command::new(root.join("scripts/check-release-version"))
         .arg("v0.2.0")
         .assert()
@@ -237,6 +250,7 @@ fn release_shell_surfaces_keep_portable_failure_boundaries() {
     let root = repository_root();
     let package = fs::read_to_string(root.join("scripts/package-release")).expect("packager");
     assert!(package.contains("export COPYFILE_DISABLE=1\n"));
+    assert!(package.contains("cp -X \"$1\" \"$2\" 2>/dev/null || cp \"$1\" \"$2\""));
     assert!(package.contains("work=$(mktemp -d)\n"));
     assert!(package.contains("> \"$work/files.txt\"\n"));
     assert!(package.contains("done < \"$work/files.txt\"\n"));
@@ -250,4 +264,8 @@ fn release_shell_surfaces_keep_portable_failure_boundaries() {
 
     let get_started = fs::read_to_string(root.join("site/get-started.html")).expect("site docs");
     assert!(get_started.contains("*) echo \"unsupported host\" &gt;&amp;2; exit 1 ;;"));
+
+    let releasing = fs::read_to_string(root.join("docs/RELEASING.md")).expect("release docs");
+    assert!(releasing.contains("404) ;;"));
+    assert!(releasing.contains("could not prove v0.2.0 is unpublished"));
 }
