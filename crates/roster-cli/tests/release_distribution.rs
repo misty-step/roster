@@ -235,8 +235,8 @@ fn release_workflow_keeps_version_intelligence_provenance_and_live_replay() {
         "aarch64-unknown-linux-musl",
         "aarch64-apple-darwin",
         "x86_64-apple-darwin",
-        "https://ports.ubuntu.com",
-        "Acquire::Retries=5",
+        "CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER: rust-lld",
+        "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: rust-lld",
         "accept:\n    needs: build",
         "publish:\n    needs: [validate, build, accept]",
         "cold-start:\n    needs: publish",
@@ -246,6 +246,10 @@ fn release_workflow_keeps_version_intelligence_provenance_and_live_replay() {
             "release workflow lost {required}"
         );
     }
+    assert!(
+        !workflow.contains("apt-get"),
+        "release builds must not depend on apt"
+    );
 }
 
 #[test]
