@@ -55,6 +55,22 @@ fn release_archive_installs_and_drives_the_public_cold_start() {
             .expect("second archive"),
         "release packaging is not reproducible"
     );
+    Command::new(root.join("scripts/package-release"))
+        .current_dir(temp.path())
+        .args([
+            binary.as_os_str(),
+            "0.2.0".as_ref(),
+            host_target().as_ref(),
+            "relative-dist".as_ref(),
+        ])
+        .assert()
+        .success();
+    assert!(
+        temp.path()
+            .join("relative-dist")
+            .join(archive.file_name().expect("archive name"))
+            .is_file()
+    );
     Command::new("tar")
         .args([
             "-xzf".as_ref(),
@@ -220,12 +236,17 @@ fn release_workflow_keeps_version_intelligence_provenance_and_live_replay() {
 fn release_shell_surfaces_keep_portable_failure_boundaries() {
     let root = repository_root();
     let package = fs::read_to_string(root.join("scripts/package-release")).expect("packager");
+    assert!(package.contains("export COPYFILE_DISABLE=1\n"));
     assert!(package.contains("work=$(mktemp -d)\n"));
     assert!(package.contains("> \"$work/files.txt\"\n"));
     assert!(package.contains("done < \"$work/files.txt\"\n"));
 
     let landmark = fs::read_to_string(root.join("scripts/fetch-landmark")).expect("fetcher");
     assert!(landmark.contains("checksums=$(mktemp)\n"));
+
+    let installer = fs::read_to_string(root.join("packaging/install.sh")).expect("installer");
+    assert!(installer.contains("elif [ \"$library_installed\" -eq 1 ]; then"));
+    assert!(installer.contains("elif [ \"$binary_installed\" -eq 1 ]; then"));
 
     let get_started = fs::read_to_string(root.join("site/get-started.html")).expect("site docs");
     assert!(get_started.contains("*) echo \"unsupported host\" &gt;&amp;2; exit 1 ;;"));

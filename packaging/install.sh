@@ -44,6 +44,8 @@ new_library="$prefix/share/.roster-new-$$"
 old_library="$prefix/share/.roster-old-$$"
 new_binary="$prefix/bin/.roster-new-$$"
 old_binary="$prefix/bin/.roster-old-$$"
+library_installed=0
+binary_installed=0
 
 cleanup() {
     status=$?
@@ -51,17 +53,24 @@ cleanup() {
         if [ -e "$old_binary" ]; then
             rm -f "$prefix/bin/roster"
             mv "$old_binary" "$prefix/bin/roster"
+        elif [ "$binary_installed" -eq 1 ]; then
+            rm -f "$prefix/bin/roster"
         fi
         if [ -e "$old_library" ]; then
             rm -rf "$prefix/share/roster"
             mv "$old_library" "$prefix/share/roster"
+        elif [ "$library_installed" -eq 1 ]; then
+            rm -rf "$prefix/share/roster"
         fi
     fi
     rm -rf "$new_library" "$old_library"
     rm -f "$new_binary" "$old_binary"
     exit "$status"
 }
-trap cleanup EXIT HUP INT TERM
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 mkdir "$new_library"
 cp -R "$source_root/." "$new_library/"
@@ -72,10 +81,12 @@ if [ -e "$prefix/share/roster" ]; then
     mv "$prefix/share/roster" "$old_library"
 fi
 mv "$new_library" "$prefix/share/roster"
+library_installed=1
 if [ -e "$prefix/bin/roster" ]; then
     mv "$prefix/bin/roster" "$old_binary"
 fi
 mv "$new_binary" "$prefix/bin/roster"
+binary_installed=1
 
 rm -rf "$old_library"
 rm -f "$old_binary"

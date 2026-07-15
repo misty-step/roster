@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+export COPYFILE_DISABLE=1
 
 if [ "$#" -ne 4 ]; then
     echo "usage: package-release BINARY VERSION TARGET OUTPUT_DIR" >&2
@@ -30,10 +31,12 @@ for path in LICENSE README.md VISION.md roles packs primitives packaging/install
 done
 
 name="roster-v${version}-${target}"
+mkdir -p "$output_dir"
+output_dir=$(CDPATH='' cd -- "$output_dir" && pwd)
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT HUP INT TERM
 package="$work/$name"
-mkdir -p "$package/bin" "$package/share/roster" "$output_dir"
+mkdir -p "$package/bin" "$package/share/roster"
 cp "$binary" "$package/bin/roster"
 chmod 755 "$package/bin/roster"
 cp "$repo_root/packaging/install.sh" "$package/install.sh"
