@@ -171,13 +171,18 @@ jobs:
         run: |
           test -n "$OPENROUTER_API_KEY"
           scripts/fetch-landmark 0.28.1 /tmp/landmark
-          /tmp/landmark run --provider local --repo-root . \
+          grounding_repo="$RUNNER_TEMP/landmark-grounding"
+          git clone --no-tags --no-local . "$grounding_repo"
+          git -C "$grounding_repo" checkout --detach "$GITHUB_SHA"
+          test -z "$(git -C "$grounding_repo" tag --list)"
+          /tmp/landmark run --provider local --repo-root "$grounding_repo" \
             --repository "$GITHUB_REPOSITORY" --release-tag "$GITHUB_REF_NAME" \
             --output-dir dist/landmark-run \
             --technical-changelog-file dist/landmark-technical-changelog.md \
             --evidence-file dist/landmark-run-evidence.json \
             --output-file "" --output-text-file "" --output-html-file "" \
             --output-json "" --rss-feed-file "" > /dev/null
+          test "$(jq -r '.version_decision.commit_count' dist/landmark-run-evidence.json)" -gt 0
           /tmp/landmark synthesize \
             --api-key "$OPENROUTER_API_KEY" \
             --api-url https://openrouter.ai/api/v1/chat/completions \
@@ -189,8 +194,8 @@ jobs:
             --audience developer \
             --changelog-source changelog \
             --version "${GITHUB_REF_NAME#v}" \
-            --changelog-file CHANGELOG.md \
-            --repo-root . \
+            --changelog-file "$grounding_repo/CHANGELOG.md" \
+            --repo-root "$grounding_repo" \
             --templates-dir .release-tools/landmark/templates/prompts \
             --quality-file dist/landmark-synthesis-quality.txt \
             --attempts-file dist/landmark-synthesis-attempts.json \
