@@ -235,6 +235,8 @@ fn release_workflow_keeps_version_intelligence_provenance_and_live_replay() {
         "aarch64-unknown-linux-musl",
         "aarch64-apple-darwin",
         "x86_64-apple-darwin",
+        "https://ports.ubuntu.com",
+        "Acquire::Retries=5",
         "accept:\n    needs: build",
         "publish:\n    needs: [validate, build, accept]",
         "cold-start:\n    needs: publish",

@@ -61,7 +61,16 @@ jobs:
           targets: ${{ matrix.target }}
       - name: Install musl linker
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install --yes musl-tools
+        run: |
+          for sources in /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
+            test ! -f "$sources" || sudo sed -i \
+              -e 's|http://ports.ubuntu.com|https://ports.ubuntu.com|g' \
+              -e 's|http://archive.ubuntu.com|https://archive.ubuntu.com|g' \
+              -e 's|http://security.ubuntu.com|https://security.ubuntu.com|g' \
+              "$sources"
+          done
+          sudo apt-get -o Acquire::Retries=5 update
+          sudo apt-get -o Acquire::Retries=5 install --yes musl-tools
       - name: Build exact tagged binary
         run: cargo build --locked --release --target "${{ matrix.target }}" -p roster-cli
       - name: Package binary with the public library
