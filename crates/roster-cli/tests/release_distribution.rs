@@ -224,6 +224,7 @@ fn release_workflow_keeps_version_intelligence_provenance_and_live_replay() {
         "scripts/check-release-version",
         "landmark run --provider local",
         "landmark synthesize",
+        "--version \"${GITHUB_REF_NAME#v}\"",
         "actions/attest@v4",
         "landmark-synthesis-quality.txt)\" = valid",
         "--notes-file dist/landmark-release-notes.md",
