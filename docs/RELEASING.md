@@ -46,6 +46,23 @@ The release is complete only after both `cold-start` jobs pass and an
 authenticated host launches one real Tier 1 dispatch from the installed
 archive. Retain the redacted receipt and bundle manifest as card evidence.
 
+## Recover an unpublished tag
+
+If the workflow fails before `gh release create`, first verify that no release
+exists and retain the failed run as evidence. An unpublished tag may then be
+deleted and recreated at the corrective commit:
+
+```sh
+test "$(gh release view v0.2.0 --json tagName 2>/dev/null || true)" = ""
+git push origin :refs/tags/v0.2.0
+git tag -d v0.2.0
+git tag -a v0.2.0 -m "Roster v0.2.0"
+git push origin v0.2.0
+```
+
+This recovery is forbidden once a GitHub Release exists. Published releases
+and their tags are immutable; use a new patch version instead.
+
 ## Roll back
 
 Consumer rollback is the same verified operation as install: download the

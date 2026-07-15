@@ -188,6 +188,12 @@ fn release_archive_installs_and_drives_the_public_cold_start() {
 #[test]
 fn release_workflow_keeps_version_intelligence_provenance_and_live_replay() {
     let root = repository_root();
+    let changelog = fs::read_to_string(root.join("CHANGELOG.md")).expect("release changelog");
+    assert!(changelog.contains("## [0.2.0]"));
+    assert!(
+        changelog.lines().any(|line| line.starts_with("- ")),
+        "release section needs evidence bullets"
+    );
     Command::new(root.join("scripts/check-release-version"))
         .arg("v0.2.0")
         .assert()
@@ -237,6 +243,7 @@ fn release_shell_surfaces_keep_portable_failure_boundaries() {
     let root = repository_root();
     let package = fs::read_to_string(root.join("scripts/package-release")).expect("packager");
     assert!(package.contains("export COPYFILE_DISABLE=1\n"));
+    assert!(package.contains("cp -X \"$1\" \"$2\" 2>/dev/null || cp \"$1\" \"$2\""));
     assert!(package.contains("work=$(mktemp -d)\n"));
     assert!(package.contains("> \"$work/files.txt\"\n"));
     assert!(package.contains("done < \"$work/files.txt\"\n"));
