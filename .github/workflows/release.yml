@@ -187,7 +187,7 @@ jobs:
             --voice-guide "clear, specific, user-facing" \
             --audience developer \
             --changelog-source changelog \
-            --version "$GITHUB_REF_NAME" \
+            --version "${GITHUB_REF_NAME#v}" \
             --changelog-file dist/landmark-technical-changelog.md \
             --repo-root . \
             --templates-dir .release-tools/landmark/templates/prompts \
