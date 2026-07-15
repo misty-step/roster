@@ -10,15 +10,53 @@ Codex, Claude Code, or OMP without installing a global skill catalog.
 
 ## Install
 
+Choose the archive for your host, verify it, and install both the binary and
+its matching public library:
+
 ```sh
-git clone https://github.com/misty-step/roster
-cd roster
-cargo install --locked --path crates/roster-cli
-mkdir -p ~/.roster
-cp examples/config.yaml ~/.roster/config.yaml
-# Change the `core` source to this checkout's absolute path.
-roster check
+version=0.2.0
+case "$(uname -s)-$(uname -m)" in
+  Darwin-arm64) target=aarch64-apple-darwin ;;
+  Darwin-x86_64) target=x86_64-apple-darwin ;;
+  Linux-x86_64) target=x86_64-unknown-linux-musl ;;
+  Linux-aarch64|Linux-arm64) target=aarch64-unknown-linux-musl ;;
+  *) echo "unsupported host" >&2; exit 1 ;;
+esac
+archive="roster-v${version}-${target}.tar.gz"
+base="https://github.com/misty-step/roster/releases/download/v${version}"
+curl --proto '=https' --tlsv1.2 --fail --location --remote-name "$base/$archive"
+curl --proto '=https' --tlsv1.2 --fail --location --remote-name "$base/checksums.txt"
+expected=$(grep " $archive$" checksums.txt | awk '{print $1}')
+actual=$(shasum -a 256 "$archive" | awk '{print $1}')
+test -n "$expected" && test "$actual" = "$expected"
+tar -xzf "$archive"
+"${archive%.tar.gz}/install.sh" # defaults to ~/.local; accepts --prefix PATH
+export PATH="$HOME/.local/bin:$PATH"
 ```
+
+GitHub CLI users can additionally verify build provenance before extraction:
+
+```sh
+gh attestation verify "$archive" --repo misty-step/roster
+```
+
+Then initialize a workspace:
+
+```sh
+mkdir my-roster-workspace && cd my-roster-workspace
+roster init
+roster check
+roster show amos
+roster resolve amos --output /tmp/amos
+```
+
+`roster init` records the installed plain-file library as an explicit source;
+it does not copy anything into a Harness. To roll back, verify and run the
+installer from the last known-good archive. Because v0.2.0 is the first public
+archive, rollback-to-absent removes only `~/.local/bin/roster` and
+`~/.local/share/roster`. Development from a checkout stays explicit: `cargo
+install --locked --path crates/roster-cli`, then `roster init --source
+/absolute/path/to/roster`.
 
 Nothing is synced into Harness configuration. Existing authentication,
 sessions, caches, preferences, and raw Harness commands remain user-owned.
@@ -63,9 +101,11 @@ agents:
 ```
 
 Private roles and primitives can live beside a private config and compose the
-public library without being committed. `roster init --source <checkout>`
-creates a deliberately small local starting point and refuses to overwrite an
-existing config.
+public library without being committed. `roster init` discovers a packaged
+library next to the installed binary and creates a dependency-free starter;
+`--harness` and `--model` select its runtime binding. `--source <checkout>`
+remains the explicit development path. Init validates the complete declaration
+before atomically installing it and refuses to overwrite an existing config.
 
 The public checkout contains portable declarations only. Public MCP commands
 name binaries expected on `PATH`; deployment endpoints and runtime values enter

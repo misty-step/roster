@@ -33,8 +33,15 @@ struct Cli {
 enum Command {
     /// Create a deliberately small local configuration.
     Init {
+        /// Public library source. Installed releases are discovered automatically.
         #[arg(long)]
-        source: PathBuf,
+        source: Option<PathBuf>,
+        /// Harness for the starter agent.
+        #[arg(long, default_value = "codex")]
+        harness: Harness,
+        /// Harness-native model identifier for the starter agent.
+        #[arg(long)]
+        model: Option<String>,
     },
     /// List launchable agent definitions in the effective config.
     List,
@@ -137,7 +144,11 @@ fn run(cli: Cli) -> Result<()> {
                 adapter::dispatch(&roster.resolve(&agent)?, &cwd, false, false)?;
             }
         }
-        Some(Command::Init { source }) => init(&cwd, &source)?,
+        Some(Command::Init {
+            source,
+            harness,
+            model,
+        }) => init(&cwd, source.as_deref(), harness, model.as_deref())?,
         Some(Command::List) => print_agents(&load(&cli.config, &cwd)?),
         Some(Command::Show { agent }) => {
             let roster = load(&cli.config, &cwd)?;
@@ -350,18 +361,83 @@ fn print_resolved(agent: &ResolvedAgent) {
     }
 }
 
-fn init(cwd: &std::path::Path, source: &std::path::Path) -> Result<()> {
+fn init(
+    cwd: &std::path::Path,
+    source: Option<&std::path::Path>,
+    harness: Harness,
+    model: Option<&str>,
+) -> Result<()> {
     let directory = cwd.join(".roster");
     let path = directory.join("config.yaml");
     if path.exists() {
         return Err(anyhow!("refusing to overwrite {}", path.display()));
     }
+    let discovered;
+    let source = match source {
+        Some(source) => source,
+        None => {
+            discovered = discover_public_source(cwd)?;
+            &discovered
+        }
+    };
+    let source = source
+        .canonicalize()
+        .with_context(|| format!("canonicalize Roster source {}", source.display()))?;
+    ensure_public_source(&source)?;
     fs::create_dir_all(&directory)?;
+    let source_yaml = serde_json::to_string(&source.display().to_string())?;
+    let model = model.unwrap_or(match harness {
+        Harness::Codex => "gpt-5.6-sol",
+        Harness::Claude | Harness::Omp => "claude-fable-5",
+    });
+    let model_yaml = serde_json::to_string(model)?;
     let body = format!(
-        "schema_version: roster.config.v1\ndefaults:\n  codex: amos\nsources:\n  core: {}\nagents:\n  amos:\n    description: Default Codex orchestrator\n    role: core/role:orchestrator\n    model: gpt-5.6\n    reasoning: high\n    harness: codex\n    args: []\n",
-        source.display()
+        "schema_version: roster.config.v1\ndefaults:\n  {harness}: amos\nsources:\n  core: {source_yaml}\nagents:\n  amos:\n    description: Default {harness} starter\n    role: core/role:starter\n    model: {model_yaml}\n    reasoning: high\n    harness: {harness}\n    args: []\n"
     );
-    fs::write(&path, body)?;
+    let temporary = directory.join(format!(".config.yaml.tmp-{}", std::process::id()));
+    fs::write(&temporary, body)?;
+    let validation = Roster::load_config(&temporary).and_then(|roster| roster.resolve("amos"));
+    if let Err(error) = validation {
+        let _ = fs::remove_file(&temporary);
+        return Err(error.into());
+    }
+    if let Err(error) = fs::rename(&temporary, &path) {
+        let _ = fs::remove_file(&temporary);
+        return Err(error.into());
+    }
     println!("created {}", path.display());
     Ok(())
+}
+
+fn ensure_public_source(source: &std::path::Path) -> Result<()> {
+    for relative in [
+        "primitives/skills/skills-index.yaml",
+        "roles/starter.yaml",
+        "packs/starter.yaml",
+    ] {
+        if !source.join(relative).is_file() {
+            bail!(
+                "Roster source {} is incomplete: missing {relative}",
+                source.display()
+            );
+        }
+    }
+    Ok(())
+}
+
+fn discover_public_source(cwd: &std::path::Path) -> Result<PathBuf> {
+    let executable = env::current_exe().context("locate the installed roster executable")?;
+    let installed = executable
+        .parent()
+        .and_then(std::path::Path::parent)
+        .map(|prefix| prefix.join("share/roster"));
+    installed
+        .into_iter()
+        .chain(std::iter::once(cwd.to_path_buf()))
+        .find(|candidate| ensure_public_source(candidate).is_ok())
+        .ok_or_else(|| {
+            anyhow!(
+                "no installed public Roster library found; pass `roster init --source /path/to/roster`"
+            )
+        })
 }

@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+
+if [ "$#" -ne 1 ]; then
+    echo "usage: check-release-version vMAJOR.MINOR.PATCH" >&2
+    exit 2
+fi
+tag=$1
+if ! printf '%s\n' "$tag" | LC_ALL=C grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+    echo "check-release-version: invalid tag: $tag" >&2
+    exit 2
+fi
+version=${tag#v}
+
+for package in roster-core roster-cli; do
+    package_id=$(cargo pkgid -p "$package")
+    package_version=${package_id##*#}
+    package_version=${package_version##*@}
+    [ "$package_version" = "$version" ] || {
+        echo "check-release-version: $package is $package_version, tag is $version" >&2
+        exit 1
+    }
+done
+
+echo "release version: $version"

@@ -27,13 +27,28 @@
           <p class="ae-lede">Install one binary. Declare the agents you want. Roster loads only the selected role when you launch.</p>
           <section class="msk-release">
             <h2>Install</h2>
-            <pre><code>git clone https://github.com/misty-step/roster
-cd roster
-cargo install --locked --path crates/roster-cli
-mkdir -p ~/.roster
-cp examples/config.yaml ~/.roster/config.yaml
-# Set sources.core to this checkout's absolute path.
+            <pre><code>version=0.2.0
+case "$(uname -s)-$(uname -m)" in
+  Darwin-arm64) target=aarch64-apple-darwin ;;
+  Darwin-x86_64) target=x86_64-apple-darwin ;;
+  Linux-x86_64) target=x86_64-unknown-linux-musl ;;
+  Linux-aarch64|Linux-arm64) target=aarch64-unknown-linux-musl ;;
+  *) echo "unsupported host" &gt;&amp;2; exit 1 ;;
+esac
+gh release download "v$version" --repo misty-step/roster \
+  --pattern "roster-v${version}-${target}.tar.gz" --pattern checksums.txt
+archive="roster-v${version}-${target}.tar.gz"
+expected=$(grep " $archive$" checksums.txt | awk '{print $1}')
+actual=$(shasum -a 256 "$archive" | awk '{print $1}')
+test -n "$expected" &amp;&amp; test "$actual" = "$expected"
+tar -xzf "$archive"
+"roster-v${version}-${target}/install.sh"
+export PATH="$HOME/.local/bin:$PATH"
+
+mkdir my-roster-workspace &amp;&amp; cd my-roster-workspace
+roster init
 roster check</code></pre>
+            <p>The <a href="https://github.com/misty-step/roster#install">complete install recipe</a> selects the exact target, verifies SHA-256 and optional GitHub provenance, and includes the rollback path.</p>
             <p class="ae-dim">Roster does not sync a global skill catalog or rewrite permanent Harness settings.</p>
           </section>
           <section class="msk-release">

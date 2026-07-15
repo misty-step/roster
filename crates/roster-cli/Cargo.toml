@@ -1,10 +1,16 @@
 [package]
 name = "roster-cli"
 version = "0.2.0"
+description = "Compose and launch exact Codex, Claude Code, and OMP agent environments"
 edition.workspace = true
+homepage.workspace = true
 license.workspace = true
+readme = "../../README.md"
 repository.workspace = true
 rust-version.workspace = true
+keywords = ["agents", "ai", "cli", "codex", "claude"]
+categories = ["command-line-utilities", "development-tools"]
+publish = false
 
 [[bin]]
 name = "roster"

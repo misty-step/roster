@@ -1477,7 +1477,7 @@ fn bare_launch_is_pipe_friendly_and_init_refuses_overwrite() {
 
     let workspace = temp.path().join("workspace");
     fs::create_dir_all(&workspace).expect("workspace");
-    let source = temp.path().join("source");
+    let source = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let args = [
         "--cwd",
         workspace.to_str().unwrap(),
@@ -1498,6 +1498,47 @@ fn bare_launch_is_pipe_friendly_and_init_refuses_overwrite() {
         .assert()
         .failure()
         .stderr(predicate::str::contains("refusing to overwrite"));
+
+    let claude_workspace = temp.path().join("claude-workspace");
+    fs::create_dir_all(&claude_workspace).expect("claude workspace");
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args([
+            "--cwd",
+            claude_workspace.to_str().unwrap(),
+            "init",
+            "--source",
+            source.to_str().unwrap(),
+            "--harness",
+            "claude",
+            "--model",
+            "claude-test",
+        ])
+        .assert()
+        .success();
+    let claude_config =
+        fs::read_to_string(claude_workspace.join(".roster/config.yaml")).expect("config");
+    assert!(claude_config.contains("defaults:\n  claude: amos"));
+    assert!(claude_config.contains("model: \"claude-test\""));
+    assert!(claude_config.contains("role: core/role:starter"));
+
+    let invalid_workspace = temp.path().join("invalid-workspace");
+    let invalid_source = temp.path().join("invalid-source");
+    fs::create_dir_all(&invalid_workspace).expect("invalid workspace");
+    fs::create_dir_all(&invalid_source).expect("invalid source");
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .args([
+            "--cwd",
+            invalid_workspace.to_str().unwrap(),
+            "init",
+            "--source",
+            invalid_source.to_str().unwrap(),
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("is incomplete"));
+    assert!(!invalid_workspace.join(".roster/config.yaml").exists());
 }
 
 #[test]

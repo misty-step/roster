@@ -1,0 +1,5 @@
+schema_version: roster.role.v2
+name: starter
+description: Start useful repository work with no external service dependency.
+include:
+  - core/pack:starter

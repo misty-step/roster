@@ -239,6 +239,12 @@ fn check_review_due(path: &Path, content: &str, warnings: &mut Vec<String>) {
 }
 
 fn tracked_files(root: &Path) -> Result<Vec<PathBuf>> {
+    if !root.join(".git").exists() {
+        let mut files = Vec::new();
+        collect_files(root, &root.join("primitives"), &mut files)?;
+        files.sort();
+        return Ok(files);
+    }
     let output = process::isolated("git", &Default::default())
         .args([
             "ls-files",
@@ -261,6 +267,21 @@ fn tracked_files(root: &Path) -> Result<Vec<PathBuf>> {
         .map(PathBuf::from)
         .filter(|path| root.join(path).exists())
         .collect())
+}
+
+fn collect_files(root: &Path, directory: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
+    for entry in fs::read_dir(directory)
+        .with_context(|| format!("read primitive directory {}", directory.display()))?
+    {
+        let entry = entry?;
+        let path = entry.path();
+        if entry.file_type()?.is_dir() {
+            collect_files(root, &path, files)?;
+        } else if entry.file_type()?.is_file() {
+            files.push(path.strip_prefix(root)?.to_path_buf());
+        }
+    }
+    Ok(())
 }
 
 /// `primitives/skills/<name>/SKILL.md` or `.../.external/<name>/SKILL.md`.

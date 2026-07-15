@@ -1,0 +1,292 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Run the repository gate
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets -- -D warnings
+          cargo test --workspace
+      - name: Match tag to every package
+        run: scripts/check-release-version "${GITHUB_REF_NAME}"
+      - name: Validate Landmark release intelligence
+        run: |
+          scripts/fetch-landmark 0.28.1 /tmp/landmark
+          /tmp/landmark doctor --repo-root . --format json
+          /tmp/landmark run --provider local --repo-root . \
+            --repository "${GITHUB_REPOSITORY}" --release-tag "${GITHUB_REF_NAME}" --dry-run \
+            > landmark-release-evidence.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: landmark-release-evidence
+          path: landmark-release-evidence.json
+          if-no-files-found: error
+
+  build:
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-24.04-arm
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Install musl linker
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes musl-tools
+      - name: Build exact tagged binary
+        run: cargo build --locked --release --target "${{ matrix.target }}" -p roster-cli
+      - name: Package binary with the public library
+        run: |
+          scripts/package-release \
+            "target/${{ matrix.target }}/release/roster" \
+            "${GITHUB_REF_NAME#v}" \
+            "${{ matrix.target }}" \
+            dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roster-${{ matrix.target }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  accept:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: roster-${{ matrix.target }}
+          path: release
+      - name: Exercise the built archive before publication
+        run: |
+          set -euo pipefail
+          archive=$(find release -name "roster-v*-${{ matrix.target }}.tar.gz" -print -quit)
+          test -n "$archive"
+          tar -xzf "$archive" -C release
+          package=${archive%.tar.gz}
+          prefix="$RUNNER_TEMP/roster-prefix"
+          home="$RUNNER_TEMP/roster-home"
+          workspace="$RUNNER_TEMP/roster-workspace"
+          mkdir -p "$home" "$workspace"
+          {
+            "$package/install.sh" --prefix "$prefix"
+            export HOME="$home"
+            export XDG_CONFIG_HOME="$home/.config"
+            export XDG_CACHE_HOME="$home/.cache"
+            export XDG_DATA_HOME="$home/.local/share"
+            export PATH="$prefix/bin:$PATH"
+            roster --version
+            roster --cwd "$workspace" init
+            roster --cwd "$workspace" check
+            roster --cwd "$workspace" show amos
+            roster --cwd "$workspace" resolve amos --output "$RUNNER_TEMP/amos-bundle"
+            roster --cwd "$workspace" dispatch amos --dry-run
+            grep -F "$prefix/share/roster" "$workspace/.roster/config.yaml"
+            if grep -R -E '/[U]sers/[^/]+/Development/|/[h]ome/[^/]+/(Development|src)/|private/(roles|packs|primitives)' \
+              "$workspace/.roster" "$RUNNER_TEMP/amos-bundle"; then
+              echo "private path leaked into the pre-publication artifacts" >&2
+              exit 1
+            fi
+            "$package/install.sh" --prefix "$prefix"
+            roster --version
+          } 2>&1 | tee "$RUNNER_TEMP/accept-${{ matrix.target }}.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: accept-${{ matrix.target }}
+          path: ${{ runner.temp }}/accept-${{ matrix.target }}.txt
+          if-no-files-found: error
+
+  publish:
+    needs: [validate, build, accept]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@v5
+        with:
+          repository: misty-step/landmark
+          ref: v0.28.1
+          path: .release-tools/landmark
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: roster-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: landmark-release-evidence
+          path: dist
+      - name: Checksum release archives
+        working-directory: dist
+        run: shasum -a 256 roster-*.tar.gz > checksums.txt
+      - name: Attest release archive provenance
+        uses: actions/attest@v4
+        with:
+          subject-checksums: dist/checksums.txt
+      - name: Synthesize grounded public notes with Landmark
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          test -n "$OPENROUTER_API_KEY"
+          scripts/fetch-landmark 0.28.1 /tmp/landmark
+          /tmp/landmark run --provider local --repo-root . \
+            --repository "$GITHUB_REPOSITORY" --release-tag "$GITHUB_REF_NAME" \
+            --output-dir dist/landmark-run \
+            --technical-changelog-file dist/landmark-technical-changelog.md \
+            --evidence-file dist/landmark-run-evidence.json \
+            --output-file "" --output-text-file "" --output-html-file "" \
+            --output-json "" --rss-feed-file "" > /dev/null
+          /tmp/landmark synthesize \
+            --api-key "$OPENROUTER_API_KEY" \
+            --api-url https://openrouter.ai/api/v1/chat/completions \
+            --model-policy balanced \
+            --product-name Roster \
+            --product-description "Roster is a small compiler and launcher for exact agent environments." \
+            --voice-guide "clear, specific, user-facing" \
+            --audience developer \
+            --changelog-source changelog \
+            --version "$GITHUB_REF_NAME" \
+            --changelog-file dist/landmark-technical-changelog.md \
+            --repo-root . \
+            --templates-dir .release-tools/landmark/templates/prompts \
+            --quality-file dist/landmark-synthesis-quality.txt \
+            --attempts-file dist/landmark-synthesis-attempts.json \
+            --context-metadata-file dist/landmark-synthesis-context.json \
+            --claim-map-file dist/landmark-synthesis-claims.json \
+            > dist/landmark-release-notes.md
+          test "$(cat dist/landmark-synthesis-quality.txt)" = valid
+          test -s dist/landmark-release-notes.md
+      - name: Publish immutable tagged release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"${GITHUB_REF_NAME}\") | [.id, .draft] | @tsv")
+          if test -n "$existing"; then
+            IFS=$'\t' read -r release_id draft <<< "$existing"
+            test "$draft" = true || {
+              echo "${GITHUB_REF_NAME} is already published; refusing to replace it" >&2
+              exit 1
+            }
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/${release_id}"
+          fi
+          gh release create "${GITHUB_REF_NAME}" \
+            dist/roster-*.tar.gz \
+            dist/checksums.txt \
+            dist/landmark-release-evidence.json \
+            dist/landmark-run-evidence.json \
+            dist/landmark-synthesis-quality.txt \
+            dist/landmark-synthesis-attempts.json \
+            dist/landmark-synthesis-context.json \
+            dist/landmark-synthesis-claims.json \
+            --verify-tag \
+            --notes-file dist/landmark-release-notes.md \
+            --title "Roster ${GITHUB_REF_NAME}"
+
+  cold-start:
+    needs: publish
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - name: Download the public release only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir release
+          gh release download "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" \
+            --pattern "roster-v*-${{ matrix.target }}.tar.gz" \
+            --pattern checksums.txt --dir release
+      - name: Verify, install, inspect, resolve, and reinstall
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          archive=$(find release -name "roster-v*-${{ matrix.target }}.tar.gz" -print -quit)
+          expected=$(grep " $(basename "$archive")$" release/checksums.txt | awk '{print $1}')
+          actual=$(shasum -a 256 "$archive" | awk '{print $1}')
+          test -n "$expected" && test "$actual" = "$expected"
+          gh attestation verify "$archive" --repo "${GITHUB_REPOSITORY}"
+          tar -xzf "$archive" -C release
+          package=${archive%.tar.gz}
+          prefix="$RUNNER_TEMP/roster-prefix"
+          home="$RUNNER_TEMP/roster-home"
+          workspace="$RUNNER_TEMP/roster-workspace"
+          mkdir -p "$home" "$workspace"
+          {
+            "$package/install.sh" --prefix "$prefix"
+            export HOME="$home"
+            export XDG_CONFIG_HOME="$home/.config"
+            export XDG_CACHE_HOME="$home/.cache"
+            export XDG_DATA_HOME="$home/.local/share"
+            export PATH="$prefix/bin:$PATH"
+            roster --version
+            roster --cwd "$workspace" init
+            roster --cwd "$workspace" check
+            roster --cwd "$workspace" show amos
+            roster --cwd "$workspace" resolve amos --output "$RUNNER_TEMP/amos-bundle"
+            roster --cwd "$workspace" dispatch amos --dry-run
+            grep -F "$prefix/share/roster" "$workspace/.roster/config.yaml"
+            if grep -R -E '/[U]sers/[^/]+/Development/|/[h]ome/[^/]+/(Development|src)/|private/(roles|packs|primitives)' \
+              "$workspace/.roster" "$RUNNER_TEMP/amos-bundle"; then
+              echo "private path leaked into the cold-start artifacts" >&2
+              exit 1
+            fi
+            "$package/install.sh" --prefix "$prefix"
+            roster --version
+          } 2>&1 | tee "$RUNNER_TEMP/cold-start-${{ matrix.target }}.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cold-start-${{ matrix.target }}
+          path: ${{ runner.temp }}/cold-start-${{ matrix.target }}.txt
+          if-no-files-found: error

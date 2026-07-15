@@ -1,0 +1,77 @@
+#!/bin/sh
+set -eu
+export COPYFILE_DISABLE=1
+
+if [ "$#" -ne 4 ]; then
+    echo "usage: package-release BINARY VERSION TARGET OUTPUT_DIR" >&2
+    exit 2
+fi
+
+binary=$1
+version=$2
+target=$3
+output_dir=$4
+case "$version" in
+    ""|v*|*[!0-9.]*) echo "package-release: invalid version: $version" >&2; exit 2 ;;
+esac
+case "$target" in
+    x86_64-unknown-linux-musl|aarch64-unknown-linux-musl|aarch64-apple-darwin|x86_64-apple-darwin) ;;
+    *) echo "package-release: unsupported target: $target" >&2; exit 2 ;;
+esac
+[ -x "$binary" ] || { echo "package-release: binary is not executable: $binary" >&2; exit 2; }
+actual=$($binary --version)
+[ "$actual" = "roster $version" ] || {
+    echo "package-release: binary reports '$actual', expected 'roster $version'" >&2
+    exit 1
+}
+
+repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+for path in LICENSE README.md VISION.md roles packs primitives packaging/install.sh; do
+    [ -e "$repo_root/$path" ] || { echo "package-release: missing $path" >&2; exit 1; }
+done
+
+name="roster-v${version}-${target}"
+mkdir -p "$output_dir"
+output_dir=$(CDPATH='' cd -- "$output_dir" && pwd)
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT HUP INT TERM
+package="$work/$name"
+mkdir -p "$package/bin" "$package/share/roster"
+cp "$binary" "$package/bin/roster"
+chmod 755 "$package/bin/roster"
+cp "$repo_root/packaging/install.sh" "$package/install.sh"
+chmod 755 "$package/install.sh"
+cp "$repo_root/LICENSE" "$repo_root/README.md" "$repo_root/VISION.md" "$package/"
+
+# Package exactly the public files Git would ship, including intentional new
+# non-ignored files during local red/green work. Editor debris and ignored
+# secrets never enter an archive merely because they exist in the checkout.
+git -C "$repo_root" ls-files --cached --others --exclude-standard -- roles packs primitives \
+    > "$work/files.txt"
+while IFS= read -r path; do
+    destination="$package/share/roster/$path"
+    mkdir -p "$(dirname -- "$destination")"
+    cp "$repo_root/$path" "$destination"
+done < "$work/files.txt"
+printf '%s\n' "$version" > "$package/share/roster/VERSION"
+binary_sha256=$(shasum -a 256 "$package/bin/roster" | awk '{print $1}')
+cat > "$package/release-manifest.json" <<EOF
+{
+  "schema_version": "roster.release.v1",
+  "version": "$version",
+  "target": "$target",
+  "binary_sha256": "$binary_sha256",
+  "library": "share/roster"
+}
+EOF
+
+# Normalize timestamps and ordering so rerunning this package step with the
+# same binary and source tree yields the same archive on a given target.
+find "$package" -exec touch -h -t 198001010000 {} +
+archive="$output_dir/$name.tar.gz"
+(
+    cd "$work"
+    find "$name" \( -type f -o -type l \) -print | LC_ALL=C sort |
+        COPYFILE_DISABLE=1 tar -cf - -T - | gzip -n > "$archive"
+)
+echo "$archive"
