@@ -1,6 +1,6 @@
 [package]
 name = "roster-core"
-version = "0.2.0"
+version = "0.2.1"
 description = "Deterministic composition engine for exact agent bundles"
 edition.workspace = true
 homepage.workspace = true

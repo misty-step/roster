@@ -15,14 +15,14 @@ native builds, provenance attestations, publication, and clean-room replay.
    ```sh
    cargo run --locked --manifest-path ../landmark/Cargo.toml -p landmark -- \
      run --provider local --repo-root . --repository misty-step/roster \
-     --release-tag v0.2.0 --dry-run
+     --release-tag v0.2.1 --dry-run
    ```
 
 3. Create and push an annotated tag:
 
    ```sh
-   git tag -a v0.2.0 -m "Roster v0.2.0"
-   git push origin v0.2.0
+   git tag -a v0.2.1 -m "Roster v0.2.1"
+   git push origin v0.2.1
    ```
 
 The `release` workflow refuses package/tag drift, validates `.landmark.yml`,
@@ -34,8 +34,8 @@ runners.
 ## Verify
 
 ```sh
-gh release download v0.2.0 --pattern 'roster-v0.2.0-*.tar.gz' --pattern checksums.txt
-archive=roster-v0.2.0-aarch64-apple-darwin.tar.gz # choose the local target
+gh release download v0.2.1 --pattern 'roster-v0.2.1-*.tar.gz' --pattern checksums.txt
+archive=roster-v0.2.1-aarch64-apple-darwin.tar.gz # choose the local target
 expected=$(grep " $archive$" checksums.txt | awk '{print $1}')
 actual=$(shasum -a 256 "$archive" | awk '{print $1}')
 test "$actual" = "$expected"
@@ -79,9 +79,11 @@ run its `install.sh`. The installer replaces only its owned
 pair if installation fails.
 
 The initial v0.2.0 release has no older public archive. Its rollback-to-absent
-path is removal of those two owned surfaces; cross-version rollback can first
-be replayed when v0.2.1 exists. Do not describe same-version repair as evidence
-of a cross-version rollback.
+path is removal of those two owned surfaces under the exact installation
+prefix. From v0.2.1 onward, each post-publication cold start downloads the
+newest prior public release, verifies its checksum and attestation, installs it
+over the current version, checks both binary and library versions, then rolls
+forward again. Same-version repair is not cross-version rollback evidence.
 
 If a published release is bad, do not move or reuse its tag. Mark it as a
 prerelease while the incident is active and publish a new patch release:

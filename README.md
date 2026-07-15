@@ -14,7 +14,9 @@ Choose the archive for your host, verify it, and install both the binary and
 its matching public library:
 
 ```sh
-version=0.2.0
+version=0.2.1
+PREFIX=${PREFIX:-"$HOME/.local"}
+case "$PREFIX" in ""|/) echo "refusing unsafe prefix: $PREFIX" >&2; exit 2 ;; esac
 case "$(uname -s)-$(uname -m)" in
   Darwin-arm64) target=aarch64-apple-darwin ;;
   Darwin-x86_64) target=x86_64-apple-darwin ;;
@@ -30,8 +32,8 @@ expected=$(grep " $archive$" checksums.txt | awk '{print $1}')
 actual=$(shasum -a 256 "$archive" | awk '{print $1}')
 test -n "$expected" && test "$actual" = "$expected"
 tar -xzf "$archive"
-"${archive%.tar.gz}/install.sh" # defaults to ~/.local; accepts --prefix PATH
-export PATH="$HOME/.local/bin:$PATH"
+"${archive%.tar.gz}/install.sh" --prefix "$PREFIX"
+export PATH="$PREFIX/bin:$PATH"
 ```
 
 GitHub CLI users can additionally verify build provenance before extraction:
@@ -52,11 +54,19 @@ roster resolve amos --output /tmp/amos
 
 `roster init` records the installed plain-file library as an explicit source;
 it does not copy anything into a Harness. To roll back, verify and run the
-installer from the last known-good archive. Because v0.2.0 is the first public
-archive, rollback-to-absent removes only `~/.local/bin/roster` and
-`~/.local/share/roster`. Development from a checkout stays explicit: `cargo
-install --locked --path crates/roster-cli`, then `roster init --source
-/absolute/path/to/roster`.
+installer from the last known-good archive with the same `PREFIX`. For the
+first public archive, v0.2.0, rollback-to-absent removes exactly the two
+prefix-owned surfaces:
+
+```sh
+PREFIX=${PREFIX:-"$HOME/.local"}
+case "$PREFIX" in ""|/) echo "refusing unsafe prefix: $PREFIX" >&2; exit 2 ;; esac
+rm -f "$PREFIX/bin/roster"
+rm -rf "$PREFIX/share/roster"
+```
+
+Development from a checkout stays explicit: `cargo install --locked --path
+crates/roster-cli`, then `roster init --source /absolute/path/to/roster`.
 
 Nothing is synced into Harness configuration. Existing authentication,
 sessions, caches, preferences, and raw Harness commands remain user-owned.

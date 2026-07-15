@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.1] - 2026-07-15
+
+- Make rollback-to-absent instructions honor the same installation prefix as
+  install, including custom prefixes.
+- Replay an attested previous public archive over the new release during each
+  post-publication cold start, then roll forward to the current version.
+- Publish the redacted authenticated-dispatch and cold-review evidence for the
+  first public release, with exact timing and fail-closed workflow history.
+
 ## [0.2.0] - 2026-07-15
 
 - Ship reproducible, checksummed native archives for Apple Silicon, Intel

@@ -266,6 +266,23 @@ jobs:
           gh attestation verify "$archive" --repo "${GITHUB_REPOSITORY}"
           tar -xzf "$archive" -C release
           package=${archive%.tar.gz}
+          previous_tag=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate \
+            --jq ".[] | select(.tag_name != \"${GITHUB_REF_NAME}\" and .draft == false and .prerelease == false) | .tag_name" | \
+            sed -n '1p')
+          previous_package=
+          if test -n "$previous_tag"; then
+            mkdir previous-release
+            gh release download "$previous_tag" --repo "${GITHUB_REPOSITORY}" \
+              --pattern "roster-v*-${{ matrix.target }}.tar.gz" \
+              --pattern checksums.txt --dir previous-release
+            previous_archive=$(find previous-release -name "roster-v*-${{ matrix.target }}.tar.gz" -print -quit)
+            previous_expected=$(grep " $(basename "$previous_archive")$" previous-release/checksums.txt | awk '{print $1}')
+            previous_actual=$(shasum -a 256 "$previous_archive" | awk '{print $1}')
+            test -n "$previous_expected" && test "$previous_actual" = "$previous_expected"
+            gh attestation verify "$previous_archive" --repo "${GITHUB_REPOSITORY}"
+            tar -xzf "$previous_archive" -C previous-release
+            previous_package=${previous_archive%.tar.gz}
+          fi
           prefix="$RUNNER_TEMP/roster-prefix"
           home="$RUNNER_TEMP/roster-home"
           workspace="$RUNNER_TEMP/roster-workspace"
@@ -291,6 +308,16 @@ jobs:
             fi
             "$package/install.sh" --prefix "$prefix"
             roster --version
+            if test -n "$previous_tag"; then
+              "$previous_package/install.sh" --prefix "$prefix"
+              rollback_version=$(roster --version | awk '{print $2}')
+              test "$rollback_version" = "${previous_tag#v}"
+              test "$(sed -n '1p' "$prefix/share/roster/VERSION")" = "${previous_tag#v}"
+              echo "previous-version rollback: $GITHUB_REF_NAME -> $previous_tag"
+              "$package/install.sh" --prefix "$prefix"
+              test "$(roster --version | awk '{print $2}')" = "${GITHUB_REF_NAME#v}"
+              test "$(sed -n '1p' "$prefix/share/roster/VERSION")" = "${GITHUB_REF_NAME#v}"
+            fi
           } 2>&1 | tee "$RUNNER_TEMP/cold-start-${{ matrix.target }}.txt"
       - uses: actions/upload-artifact@v4
         with:
