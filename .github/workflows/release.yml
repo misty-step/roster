@@ -172,17 +172,18 @@ jobs:
           test -n "$OPENROUTER_API_KEY"
           scripts/fetch-landmark 0.28.1 /tmp/landmark
           grounding_repo="$RUNNER_TEMP/landmark-grounding"
+          release_dist="$GITHUB_WORKSPACE/dist"
           git clone --no-tags --no-local . "$grounding_repo"
           git -C "$grounding_repo" checkout --detach "$GITHUB_SHA"
           test -z "$(git -C "$grounding_repo" tag --list)"
           /tmp/landmark run --provider local --repo-root "$grounding_repo" \
             --repository "$GITHUB_REPOSITORY" --release-tag "$GITHUB_REF_NAME" \
-            --output-dir dist/landmark-run \
-            --technical-changelog-file dist/landmark-technical-changelog.md \
-            --evidence-file dist/landmark-run-evidence.json \
+            --output-dir "$release_dist/landmark-run" \
+            --technical-changelog-file "$release_dist/landmark-technical-changelog.md" \
+            --evidence-file "$release_dist/landmark-run-evidence.json" \
             --output-file "" --output-text-file "" --output-html-file "" \
             --output-json "" --rss-feed-file "" > /dev/null
-          test "$(jq -r '.version_decision.commit_count' dist/landmark-run-evidence.json)" -gt 0
+          test "$(jq -r '.version_decision.commit_count' "$release_dist/landmark-run-evidence.json")" -gt 0
           /tmp/landmark synthesize \
             --api-key "$OPENROUTER_API_KEY" \
             --api-url https://openrouter.ai/api/v1/chat/completions \
@@ -196,14 +197,14 @@ jobs:
             --version "${GITHUB_REF_NAME#v}" \
             --changelog-file "$grounding_repo/CHANGELOG.md" \
             --repo-root "$grounding_repo" \
-            --templates-dir .release-tools/landmark/templates/prompts \
-            --quality-file dist/landmark-synthesis-quality.txt \
-            --attempts-file dist/landmark-synthesis-attempts.json \
-            --context-metadata-file dist/landmark-synthesis-context.json \
-            --claim-map-file dist/landmark-synthesis-claims.json \
-            > dist/landmark-release-notes.md
-          test "$(cat dist/landmark-synthesis-quality.txt)" = valid
-          test -s dist/landmark-release-notes.md
+            --templates-dir "$GITHUB_WORKSPACE/.release-tools/landmark/templates/prompts" \
+            --quality-file "$release_dist/landmark-synthesis-quality.txt" \
+            --attempts-file "$release_dist/landmark-synthesis-attempts.json" \
+            --context-metadata-file "$release_dist/landmark-synthesis-context.json" \
+            --claim-map-file "$release_dist/landmark-synthesis-claims.json" \
+            > "$release_dist/landmark-release-notes.md"
+          test "$(cat "$release_dist/landmark-synthesis-quality.txt")" = valid
+          test -s "$release_dist/landmark-release-notes.md"
       - name: Publish immutable tagged release
         env:
           GH_TOKEN: ${{ github.token }}
