@@ -830,6 +830,53 @@ fn codex_projection_forwards_declared_stdio_mcp_environment_by_name() {
 }
 
 #[test]
+fn codex_preflight_rejects_empty_mcp_child_env() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config)
+        .expect("config")
+        .replace("args: [--search]", "args: []");
+    write(&config, &body);
+    write(
+        &temp.path().join("source/roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: orchestrator\ndescription: Coordinate work.\ninclude:\n  - core/guidance:lead\n  - core/skill:deliver\n  - core/mcp:powder\n",
+    );
+    write(
+        &temp.path().join("source/primitives/mcps/registry.yaml"),
+        "schema_version: roster.mcp_registry.v1\nprovenance: fixture\nmcps:\n  - id: powder\n    status: available\n    transport: stdio\n    command: powder-mcp\n    env_refs:\n      - POWDER_API_BASE_URL\n",
+    );
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    let launched = temp.path().join("launched");
+    fake_harness(
+        &bin,
+        "codex",
+        "if [ \"$1\" = --version ]; then echo 'codex-cli 9.9.9'; exit 0; fi\ntouch \"$FAKE_LAUNCHED\"",
+    );
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_CHILD_ENV_FAKE_LAUNCHED", &launched)
+        .env("ROSTER_CHILD_ENV_POWDER_API_BASE_URL", "")
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "MCP child environment incomplete before launch",
+        ))
+        .stderr(predicate::str::contains(
+            "ROSTER_CHILD_ENV_POWDER_API_BASE_URL",
+        ))
+        .stderr(predicate::str::contains("Launching amos (codex)").not());
+    assert!(
+        !launched.exists(),
+        "Codex must not launch with an empty MCP env"
+    );
+}
+
+#[test]
 fn claude_projection_preserves_presentation_and_blocks_native_behavior() {
     let temp = tempfile::tempdir().expect("temp");
     let config = fixture(temp.path());
@@ -1459,6 +1506,462 @@ fi"#,
         .assert()
         .failure()
         .stderr(predicate::str::contains("OMP model isolation drift"))
+        .stderr(predicate::str::contains("Launching amos (omp)").not());
+}
+
+#[test]
+fn omp_projection_reuses_operator_credential_store() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config)
+        .expect("config")
+        .replace("harness: codex", "harness: omp")
+        .replace("args: [--search]", "args: []");
+    write(&config, &body);
+    let home = temp.path().join("home");
+    write(&home.join(".omp/agent/agent.db"), "credential-store\n");
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    let marker = temp.path().join("auth-bridge-ok");
+    fake_harness(
+        &bin,
+        "omp",
+        &format!(
+            r#"if [ "$1" = --version ]; then echo 'omp v99.0.0'; exit 0; fi
+rpc=false
+for arg in "$@"; do
+  if [ "$arg" = rpc ]; then rpc=true; fi
+done
+if $rpc; then
+  prompt=''
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --system-prompt) shift; prompt="$1" ;;
+    esac
+    shift
+  done
+  read request
+  python3 -c 'import json,re,sys; normalized = re.sub(r"\n{{3,}}", "\n", sys.argv[1]); print(json.dumps({{"id":"roster-preflight-1","type":"response","command":"get_state","success":True,"data":{{"model":{{"id":"gpt-test"}},"systemPrompt":[normalized,"<skill name=\"deliver\">"],"dumpTools":[]}}}}))' "$prompt"
+  exit 0
+fi
+test -n "${{PI_CODING_AGENT_DIR:-}}" || exit 60
+test -L "$PI_CODING_AGENT_DIR/agent.db" || exit 61
+test "$(readlink "$PI_CODING_AGENT_DIR/agent.db")" = "$HOME/.omp/agent/agent.db" || exit 62
+test -f "$PI_CODING_AGENT_DIR/mcp.json" || exit 63
+printf ok > {:?}"#,
+            marker
+        ),
+    );
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("HOME", &home)
+        .env("PATH", path)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .success();
+    assert_eq!(
+        fs::read_to_string(&marker).expect("auth bridge marker"),
+        "ok"
+    );
+}
+
+#[test]
+fn claude_preflight_requires_declared_mcp_child_env() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config)
+        .expect("config")
+        .replace("harness: codex", "harness: claude")
+        .replace("args: [--search]", "args: []");
+    write(&config, &body);
+    write(
+        &temp.path().join("source/roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: orchestrator\ndescription: Coordinate work.\ninclude:\n  - core/guidance:lead\n  - core/skill:deliver\n  - core/mcp:powder\n",
+    );
+    write(
+        &temp.path().join("source/primitives/mcps/registry.yaml"),
+        "schema_version: roster.mcp_registry.v1\nprovenance: fixture\nmcps:\n  - id: powder\n    status: available\n    transport: stdio\n    command: powder-mcp\n    env_refs:\n      - POWDER_API_BASE_URL\n",
+    );
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "claude",
+        r#"if [ "$1" = --version ]; then echo '9.9.9 (Claude Code)'; exit 0; fi
+if [ "$1" = plugin ]; then exit 0; fi
+echo should-not-launch >&2
+exit 99"#,
+    );
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .env_remove("ROSTER_CHILD_ENV_POWDER_API_BASE_URL")
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "MCP child environment incomplete before launch",
+        ))
+        .stderr(predicate::str::contains(
+            "ROSTER_CHILD_ENV_POWDER_API_BASE_URL",
+        ))
+        .stderr(predicate::str::contains("Launching amos (claude)").not());
+}
+
+#[test]
+fn claude_preflight_rejects_empty_mcp_child_env() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config)
+        .expect("config")
+        .replace("harness: codex", "harness: claude")
+        .replace("args: [--search]", "args: []");
+    write(&config, &body);
+    write(
+        &temp.path().join("source/roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: orchestrator\ndescription: Coordinate work.\ninclude:\n  - core/guidance:lead\n  - core/skill:deliver\n  - core/mcp:powder\n",
+    );
+    write(
+        &temp.path().join("source/primitives/mcps/registry.yaml"),
+        "schema_version: roster.mcp_registry.v1\nprovenance: fixture\nmcps:\n  - id: powder\n    status: available\n    transport: stdio\n    command: powder-mcp\n    env_refs:\n      - POWDER_API_BASE_URL\n",
+    );
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "claude",
+        r#"if [ "$1" = --version ]; then echo '9.9.9 (Claude Code)'; exit 0; fi
+if [ "$1" = plugin ]; then exit 0; fi
+echo should-not-launch >&2
+exit 99"#,
+    );
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .env("ROSTER_CHILD_ENV_POWDER_API_BASE_URL", "")
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "MCP child environment incomplete before launch",
+        ))
+        .stderr(predicate::str::contains(
+            "ROSTER_CHILD_ENV_POWDER_API_BASE_URL",
+        ))
+        .stderr(predicate::str::contains("Launching amos (claude)").not());
+}
+
+#[test]
+fn claude_keep_bundle_redacts_declared_mcp_env() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config)
+        .expect("config")
+        .replace("harness: codex", "harness: claude")
+        .replace("args: [--search]", "args: []");
+    write(&config, &body);
+    write(
+        &temp.path().join("source/roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: orchestrator\ndescription: Coordinate work.\ninclude:\n  - core/guidance:lead\n  - core/skill:deliver\n  - core/mcp:powder\n",
+    );
+    write(
+        &temp.path().join("source/primitives/mcps/registry.yaml"),
+        "schema_version: roster.mcp_registry.v1\nprovenance: fixture\nmcps:\n  - id: powder\n    status: available\n    transport: stdio\n    command: powder-mcp\n    env_refs:\n      - POWDER_API_BASE_URL\n      - POWDER_API_KEY\n",
+    );
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(&bin, "powder-mcp", "exit 0");
+    fake_harness(
+        &bin,
+        "claude",
+        r#"if [ "$1" = --version ]; then echo '9.9.9 (Claude Code)'; exit 0; fi
+case " $* " in *' --roster-invalid-probe '*) echo "error: unknown option '--roster-invalid-probe'" >&2; exit 1;; esac
+if [ "$1" = plugin ]; then exit 0; fi
+exit 0"#,
+    );
+    let state = temp.path().join("state");
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_STATE_DIR", &state)
+        .env(
+            "ROSTER_CHILD_ENV_POWDER_API_BASE_URL",
+            "https://powder.test",
+        )
+        .env("ROSTER_CHILD_ENV_POWDER_API_KEY", "test-key")
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "dispatch",
+            "--keep-bundle",
+            "amos",
+        ])
+        .assert()
+        .success();
+    let run = fs::read_dir(state.join("runs"))
+        .expect("retained runs")
+        .next()
+        .expect("one retained run")
+        .expect("retained run entry");
+    let retained_path = run.path().join("projection/claude/root-mcp.json");
+    let retained = fs::read_to_string(&retained_path).expect("retained Claude MCP projection");
+    assert_eq!(
+        fs::metadata(&retained_path)
+            .expect("retained MCP metadata")
+            .permissions()
+            .mode()
+            & 0o777,
+        0o600
+    );
+    assert!(!retained.contains("https://powder.test"));
+    assert!(!retained.contains("test-key"));
+    assert!(retained.contains("<redacted by roster>"));
+}
+
+#[test]
+fn omp_preflight_requires_declared_mcp_child_env() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config)
+        .expect("config")
+        .replace("harness: codex", "harness: omp")
+        .replace("args: [--search]", "args: []");
+    write(&config, &body);
+    write(
+        &temp.path().join("source/roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: orchestrator\ndescription: Coordinate work.\ninclude:\n  - core/guidance:lead\n  - core/skill:deliver\n  - core/mcp:powder\n",
+    );
+    write(
+        &temp.path().join("source/primitives/mcps/registry.yaml"),
+        "schema_version: roster.mcp_registry.v1\nprovenance: fixture\nmcps:\n  - id: powder\n    status: available\n    transport: stdio\n    command: powder-mcp\n    env_refs:\n      - POWDER_API_BASE_URL\n      - POWDER_API_KEY\n",
+    );
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "omp",
+        r#"if [ "$1" = --version ]; then echo 'omp v99.0.0'; exit 0; fi
+echo should-not-probe >&2
+exit 99"#,
+    );
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .env_remove("ROSTER_CHILD_ENV_POWDER_API_BASE_URL")
+        .env_remove("ROSTER_CHILD_ENV_POWDER_API_KEY")
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "MCP child environment incomplete before launch",
+        ))
+        .stderr(predicate::str::contains(
+            "ROSTER_CHILD_ENV_POWDER_API_BASE_URL",
+        ))
+        .stderr(predicate::str::contains("Launching amos (omp)").not());
+}
+
+#[test]
+fn omp_preflight_rejects_empty_mcp_child_env() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config)
+        .expect("config")
+        .replace("harness: codex", "harness: omp")
+        .replace("args: [--search]", "args: []");
+    write(&config, &body);
+    write(
+        &temp.path().join("source/roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: orchestrator\ndescription: Coordinate work.\ninclude:\n  - core/guidance:lead\n  - core/skill:deliver\n  - core/mcp:powder\n",
+    );
+    write(
+        &temp.path().join("source/primitives/mcps/registry.yaml"),
+        "schema_version: roster.mcp_registry.v1\nprovenance: fixture\nmcps:\n  - id: powder\n    status: available\n    transport: stdio\n    command: powder-mcp\n    env_refs:\n      - POWDER_API_BASE_URL\n",
+    );
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "omp",
+        r#"if [ "$1" = --version ]; then echo 'omp v99.0.0'; exit 0; fi
+echo should-not-probe >&2
+exit 99"#,
+    );
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .env("ROSTER_CHILD_ENV_POWDER_API_BASE_URL", "")
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "MCP child environment incomplete before launch",
+        ))
+        .stderr(predicate::str::contains(
+            "ROSTER_CHILD_ENV_POWDER_API_BASE_URL",
+        ))
+        .stderr(predicate::str::contains("Launching amos (omp)").not());
+}
+
+#[test]
+fn omp_preflight_projects_declared_mcp_env_and_command() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config)
+        .expect("config")
+        .replace("harness: codex", "harness: omp")
+        .replace("args: [--search]", "args: []");
+    write(&config, &body);
+    write(
+        &temp.path().join("source/roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: orchestrator\ndescription: Coordinate work.\ninclude:\n  - core/guidance:lead\n  - core/skill:deliver\n  - core/mcp:powder\n",
+    );
+    write(
+        &temp.path().join("source/primitives/mcps/registry.yaml"),
+        "schema_version: roster.mcp_registry.v1\nprovenance: fixture\nmcps:\n  - id: powder\n    status: available\n    transport: stdio\n    command: powder-mcp\n    env_refs:\n      - POWDER_API_BASE_URL\n      - POWDER_API_KEY\n",
+    );
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(&bin, "powder-mcp", "exit 0");
+    let marker = temp.path().join("projected-mcp.json");
+    let state = temp.path().join("state");
+    fake_harness(
+        &bin,
+        "omp",
+        &format!(
+            r#"if [ "$1" = --version ]; then echo 'omp v99.0.0'; exit 0; fi
+prompt=''
+rpc=false
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --system-prompt) shift; prompt="$1" ;;
+    --mode) shift; [ "$1" = rpc ] && rpc=true ;;
+  esac
+  shift
+done
+agent_dir="${{PI_CODING_AGENT_DIR:-}}"
+test -n "$agent_dir" || exit 60
+cp "$agent_dir/mcp.json" {:?}
+if ! $rpc; then exit 0; fi
+python3 -c 'import json,re,sys; normalized = re.sub(r"\n{{3,}}", "\n", sys.argv[1]); print(json.dumps({{"id":"roster-preflight-1","type":"response","command":"get_state","success":True,"data":{{"model":{{"id":"gpt-test"}},"systemPrompt":[normalized,"<skill name=\"deliver\">"],"dumpTools":[]}}}}))' "$prompt"
+"#,
+            marker
+        ),
+    );
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_STATE_DIR", &state)
+        .env(
+            "ROSTER_CHILD_ENV_POWDER_API_BASE_URL",
+            "https://powder.test",
+        )
+        .env("ROSTER_CHILD_ENV_POWDER_API_KEY", "test-key")
+        .args([
+            "--config",
+            config.to_str().unwrap(),
+            "dispatch",
+            "--keep-bundle",
+            "amos",
+        ])
+        .assert()
+        .success();
+    let projected: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&marker).expect("projected mcp.json"))
+            .expect("json");
+    let powder = projected
+        .pointer("/mcpServers/powder")
+        .expect("powder server");
+    assert_eq!(
+        powder.get("command").and_then(|v| v.as_str()),
+        Some("powder-mcp")
+    );
+    assert_eq!(
+        powder
+            .pointer("/env/POWDER_API_BASE_URL")
+            .and_then(|v| v.as_str()),
+        Some("https://powder.test")
+    );
+    assert_eq!(
+        powder
+            .pointer("/env/POWDER_API_KEY")
+            .and_then(|v| v.as_str()),
+        Some("test-key")
+    );
+    let run = fs::read_dir(state.join("runs"))
+        .expect("retained runs")
+        .next()
+        .expect("one retained run")
+        .expect("retained run entry");
+    let retained_path = run.path().join("projection/omp/agent/mcp.json");
+    let retained = fs::read_to_string(&retained_path).expect("retained OMP MCP projection");
+    assert_eq!(
+        fs::metadata(&retained_path)
+            .expect("retained MCP metadata")
+            .permissions()
+            .mode()
+            & 0o777,
+        0o600
+    );
+    assert!(!retained.contains("https://powder.test"));
+    assert!(!retained.contains("test-key"));
+    assert!(retained.contains("<redacted by roster>"));
+}
+
+#[test]
+fn omp_preflight_rejects_missing_mcp_command_on_path() {
+    let temp = tempfile::tempdir().expect("temp");
+    let config = fixture(temp.path());
+    let body = fs::read_to_string(&config)
+        .expect("config")
+        .replace("harness: codex", "harness: omp")
+        .replace("args: [--search]", "args: []");
+    write(&config, &body);
+    write(
+        &temp.path().join("source/roles/orchestrator.yaml"),
+        "schema_version: roster.role.v2\nname: orchestrator\ndescription: Coordinate work.\ninclude:\n  - core/guidance:lead\n  - core/skill:deliver\n  - core/mcp:powder\n",
+    );
+    write(
+        &temp.path().join("source/primitives/mcps/registry.yaml"),
+        "schema_version: roster.mcp_registry.v1\nprovenance: fixture\nmcps:\n  - id: powder\n    status: available\n    transport: stdio\n    command: definitely-missing-powder-mcp\n    env_refs:\n      - POWDER_API_BASE_URL\n",
+    );
+    let bin = temp.path().join("bin");
+    fs::create_dir_all(&bin).expect("bin");
+    fake_harness(
+        &bin,
+        "omp",
+        r#"if [ "$1" = --version ]; then echo 'omp v99.0.0'; exit 0; fi
+echo should-not-probe >&2
+exit 99"#,
+    );
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    Command::cargo_bin("roster")
+        .expect("bin")
+        .env("PATH", path)
+        .env("ROSTER_STATE_DIR", temp.path().join("state"))
+        .env(
+            "ROSTER_CHILD_ENV_POWDER_API_BASE_URL",
+            "https://powder.test",
+        )
+        .env_remove("ROSTER_CHILD_ENV_POWDER_API_KEY")
+        .args(["--config", config.to_str().unwrap(), "dispatch", "amos"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "command \"definitely-missing-powder-mcp\" is not on PATH",
+        ))
         .stderr(predicate::str::contains("Launching amos (omp)").not());
 }
 

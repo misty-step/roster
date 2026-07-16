@@ -8,7 +8,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     env, fs,
     io::{BufRead, BufReader, Read, Write},
-    os::unix::fs::symlink,
+    os::unix::fs::{PermissionsExt, symlink},
     os::unix::process::ExitStatusExt,
     path::{Path, PathBuf},
     process::{ExitStatus, Stdio},
@@ -50,10 +50,47 @@ impl RunBundle {
     }
 
     fn cleanup(&mut self) -> Result<()> {
-        if !self.keep && !self.cleaned && self.path.exists() {
-            fs::remove_dir_all(&self.path)?;
+        if !self.cleaned && self.path.exists() {
+            if self.keep {
+                self.redact_projected_mcp_configs()?;
+            } else {
+                fs::remove_dir_all(&self.path)?;
+            }
         }
         self.cleaned = true;
+        Ok(())
+    }
+
+    fn redact_projected_mcp_configs(&self) -> Result<()> {
+        for relative in [
+            "projection/claude/root-mcp.json",
+            "projection/omp/agent/mcp.json",
+        ] {
+            let path = self.path.join(relative);
+            if !path.is_file() {
+                continue;
+            }
+            let mut document: Value = serde_json::from_slice(
+                &fs::read(&path)
+                    .with_context(|| format!("read projected MCP config {}", path.display()))?,
+            )
+            .with_context(|| format!("parse projected MCP config {}", path.display()))?;
+            let Some(servers) = document
+                .get_mut("mcpServers")
+                .and_then(Value::as_object_mut)
+            else {
+                continue;
+            };
+            for server in servers.values_mut() {
+                let Some(env_map) = server.get_mut("env").and_then(Value::as_object_mut) else {
+                    continue;
+                };
+                for value in env_map.values_mut() {
+                    *value = Value::String("<redacted by roster>".to_owned());
+                }
+            }
+            fs::write(&path, serde_json::to_vec_pretty(&document)?)?;
+        }
         Ok(())
     }
 
@@ -184,6 +221,7 @@ pub fn rescue(harness: Harness, workspace: &Path, dry_run: bool) -> Result<()> {
                 fs::remove_dir_all(&home)?;
             }
             fs::create_dir_all(&home)?;
+            bridge_omp_credential_store(&home)?;
             fs::write(home.join("mcp.json"), b"{\"mcpServers\":{}}\n")?;
             let isolation = home
                 .parent()
@@ -321,10 +359,7 @@ fn prepare_claude(
     )?;
     copy_projection_tree(&bundle.join("skills"), &plugin.join("skills"))?;
     let mcp_path = projection.join("root-mcp.json");
-    fs::write(
-        &mcp_path,
-        serde_json::to_vec_pretty(&mcp_json(&agent.mcps))?,
-    )?;
+    write_private_json(&mcp_path, &mcp_json(&agent.mcps))?;
     let settings_path = projection.join("settings.json");
     fs::write(
         &settings_path,
@@ -368,11 +403,14 @@ fn prepare_omp(
     let projection = run_root.join("projection/omp");
     let home = projection.join("agent");
     fs::create_dir_all(&home)?;
+    // Reuse the operator credential store. OMP already multi-opens one
+    // agent.db across interactive sessions; a forked empty store cannot
+    // resolve API keys or OAuth. Projection still owns mcp.json, skills,
+    // and the isolation overlay — never ambient config or discovery.
+    bridge_omp_credential_store(&home)?;
     copy_projection_tree(&bundle.join("skills"), &home.join("skills"))?;
-    fs::write(
-        home.join("mcp.json"),
-        serde_json::to_vec_pretty(&mcp_json(&agent.mcps))?,
-    )?;
+    let mcp_path = home.join("mcp.json");
+    write_private_json(&mcp_path, &mcp_json(&agent.mcps))?;
     let isolation = projection.join("isolation.yml");
     fs::write(&isolation, omp_isolation())?;
     let system_prompt =
@@ -635,7 +673,28 @@ fn mcp_json(mcps: &[ResolvedMcp]) -> Value {
     let mut servers = Map::new();
     for item in mcps {
         let value = match item.transport.as_deref() {
-            Some("stdio") => json!({"command": item.command, "args": item.args}),
+            Some("stdio") => {
+                let mut server = Map::new();
+                server.insert(
+                    "command".to_owned(),
+                    Value::String(item.command.clone().unwrap_or_default()),
+                );
+                server.insert("args".to_owned(), json!(item.args));
+                // Tier 1 adapters spawn stdio MCP servers with only the
+                // declared env map (plus a minimal host baseline). Ambient
+                // process env is not inherited for secrets — promote
+                // ROSTER_CHILD_ENV_* values.
+                let mut env_map = Map::new();
+                for env_ref in &item.env_refs {
+                    if let Some(value) = resolve_mcp_env_value(env_ref) {
+                        env_map.insert(env_ref.clone(), Value::String(value));
+                    }
+                }
+                if !env_map.is_empty() {
+                    server.insert("env".to_owned(), Value::Object(env_map));
+                }
+                Value::Object(server)
+            }
             Some("http") => json!({"type": "http", "url": item.url}),
             _ => json!({"disabled": true}),
         };
@@ -643,10 +702,21 @@ fn mcp_json(mcps: &[ResolvedMcp]) -> Value {
     }
     json!({"mcpServers": servers})
 }
+fn write_private_json(path: &Path, value: &Value) -> Result<()> {
+    fs::write(path, serde_json::to_vec_pretty(value)?)?;
+    fs::set_permissions(path, fs::Permissions::from_mode(0o600))?;
+    Ok(())
+}
+
+fn resolve_mcp_env_value(env_ref: &str) -> Option<String> {
+    let child_key = format!("ROSTER_CHILD_ENV_{env_ref}");
+    env::var(&child_key).ok().filter(|value| !value.is_empty())
+}
 
 fn preflight(agent: &ResolvedAgent, workspace: &Path, invocation: &Invocation) -> Result<()> {
     match agent.harness {
         Harness::Codex => {
+            require_declared_mcp_child_env(agent)?;
             let actual_skills = codex_enabled_skills(invocation, workspace)?;
             let skill_root = PathBuf::from(
                 invocation
@@ -873,6 +943,7 @@ fn codex_enabled_skills(
 }
 
 fn preflight_claude(agent: &ResolvedAgent, invocation: &Invocation) -> Result<()> {
+    require_declared_mcp_child_env(agent)?;
     require_accepted_arguments(invocation)?;
     let plugin = invocation_arg(invocation, "--plugin-dir")?;
     let output = process::isolated(&invocation.command, &invocation.env)
@@ -904,16 +975,13 @@ fn preflight_claude(agent: &ResolvedAgent, invocation: &Invocation) -> Result<()
 }
 
 fn preflight_omp(agent: &ResolvedAgent, invocation: &Invocation) -> Result<()> {
-    let output = omp_rpc_state(invocation, !agent.mcps.is_empty())?;
-    let state = output
-        .lines()
-        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
-        .find(|frame| {
-            frame.get("command").and_then(Value::as_str) == Some("get_state")
-                && frame.get("success").and_then(Value::as_bool) == Some(true)
-        })
-        .context("OMP isolation probe returned no get_state response")?;
-    let data = state.get("data").context("OMP get_state omitted data")?;
+    require_declared_mcp_child_env(agent)?;
+    verify_omp_projected_mcps(agent, invocation)?;
+    // omp/17 RPC get_state.dumpTools does not surface MCP tools even when the
+    // server is declared and connectable. Preflight therefore proves model,
+    // instructions, skills, and structural MCP projection — not dumpTools
+    // membership. Live MCP tool activation is harness-owned after launch.
+    let (data, probe_stderr) = omp_probe_inventory(invocation)?;
     let model = data
         .pointer("/model/id")
         .and_then(Value::as_str)
@@ -971,25 +1039,139 @@ fn preflight_omp(agent: &ResolvedAgent, invocation: &Invocation) -> Result<()> {
     if tools.contains(&"search_tool_bm25") {
         bail!("OMP isolation drift: ambient tool discovery remained enabled");
     }
-    let mut observed_mcps = BTreeSet::new();
-    for tool in tools.into_iter().filter(|tool| tool.starts_with("mcp__")) {
-        let matched = agent
-            .mcps
-            .iter()
-            .find(|mcp| tool.starts_with(&format!("mcp__{}_", mcp.id.replace('-', "_"))));
-        let Some(mcp) = matched else {
-            bail!("OMP MCP isolation drift: loaded undeclared tool {tool:?}");
-        };
-        observed_mcps.insert(mcp.id.as_str());
+    let mut undeclared = Vec::new();
+    for tool in tools
+        .iter()
+        .copied()
+        .filter(|tool| tool.starts_with("mcp__"))
+    {
+        if declared_mcp_for_tool(tool, agent).is_none() {
+            undeclared.push(tool);
+        }
     }
-    let expected_mcps = agent.mcps.iter().map(|mcp| mcp.id.as_str()).collect();
-    if observed_mcps != expected_mcps {
-        bail!("OMP MCP isolation drift: expected {expected_mcps:?}, connected {observed_mcps:?}");
+    if !undeclared.is_empty() {
+        bail!(
+            "OMP MCP isolation drift: loaded undeclared tool(s) {undeclared:?}; probe stderr: {}",
+            bounded_text(&probe_stderr)
+        );
     }
     Ok(())
 }
 
-fn omp_rpc_state(invocation: &Invocation, wait_for_mcps: bool) -> Result<String> {
+fn verify_omp_projected_mcps(agent: &ResolvedAgent, invocation: &Invocation) -> Result<()> {
+    if agent.mcps.is_empty() {
+        return Ok(());
+    }
+    let home = invocation
+        .env
+        .get("PI_CODING_AGENT_DIR")
+        .context("PI_CODING_AGENT_DIR missing from OMP projection")?;
+    let path = PathBuf::from(home).join("mcp.json");
+    let raw = fs::read_to_string(&path)
+        .with_context(|| format!("read projected OMP MCP config {}", path.display()))?;
+    let document: Value =
+        serde_json::from_str(&raw).context("projected OMP mcp.json is not valid JSON")?;
+    let servers = document
+        .get("mcpServers")
+        .and_then(Value::as_object)
+        .context("projected OMP mcp.json missing mcpServers")?;
+    for mcp in &agent.mcps {
+        let server = servers.get(&mcp.id).with_context(|| {
+            format!(
+                "projected OMP mcp.json omitted declared MCP {:?}; present {:?}",
+                mcp.id,
+                servers.keys().cloned().collect::<Vec<_>>()
+            )
+        })?;
+        if mcp.transport.as_deref() == Some("stdio") {
+            let command = server
+                .get("command")
+                .and_then(Value::as_str)
+                .filter(|value| !value.is_empty())
+                .with_context(|| format!("OMP MCP {:?} missing command in projection", mcp.id))?;
+            if which_command(command).is_none() {
+                bail!(
+                    "OMP MCP {:?} command {command:?} is not on PATH for the isolated child",
+                    mcp.id
+                );
+            }
+            if !mcp.env_refs.is_empty() {
+                let env_map = server
+                    .get("env")
+                    .and_then(Value::as_object)
+                    .with_context(|| {
+                        format!(
+                            "OMP MCP {:?} requires env {:?} in projection but env map is missing",
+                            mcp.id, mcp.env_refs
+                        )
+                    })?;
+                for env_ref in &mcp.env_refs {
+                    let value = env_map.get(env_ref).and_then(Value::as_str).unwrap_or("");
+                    if value.is_empty() {
+                        bail!(
+                            "OMP MCP {:?} projection env missing non-empty {env_ref}; export ROSTER_CHILD_ENV_{env_ref}",
+                            mcp.id
+                        );
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn which_command(command: &str) -> Option<PathBuf> {
+    if command.contains(std::path::MAIN_SEPARATOR) {
+        let path = PathBuf::from(command);
+        return path.is_file().then_some(path);
+    }
+    let path = env::var_os("PATH")?;
+    env::split_paths(&path).find_map(|dir| {
+        let candidate = dir.join(command);
+        candidate.is_file().then_some(candidate)
+    })
+}
+
+fn require_declared_mcp_child_env(agent: &ResolvedAgent) -> Result<()> {
+    let mut missing = Vec::new();
+    for mcp in &agent.mcps {
+        for env_ref in &mcp.env_refs {
+            // Isolated children only receive SAFE_PARENT_ENV plus explicit
+            // ROSTER_CHILD_ENV_* promotions. Ambient MCP credentials do not pass.
+            let child_key = format!("ROSTER_CHILD_ENV_{env_ref}");
+            if env::var(&child_key)
+                .ok()
+                .filter(|value| !value.is_empty())
+                .is_none()
+            {
+                missing.push(format!("{env_ref} (export {child_key})"));
+            }
+        }
+    }
+    if missing.is_empty() {
+        return Ok(());
+    }
+    bail!(
+        "MCP child environment incomplete before launch: missing {}. Roster does not read vaults; promote values with ROSTER_CHILD_ENV_<NAME>.",
+        missing.join(", ")
+    );
+}
+
+fn declared_mcp_for_tool<'a>(tool: &str, agent: &'a ResolvedAgent) -> Option<&'a ResolvedMcp> {
+    agent.mcps.iter().find(|mcp| {
+        let normalized = mcp.id.replace('-', "_");
+        tool.starts_with(&format!("mcp__{normalized}_"))
+            || tool.starts_with(&format!("mcp__{normalized}__"))
+    })
+}
+
+fn omp_state_ready(data: &Value) -> bool {
+    data.get("systemPrompt")
+        .and_then(Value::as_array)
+        .is_some_and(|segments| segments.iter().any(|segment| segment.as_str().is_some()))
+}
+
+fn omp_probe_inventory(invocation: &Invocation) -> Result<(Value, String)> {
     let mut command = process::isolated(&invocation.command, &invocation.env);
     command
         .args(&invocation.args)
@@ -1001,45 +1183,153 @@ fn omp_rpc_state(invocation: &Invocation, wait_for_mcps: bool) -> Result<String>
     let mut child = command.spawn().context("start OMP isolation probe")?;
     let mut stdout = child.stdout.take().context("capture OMP probe stdout")?;
     let mut stderr = child.stderr.take().context("capture OMP probe stderr")?;
+    let (line_tx, line_rx) = mpsc::channel::<Result<String, String>>();
     let stdout_reader = thread::spawn(move || {
-        let mut bytes = Vec::new();
-        let _ = stdout.read_to_end(&mut bytes);
-        bytes
+        let mut reader = BufReader::new(&mut stdout);
+        loop {
+            let mut line = String::new();
+            match reader.read_line(&mut line) {
+                Ok(0) => break,
+                Ok(_) => {
+                    if line_tx.send(Ok(line)).is_err() {
+                        break;
+                    }
+                }
+                Err(error) => {
+                    let _ = line_tx.send(Err(error.to_string()));
+                    break;
+                }
+            }
+        }
     });
     let stderr_reader = thread::spawn(move || {
         let mut bytes = Vec::new();
         let _ = stderr.read_to_end(&mut bytes);
         bytes
     });
-    thread::sleep(Duration::from_secs(if wait_for_mcps { 5 } else { 2 }));
     let mut stdin = child.stdin.take().context("open OMP probe stdin")?;
-    stdin.write_all(b"{\"id\":\"roster-preflight\",\"type\":\"get_state\"}\n")?;
-    drop(stdin);
-    let deadline = Instant::now() + Duration::from_secs(15);
-    let status = loop {
-        if let Some(status) = child.try_wait()? {
-            break status;
-        }
+    let timeout = Duration::from_secs(10);
+    let deadline = Instant::now() + timeout;
+    let mut last_state: Option<Value> = None;
+    let mut last_tools: Vec<String> = Vec::new();
+    let mut request = 0u32;
+    let mut pending_id: Option<String> = None;
+    let result = loop {
         if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
-            bail!("OMP isolation probe timed out");
+            break Err(anyhow::anyhow!(
+                "OMP isolation probe timed out after {timeout:?} waiting for inventory (last tools {last_tools:?})"
+            ));
         }
-        thread::sleep(Duration::from_millis(50));
+        if let Some(status) = child.try_wait()? {
+            break Err(anyhow::anyhow!(
+                "OMP isolation probe exited early ({status})"
+            ));
+        }
+        if pending_id.is_none() {
+            request = request.saturating_add(1);
+            let id = format!("roster-preflight-{request}");
+            if let Err(error) = (|| -> Result<()> {
+                writeln!(
+                    stdin,
+                    "{{\"id\":{id_json},\"type\":\"get_state\"}}",
+                    id_json = serde_json::to_string(&id)
+                        .unwrap_or_else(|_| "\"roster-preflight\"".into())
+                )?;
+                stdin.flush()?;
+                Ok(())
+            })() {
+                break Err(error.context("write OMP get_state request"));
+            }
+            pending_id = Some(id);
+        }
+
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        let wait = remaining.min(Duration::from_millis(250));
+        match line_rx.recv_timeout(wait) {
+            Ok(Ok(line)) => {
+                let Some(state) = parse_omp_get_state_line(&line, pending_id.as_deref()) else {
+                    continue;
+                };
+                pending_id = None;
+                let data = match state.get("data").cloned() {
+                    Some(data) => data,
+                    None => {
+                        break Err(anyhow::anyhow!("OMP get_state omitted data"));
+                    }
+                };
+                last_tools = data
+                    .get("dumpTools")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|tool| tool.get("name").and_then(Value::as_str).map(str::to_owned))
+                    .collect();
+                if omp_state_ready(&data) {
+                    last_state = Some(data);
+                    break Ok(());
+                }
+                last_state = Some(data);
+            }
+            Ok(Err(error)) => break Err(anyhow::anyhow!("OMP probe stdout read failed: {error}")),
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                // Re-issue get_state on the next loop if still pending too long,
+                // or if the previous response never arrived.
+                if pending_id.is_some() && request > 0 {
+                    // Keep waiting until deadline; do not flood the runtime.
+                }
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                break Err(anyhow::anyhow!(
+                    "OMP isolation probe closed stdout before ready inventory"
+                ));
+            }
+        }
     };
-    let stdout = stdout_reader
-        .join()
-        .map_err(|_| anyhow::anyhow!("OMP probe stdout reader panicked"))?;
+
+    drop(stdin);
+    let _ = child.kill();
+    let _ = child.wait();
+    let _ = stdout_reader.join();
     let stderr = stderr_reader
         .join()
         .map_err(|_| anyhow::anyhow!("OMP probe stderr reader panicked"))?;
-    if !status.success() {
-        bail!(
-            "OMP isolation preflight failed: {}",
-            bounded_stderr(&stderr)
-        );
+    let stderr = String::from_utf8_lossy(&stderr).into_owned();
+    match result {
+        Ok(()) => {
+            let data = last_state.context("OMP isolation probe produced no get_state data")?;
+            Ok((data, stderr))
+        }
+        Err(error) => Err(anyhow::anyhow!(
+            "{error}; probe stderr: {}",
+            bounded_text(&stderr)
+        )),
     }
-    String::from_utf8(stdout).context("OMP isolation probe emitted non-UTF-8 output")
+}
+
+fn parse_omp_get_state_line(line: &str, request_id: Option<&str>) -> Option<Value> {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let frame = serde_json::from_str::<Value>(trimmed).ok()?;
+    if frame.get("command").and_then(Value::as_str) != Some("get_state") {
+        return None;
+    }
+    if frame.get("success").and_then(Value::as_bool) != Some(true) {
+        return None;
+    }
+    if let (Some(expected), Some(id)) = (request_id, frame.get("id").and_then(Value::as_str))
+        && id != expected
+        && !id.starts_with("roster-preflight")
+    {
+        return None;
+    }
+    Some(frame)
+}
+
+fn bounded_text(text: &str) -> String {
+    let start = text.len().saturating_sub(2_000);
+    text.get(start..).unwrap_or(text).trim().to_owned()
 }
 
 fn observe_version(invocation: &Invocation) -> String {
@@ -1091,9 +1381,13 @@ fn invocation_arg<'a>(invocation: &'a Invocation, flag: &str) -> Result<&'a str>
 }
 
 fn bounded_stderr(bytes: &[u8]) -> String {
-    let text = String::from_utf8_lossy(bytes);
-    let start = text.len().saturating_sub(2_000);
-    text.get(start..).unwrap_or(&text).trim().to_owned()
+    bounded_text(&String::from_utf8_lossy(bytes))
+}
+
+fn bridge_omp_credential_store(home: &Path) -> Result<()> {
+    let native = real_home()?.join(".omp/agent/agent.db");
+    bridge(home, "agent.db", &native)?;
+    Ok(())
 }
 
 fn bridge(destination_root: &Path, name: &str, source: &Path) -> Result<()> {

@@ -70,6 +70,14 @@ end, file a papercut immediately — `report_papercut` (Powder MCP) or `powder
 papercut`, one call carrying the failed action, expected affordance, and
 evidence — then keep working; do not leave the complaint only in chat.
 
+## Fleet Feed
+
+When the `overmind` MCP is available, post only meaningful milestones:
+claimed or shipped work, evidence packets, ADR decisions, and blockers. Keep
+posts terse, link the artifact, and let harness session evidence provide
+identity and workspace; never paste command logs or duplicate Powder. Powder
+remains the work ledger and commits remain the code record.
+
 ## Safety
 
 Never reveal or persist secret values. Reject requests to print, paste, or embed

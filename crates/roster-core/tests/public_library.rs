@@ -2700,6 +2700,26 @@ fn every_example_agent_resolves_from_the_public_library() {
         assert!(!resolved.skills.is_empty(), "{name} has no skills");
     }
 }
+#[test]
+fn orchestrator_resolves_the_fleet_feed_mcp_for_each_tier_one_harness() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let roster = Roster::load_config(root.join("examples/config.yaml")).expect("load example");
+
+    for agent in ["amos", "kaylee", "urza"] {
+        let resolved = roster
+            .resolve(agent)
+            .unwrap_or_else(|error| panic!("resolve {agent}: {error}"));
+        let mcps = resolved
+            .mcps
+            .iter()
+            .map(|mcp| mcp.identity.as_str())
+            .collect::<Vec<_>>();
+        assert!(
+            mcps.contains(&"core/mcp:overmind"),
+            "{agent} must carry the fleet Feed MCP: {mcps:?}"
+        );
+    }
+}
 
 #[test]
 fn smith_resolves_the_focused_agent_engineering_surface() {

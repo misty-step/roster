@@ -5,6 +5,7 @@ include:
   - core/pack:engineering-core
   - core/pack:work-ledger-powder
   - core/guidance:orchestrator
+  - core/mcp:overmind
   - core/guidance:delegation
   - core/skill:vision
   - core/skill:shape

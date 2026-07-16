@@ -64,7 +64,17 @@ Artifacts that prove behavior (screenshots, transcripts, request replays)
 live under `.evidence/<branch>/<date>/` when committed, and are linked
 directly from briefs/PRs — never described without a path.
 
-## 6. Loop guardrails (Mode B precondition)
+## 6. Feed projection
+
+The Overmind MCP is a normal Roster primitive: `core/mcp:overmind` is declared
+once in the public registry and included by roles that need fleet narrative.
+Resolution carries that identity into the immutable bundle; Tier 1 adapters
+project it into ephemeral native configuration and clean up after dispatch.
+Roster never installs, edits, or removes global Harness configuration. Feed posts
+use harness-provided identity and workspace evidence, complement Powder's ledger,
+and never become a command log or verification substitute.
+
+## 7. Loop guardrails (Mode B precondition)
 
 A loop that can't halt is a billing incident, not automation. Before any
 Mode B loop runs unattended, it names all three hard stops:
