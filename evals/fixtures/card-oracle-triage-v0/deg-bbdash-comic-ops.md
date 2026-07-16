@@ -8,4 +8,4 @@ run ledger, readiness, and receipt surfaces.
 
 ## Notes
 Reference board:
-`http://internal-board/bitterblossom-noir-ledger-concept.png`.
+`https://example.test/bitterblossom-noir-ledger-concept.png`.

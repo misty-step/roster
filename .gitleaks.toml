@@ -1,0 +1,11 @@
+title = "Roster publication secret policy"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "No source-value allowlist; generated reports and Git internals are not publication inputs."
+paths = [
+  '''^\.git/''',
+  '''^target/''',
+]

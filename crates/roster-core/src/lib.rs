@@ -557,6 +557,35 @@ pub struct ResolvedAgent {
     pub config_path: PathBuf,
 }
 
+fn public_source_path(identity: &str) -> PathBuf {
+    PathBuf::from("$ROSTER_SOURCES").join(identity)
+}
+
+fn public_context_path(workspace: &Path, path: &Path) -> PathBuf {
+    if let Ok(relative) = path.strip_prefix(workspace) {
+        return PathBuf::from("$ROSTER_WORKSPACE").join(relative);
+    }
+
+    let mut current = workspace;
+    let mut depth = 0;
+    while let Some(parent) = current.parent() {
+        depth += 1;
+        current = parent;
+        if path.parent() == Some(current) {
+            let mut public = PathBuf::from("$ROSTER_WORKSPACE");
+            for _ in 0..depth {
+                public.push("..");
+            }
+            public.push(
+                path.file_name()
+                    .unwrap_or_else(|| std::ffi::OsStr::new("AGENTS.md")),
+            );
+            return public;
+        }
+    }
+    PathBuf::from("$ROSTER_CONTEXT/AGENTS.md")
+}
+
 impl ResolvedAgent {
     pub fn write_bundle(
         &self,
@@ -600,15 +629,15 @@ impl ResolvedAgent {
             reasoning: self.reasoning.clone(),
             harness: self.harness,
             args: self.args.clone(),
-            config: self.config_path.clone(),
-            workspace,
+            config: PathBuf::from("$ROSTER_CONFIG"),
+            workspace: PathBuf::from("$ROSTER_WORKSPACE"),
             context,
             guidance: self
                 .guidance
                 .iter()
                 .map(|item| ManifestPrimitive {
                     identity: item.identity.clone(),
-                    source: item.path.clone(),
+                    source: public_source_path(&item.identity),
                     via: item.via.clone(),
                 })
                 .collect(),
@@ -617,7 +646,7 @@ impl ResolvedAgent {
                 .iter()
                 .map(|item| ManifestPrimitive {
                     identity: item.identity.clone(),
-                    source: item.path.clone(),
+                    source: public_source_path(&item.identity),
                     via: item.via.clone(),
                 })
                 .collect(),
@@ -626,7 +655,7 @@ impl ResolvedAgent {
                 .iter()
                 .map(|item| ManifestPrimitive {
                     identity: item.identity.clone(),
-                    source: item.source.clone(),
+                    source: public_source_path(&item.identity),
                     via: item.via.clone(),
                 })
                 .collect(),
@@ -685,12 +714,13 @@ impl ResolvedAgent {
         let mut context = Vec::new();
         for path in paths {
             let body = read_text(&path)?;
+            let public_path = public_context_path(workspace, &path);
             output.push_str(&format!(
                 "\n\n---\n\n# Project context: {}\n\n{body}",
-                path.display()
+                public_path.display()
             ));
             context.push(ManifestContext {
-                source: path,
+                source: public_path,
                 sha256: format!("sha256:{:x}", Sha256::digest(body.as_bytes())),
             });
         }

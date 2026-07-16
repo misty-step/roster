@@ -1,5 +1,9 @@
 use roster_core::{Harness, Roster, discover_config};
-use std::{fs, path::Path, str::FromStr};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 fn write(path: &Path, body: &str) {
     fs::create_dir_all(path.parent().expect("parent")).expect("create parent");
@@ -165,12 +169,17 @@ fn bundle_contains_only_the_resolved_role_primitives() {
         "SAFE_TEMPLATE=1",
     );
     let bundle = temp.path().join("bundle");
+    let workspace = temp.path().join("workspace");
     write(
         &temp.path().join("AGENTS.md"),
+        "# Parent project\n\nParent truth.\n",
+    );
+    write(
+        &workspace.join("AGENTS.md"),
         "# Fixture project\n\nProject truth.\n",
     );
     let manifest = resolved
-        .write_bundle(&bundle, temp.path())
+        .write_bundle(&bundle, &workspace)
         .expect("write bundle");
 
     assert!(bundle.join("AGENTS.md").is_file());
@@ -184,8 +193,28 @@ fn bundle_contains_only_the_resolved_role_primitives() {
     assert!(manifest.args.is_empty());
     assert!(!bundle.join("skills/deliver/scripts/__pycache__").exists());
     assert!(bundle.join("skills/deliver/.env.example.tmpl").is_file());
-    assert_eq!(manifest.context.len(), 1);
+    assert_eq!(manifest.context.len(), 2);
     assert!(manifest.context[0].sha256.starts_with("sha256:"));
+    assert_eq!(manifest.config, PathBuf::from("$ROSTER_CONFIG"));
+    assert_eq!(manifest.workspace, PathBuf::from("$ROSTER_WORKSPACE"));
+    assert_eq!(
+        manifest.context[0].source,
+        PathBuf::from("$ROSTER_WORKSPACE/../AGENTS.md")
+    );
+    assert_eq!(
+        manifest.context[1].source,
+        PathBuf::from("$ROSTER_WORKSPACE/AGENTS.md")
+    );
+    assert!(
+        manifest
+            .guidance
+            .iter()
+            .all(|item| item.source.starts_with("$ROSTER_SOURCES/"))
+    );
+    let agents = fs::read_to_string(bundle.join("AGENTS.md")).expect("agents");
+    assert!(agents.contains("# Project context: $ROSTER_WORKSPACE/../AGENTS.md"));
+    assert!(agents.contains("# Project context: $ROSTER_WORKSPACE/AGENTS.md"));
+    assert!(!agents.contains(temp.path().to_str().expect("temp path")));
     assert!(
         fs::read_to_string(bundle.join("AGENTS.md"))
             .expect("agents")
@@ -643,10 +672,9 @@ fn manifest_records_registry_and_inclusion_chain() {
     let resolved = roster.resolve("amos").expect("resolve");
     let bundle = temp.path().join("bundle");
     let manifest = resolved.write_bundle(&bundle, temp.path()).expect("bundle");
-    assert!(
-        manifest.mcps[0]
-            .source
-            .ends_with("primitives/mcps/registry.yaml")
+    assert_eq!(
+        manifest.mcps[0].source,
+        PathBuf::from("$ROSTER_SOURCES/core/mcp:powder")
     );
     assert_eq!(
         manifest.mcps[0].via,

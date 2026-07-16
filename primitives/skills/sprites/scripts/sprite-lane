@@ -56,7 +56,7 @@ BAKE_VERSION="3"
 
 REMOTE_FS_HELPER="$(/bin/cat <<'PY'
 # Credential roots corresponding to $HOME/.config/git and $HOME/.omp are
-# rejected and removed only through descriptors held beneath /home/sprite.
+# rejected and removed only through descriptors held beneath the /home/sprite/ root.
 import errno
 import os
 import stat

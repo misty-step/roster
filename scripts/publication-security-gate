@@ -1,0 +1,433 @@
+#!/usr/bin/env python3
+"""Fail-closed, value-free checks for Roster's public publication surfaces."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+from urllib.parse import parse_qsl, urlsplit
+
+
+EMAIL_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._%+\-]*@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+HOME_RE = re.compile(
+    r"(?<![A-Za-z0-9_])/(?:Users|home)/[A-Za-z0-9._-]+(?:/|$)"
+)
+TAILNET_RE = re.compile(r"\b[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?\.ts\.net\b")
+URL_RE = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
+PEM_RE = re.compile(r"-----BEGIN [A-Z0-9 ]+ PRIVATE KEY-----")
+SECRET_RES = (
+    ("aws-access-key", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
+    ("github-token", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b")),
+    ("openai-key", re.compile(r"\bsk-[A-Za-z0-9]{20,}\b")),
+    ("slack-token", re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{12,}\b")),
+    ("jwt", re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b")),
+    ("bearer-material", re.compile(r"\bBearer\s+[A-Za-z0-9+/=-]{20,}\b")),
+    ("vault-token", re.compile(r"\b(?:vault|token)\s+s\.[A-Za-z0-9_-]{20,}\b", re.IGNORECASE)),
+    (
+        "credential-assignment",
+        re.compile(
+            r"\b(?:API[_-]?KEY|ACCESS[_-]?TOKEN|CLIENT[_-]?SECRET|PASSWORD)\b"
+            r"\s*[:=]\s*[\"']?[A-Za-z0-9][A-Za-z0-9_+/=-]{19,}"
+        ),
+    ),
+)
+SENSITIVE_URL_KEY_RE = re.compile(
+    r"^(?:api[_-]?key|access[_-]?token|auth|authorization|credential|password|secret|token)$",
+    re.IGNORECASE,
+)
+SENSITIVE_URL_PATH_RE = re.compile(r"/(?:private|internal|secrets?|credentials?)(?:/|$)", re.IGNORECASE)
+PRIVATE_HOST_LABEL_RE = re.compile(
+    r"(?:^|[.-])(?:internal|private)(?:[.-]|$)",
+    re.IGNORECASE,
+)
+
+# These are the only public allowances. They are deliberately domain- and
+# purpose-specific; credentials embedded in a URL never use an allowance.
+ALLOWED_EMAIL_DOMAINS = {"example.com", "users.noreply.github.com"}
+ALLOWED_EMAILS = {"hey@herdr.dev"}
+ALLOWED_URL_HOSTS = {
+    "crates.io",
+    "github.com",
+    "misty-step.github.io",
+    "openrouter.ai",
+    "www.rust-lang.org",
+}
+PUBLIC_FIXTURE_ALLOWANCES = {
+    "absolute-home-path": (("/home/sprite", ("skills/sprites", "docs/SECURITY.md")),),
+    "private-endpoint-hostname": (
+        ("powder.internal", ("skills/powder", "misty-powder")),
+    ),
+}
+
+
+class Finding:
+    __slots__ = ("surface", "location", "line", "detector")
+
+    def __init__(self, surface: str, location: str, line: int, detector: str):
+        self.surface = surface
+        self.location = location
+        self.line = line
+        self.detector = detector
+
+    def diagnostic(self) -> str:
+        return f"{self.surface} {self.location}:{self.line}: {self.detector}"
+
+
+def email_is_allowed(email: str) -> bool:
+    local, _, domain = email.rpartition("@")
+    return email in ALLOWED_EMAILS or (local and domain in ALLOWED_EMAIL_DOMAINS)
+
+def location_has_fragment(location: str, fragment: str) -> bool:
+    normalized = location.replace(os.sep, "/").strip("/")
+    fragment = fragment.strip("/")
+    return f"/{fragment}/" in f"/{normalized}/"
+
+
+def line_has_token(line: str, token: str) -> bool:
+    escaped = re.escape(token)
+    if token.startswith("/"):
+        prefix = r"(?<![A-Za-z0-9_-])"
+        suffix = r"(?=$|[^A-Za-z0-9_.-])"
+    else:
+        prefix = r"(?<![A-Za-z0-9.-])"
+        suffix = r"(?=$|[^A-Za-z0-9_.-])"
+    return re.search(rf"{prefix}{escaped}{suffix}", line) is not None
+
+
+def allowed_public_fixture(detector: str, line: str, location: str) -> bool:
+    return any(
+        line_has_token(line, needle)
+        and any(location_has_fragment(location, fragment) for fragment in location_fragments)
+        for needle, location_fragments in PUBLIC_FIXTURE_ALLOWANCES.get(detector, ())
+    )
+
+
+def url_findings(line: str, location: str) -> set[str]:
+    findings: set[str] = set()
+    for raw_url in URL_RE.findall(line):
+        try:
+            parsed = urlsplit(raw_url.rstrip(".,);]"))
+        except ValueError:
+            continue
+        if parsed.username or parsed.password:
+            findings.add("url-embedded-credential")
+        if SENSITIVE_URL_PATH_RE.search(parsed.path):
+            findings.add("sensitive-url-path")
+        if any(
+            SENSITIVE_URL_KEY_RE.match(key)
+            and (
+                len(value) >= 20
+                or key.lower() in {"api_key", "apikey", "password", "secret", "credential"}
+            )
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+        ):
+            findings.add("sensitive-url-query")
+        host = (parsed.hostname or "").lower()
+        if (
+            PRIVATE_HOST_LABEL_RE.search(host)
+            and host not in ALLOWED_URL_HOSTS
+            and not allowed_public_fixture("private-endpoint-hostname", line, location)
+        ):
+            findings.add("private-endpoint-hostname")
+    return findings
+
+
+def line_detectors(
+    line: str, include_structural: bool = True, location: str = ""
+) -> list[str]:
+    findings: list[str] = []
+    if (
+        include_structural
+        and HOME_RE.search(line)
+        and not allowed_public_fixture("absolute-home-path", line, location)
+    ):
+        findings.append("absolute-home-path")
+    if include_structural and TAILNET_RE.search(line):
+        findings.append("private-tailnet-hostname")
+    if include_structural:
+        for match in EMAIL_RE.finditer(line):
+            if match.start() == 0 or line[match.start() - 1] != "%":
+                if not email_is_allowed(match.group()):
+                    findings.append("non-allowlisted-email")
+    findings.extend(sorted(url_findings(line, location)))
+    for detector, pattern in SECRET_RES:
+        if pattern.search(line):
+            findings.append(detector)
+    if PEM_RE.search(line):
+        findings.append("private-key-material")
+    return findings
+
+
+def scan_text(
+    text: str, surface: str, location: str, include_structural: bool = True
+) -> list[Finding]:
+    findings: list[Finding] = []
+    for line_number, line in enumerate(text.splitlines(), 1):
+        for detector in line_detectors(line, include_structural, location):
+            findings.append(Finding(surface, location, line_number, detector))
+    return findings
+
+
+def read_text(path: Path) -> str | None:
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return None
+    if b"\x00" in data:
+        return None
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+
+def iter_files(paths: list[Path]):
+    for path in paths:
+        if path.is_file() and not path.is_symlink():
+            yield path
+            continue
+        if path.is_dir() and not path.is_symlink():
+            for child in sorted(path.rglob("*")):
+                if child.is_file() and not child.is_symlink():
+                    yield child
+
+
+def display_location(path: Path, display_root: Path | None) -> str:
+    if display_root is None:
+        return str(path)
+    if path == display_root:
+        return path.name
+    try:
+        return path.relative_to(display_root).as_posix()
+    except ValueError:
+        return path.name
+
+def scan_paths(
+    paths: list[Path],
+    surface: str,
+    include_structural: bool = True,
+    display_root: Path | None = None,
+) -> tuple[list[Finding], int]:
+    findings: list[Finding] = []
+    count = 0
+    for path in iter_files(paths):
+        count += 1
+        location = display_location(path, display_root)
+        text = read_text(path)
+        if text is None:
+            if surface in {"explicit-path", "generated-bundle", "receipt-or-log"}:
+                findings.append(Finding(surface, location, 0, "unreadable-artifact"))
+            continue
+        findings.extend(scan_text(text, surface, location, include_structural))
+    return findings, count
+
+
+def run_git(repo: Path, *args: str) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    return result.stdout
+
+
+def tracked_paths(repo: Path) -> list[Path]:
+    raw = run_git(repo, "ls-files", "--cached", "--others", "--exclude-standard", "-z")
+    return [repo / item for item in raw.split("\0") if item]
+
+
+def scan_git_sources(repo: Path) -> tuple[list[Finding], int]:
+    # Source artifacts receive the complete detector set. Rust keeps its
+    # independent structural oracle; this gate must also cover public text.
+    return scan_paths(
+        tracked_paths(repo), "source", include_structural=True, display_root=repo
+    )
+
+
+def scan_staged_diff(repo: Path) -> list[Finding]:
+    patch = run_git(repo, "diff", "--cached", "--binary", "--no-ext-diff", "--unified=0")
+    return scan_text(patch, "staged-diff", "git diff --cached") if patch else []
+
+
+def scan_commit_range(repo: Path, commit_range: str) -> list[Finding]:
+    metadata = run_git(
+        repo,
+        "log",
+        "--format=%an%n%ae%n%cn%n%ce%n%B%x00",
+        commit_range,
+    )
+    return scan_text(metadata, "commit-metadata", commit_range)
+
+
+def scan_event(path: Path) -> list[Finding]:
+    try:
+        event = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        raise RuntimeError("cannot read pull-request event") from None
+    pull_request = event.get("pull_request")
+    if not isinstance(pull_request, dict):
+        return []
+    findings: list[Finding] = []
+    for field in ("title", "body"):
+        value = pull_request.get(field)
+        if isinstance(value, str):
+            findings.extend(scan_text(value, "pull-request", field))
+    return findings
+
+
+def assert_detected(label: str, text: str, detector: str) -> None:
+    found = {finding.detector for finding in scan_text(text, "fixture", label)}
+    if detector not in found:
+        raise AssertionError(f"mutation did not trip {detector}")
+
+
+def run_self_test() -> int:
+    home = "/" + "Users" + "/alice/project"
+    tailnet = "service.example" + ".ts" + ".net"
+    email = "operator" + "@personal.dev"
+    url_auth = "https://" + "alice:password@example.com/private/api"
+    url_query = "https://" + "api.example.com/v1?access_token=" + "a" * 24
+    private_host = "https://" + "db.private.example/v1"
+    aws = "AK" + "IA" + "0" * 16
+    github = "gh" + "p_" + "a" * 24
+    openai = "sk-" + "a" * 24
+    slack = "xox" + "b-" + "a" * 20
+    jwt = "eyJ" + "a" * 20 + "." + "b" * 20 + "." + "c" * 20
+    bearer = "Bearer" + " " + "a" * 24
+    vault = "vault token " + "s." + "a" * 24
+    assignment = "API_KEY=" + "a" * 24
+    pem = "-----BEGIN " + "RSA PRIVATE KEY-----"
+    cases = [
+        ("home", home, "absolute-home-path"),
+        ("tailnet", tailnet, "private-tailnet-hostname"),
+        ("email", email, "non-allowlisted-email"),
+        ("url-auth", url_auth, "url-embedded-credential"),
+        ("url-path", url_auth, "sensitive-url-path"),
+        ("url-query", url_query, "sensitive-url-query"),
+        ("private-host", private_host, "private-endpoint-hostname"),
+        ("aws", aws, "aws-access-key"),
+        ("github", github, "github-token"),
+        ("openai", openai, "openai-key"),
+        ("slack", slack, "slack-token"),
+        ("jwt", jwt, "jwt"),
+        ("bearer", bearer, "bearer-material"),
+        ("vault", vault, "vault-token"),
+        ("assignment", assignment, "credential-assignment"),
+        ("pem", pem, "private-key-material"),
+    ]
+    safe = "public source uses $HOME, example.com, and https://github.com/misty-step/roster"
+    if scan_text(safe, "fixture", "safe"):
+        raise AssertionError("safe allowance fixture was rejected")
+    if allowed_public_fixture(
+        "absolute-home-path",
+        "/" + "home/sprite.secret/root",
+        "/tmp/skills/sprites/SKILL.md",
+    ):
+        raise AssertionError("home fixture allowance crossed a path boundary")
+    if allowed_public_fixture(
+        "absolute-home-path",
+        "/" + "home/sprite/",
+        "/tmp/skills/sprites-victim/SKILL.md",
+    ):
+        raise AssertionError("home fixture allowance crossed a location boundary")
+    if allowed_public_fixture(
+        "private-endpoint-hostname",
+        "https://" + "powder.internal" + ".evil/v1",
+        "/tmp/skills/powder/SKILL.md",
+    ):
+        raise AssertionError("private-host fixture allowance crossed a hostname boundary")
+    for label, mutation, detector in cases:
+        assert_detected(label, safe + "\n" + mutation, detector)
+    print(f"publication-security self-test: passed {len(cases)} mutation detectors")
+    return 0
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo-root", type=Path, default=Path.cwd())
+    parser.add_argument("--path", dest="paths", action="append", type=Path, default=[])
+    parser.add_argument("--bundle-root", action="append", type=Path, default=[])
+    parser.add_argument("--receipt-root", action="append", type=Path, default=[])
+    parser.add_argument("--commit-range")
+    parser.add_argument("--event-path", type=Path)
+    parser.add_argument("--skip-source", action="store_true")
+    parser.add_argument("--skip-staged", action="store_true")
+    parser.add_argument("--self-test", action="store_true")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    if args.self_test:
+        return run_self_test()
+
+    repo = args.repo_root.resolve()
+    findings: list[Finding] = []
+    files_scanned = 0
+    surfaces = 0
+
+    if not args.skip_source:
+        source_findings, count = scan_git_sources(repo)
+        findings.extend(source_findings)
+        files_scanned += count
+        surfaces += 1
+    if not args.skip_staged:
+        findings.extend(scan_staged_diff(repo))
+        surfaces += 1
+    for path in args.paths:
+        root = path.resolve()
+        path_findings, count = scan_paths(
+            [root], "explicit-path", display_root=root
+        )
+        findings.extend(path_findings)
+        files_scanned += count
+        surfaces += 1
+    for root in args.bundle_root:
+        root = root.resolve()
+        path_findings, count = scan_paths(
+            [root], "generated-bundle", display_root=root
+        )
+        findings.extend(path_findings)
+        files_scanned += count
+        surfaces += 1
+    for root in args.receipt_root:
+        root = root.resolve()
+        path_findings, count = scan_paths(
+            [root], "receipt-or-log", display_root=root
+        )
+        findings.extend(path_findings)
+        files_scanned += count
+        surfaces += 1
+    if args.commit_range:
+        findings.extend(scan_commit_range(repo, args.commit_range))
+        surfaces += 1
+    if args.event_path:
+        try:
+            findings.extend(scan_event(args.event_path.resolve()))
+        except RuntimeError as error:
+            print(f"publication-security: FAIL ({error})", file=sys.stderr)
+            return 1
+        surfaces += 1
+
+    if findings:
+        print(f"publication-security: FAIL ({len(findings)} findings)", file=sys.stderr)
+        for finding in findings:
+            print(f"  {finding.diagnostic()}", file=sys.stderr)
+        return 1
+
+    print(
+        "publication-security: PASS "
+        f"(surfaces={surfaces}, text-files={files_scanned}, value-free-diagnostics=true)"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

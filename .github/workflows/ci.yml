@@ -25,6 +25,89 @@ jobs:
           cargo deny check
       - name: Primitives catalog gate (roster check)
         run: cargo run --locked -p roster-cli -- check
+      - name: Gitleaks secret scan (v8.30.1)
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/gitleaks.json"
+          if ! docker run --rm \
+            -v "$GITHUB_WORKSPACE:/repo:ro" \
+            -v "$RUNNER_TEMP:/runner-temp" \
+            zricethezav/gitleaks:v8.30.1 \
+            dir /repo \
+            --config /repo/.gitleaks.toml \
+            --redact --no-banner --no-color --log-level error \
+            --report-format json --report-path /runner-temp/gitleaks.json \
+            --exit-code 1
+          then
+            rm -f "$report"
+            echo "Gitleaks found secret-shaped material; report withheld."
+            exit 1
+          fi
+          rm -f "$report"
+      - name: TruffleHog Git history scan (v3.95.9)
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/trufflehog.json"
+          log="$RUNNER_TEMP/trufflehog.log"
+          if ! docker run --rm \
+            -v "$GITHUB_WORKSPACE:/repo:ro" \
+            trufflesecurity/trufflehog:3.95.9 \
+            git file:///repo \
+            --no-update --no-color --no-verification --json --fail \
+            >"$report" 2>"$log"
+          then
+            rm -f "$report" "$log"
+            echo "TruffleHog found credential-shaped material or could not scan."
+            exit 1
+          fi
+          rm -f "$report" "$log"
+      - name: Publication mutation and surface gate
+        run: |
+          set -euo pipefail
+          scripts/publication-security-gate --self-test
+          bundle_root="$RUNNER_TEMP/roster-public-bundles"
+          receipt_root="$RUNNER_TEMP/roster-publication-receipts"
+          inventory="$RUNNER_TEMP/publication-bundle-inventory.txt"
+          report="$RUNNER_TEMP/publication-security.txt"
+          mkdir -p "$bundle_root" "$receipt_root"
+          agent_inventory="$RUNNER_TEMP/public-agent-inventory.txt"
+          if ! cargo run --locked -q -p roster-cli -- \
+            --config examples/config.yaml list >"$agent_inventory" 2>&1; then
+            echo "Public agent inventory failed; output withheld."
+            exit 1
+          fi
+          while IFS=$'\t' read -r agent _; do
+            test -n "$agent"
+            resolve_log="$receipt_root/$agent.resolve.log"
+            if ! cargo run --locked -q -p roster-cli -- \
+              --config examples/config.yaml resolve "$agent" \
+              --output "$bundle_root/$agent" >"$resolve_log" 2>&1; then
+              echo "Public agent resolution failed: $agent; output withheld."
+              exit 1
+            fi
+            printf '{"agent":"%s","status":"ok","redaction":"<redacted>"}\n' \
+              "$agent" >"$receipt_root/$agent.json"
+          done <"$agent_inventory"
+          find "$bundle_root" -type f -print | LC_ALL=C sort >"$inventory"
+          commit_args=()
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            git fetch --no-tags --depth=1 origin "$base"
+            commit_args=(--commit-range "$base..HEAD")
+          fi
+          scripts/publication-security-gate \
+            --repo-root . \
+            --bundle-root "$bundle_root" \
+            --receipt-root "$receipt_root" \
+            --event-path "$GITHUB_EVENT_PATH" \
+            "${commit_args[@]}" | tee "$report"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: publication-security-evidence
+          path: |
+            ${{ runner.temp }}/publication-bundle-inventory.txt
+            ${{ runner.temp }}/publication-security.txt
+          if-no-files-found: error
       - name: Coverage
         # Ratchet from roster-010 baseline (2026-07-04):
         # cargo llvm-cov --workspace --fail-under-file-lines 82

@@ -132,14 +132,7 @@ pub fn dispatch(
                 .as_ref()
                 .expect("dispatch bundle")
                 .manifest(),
-            keep_bundle.then(|| {
-                invocation
-                    .bundle
-                    .as_ref()
-                    .expect("dispatch bundle")
-                    .path
-                    .join("bundle")
-            }),
+            keep_bundle.then(|| PathBuf::from("$ROSTER_BUNDLE")),
             started_at,
             &harness_version,
             false,
@@ -174,14 +167,7 @@ pub fn dispatch(
             .as_ref()
             .expect("dispatch bundle")
             .manifest(),
-        keep_bundle.then(|| {
-            invocation
-                .bundle
-                .as_ref()
-                .expect("dispatch bundle")
-                .path
-                .join("bundle")
-        }),
+        keep_bundle.then(|| PathBuf::from("$ROSTER_BUNDLE")),
         started_at,
         &harness_version,
         true,
@@ -1348,9 +1334,27 @@ fn observe_version(invocation: &Invocation) -> String {
         .collect::<Vec<_>>()
         .join(" ");
     if version.is_empty() {
-        "version unavailable (empty output)".to_owned()
+        return "version unavailable (empty output)".to_owned();
+    }
+    let lower = version.to_ascii_lowercase();
+    let unsafe_word = lower
+        .split(|character: char| !character.is_ascii_alphanumeric())
+        .any(|word| {
+            matches!(
+                word,
+                "api" | "bearer" | "credential" | "key" | "password" | "secret" | "token"
+            )
+        });
+    let safe = version.len() <= 200
+        && version
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || " ._+-()".contains(character))
+        && version.chars().any(|character| character.is_ascii_digit())
+        && !unsafe_word;
+    if safe {
+        version
     } else {
-        version.chars().take(200).collect()
+        "version unavailable (unsafe output)".to_owned()
     }
 }
 

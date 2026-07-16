@@ -19,7 +19,7 @@ artifacts, rendered Markdown/HTML, and publication previews.
 
 ## Notes
 Reference board:
-`http://internal-board/cerberus-operator-pulp-concept.png`.
+`https://example.test/cerberus-operator-pulp-concept.png`.
 
 Factory groom 2026-07-01: demoted below the documented-path, trust-loop,
 release, projection, and orchestration epics. Reopen only after the review organ
