@@ -15,8 +15,11 @@ for the convention and its prior art.
 ## misty-powder
 
 - Source: `misty-step/powder` (external repo)
-- Pinned commit: `a20d4ecefcb6a16d595966177b48c47a87dfffc8`
-- Copied byte-identical from harness-kit on 2026-07-05 (roster-916).
+- Pinned commit: `8c7a16a7c1bf3748ea939691a6545bd0f73c8f40`
+- Copied byte-identical from harness-kit on 2026-07-05 (roster-916); re-synced
+  byte-identical from `misty-step/powder` HEAD on 2026-07-16
+  (roster-papercut-fleet-awareness) to pick up the papercut intake contract
+  (`report_papercut` / `powder papercut`).
 
 ## mattpocock-writing-great-skills
 

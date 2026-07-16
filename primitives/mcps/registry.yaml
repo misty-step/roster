@@ -143,7 +143,7 @@ mcps:
     status: available
     app: Powder
     source_repo: misty-step/powder
-    source_ref: a20d4ecefcb6a16d595966177b48c47a87dfffc8
+    source_ref: 8c7a16a7c1bf3748ea939691a6545bd0f73c8f40
     product_skill: misty-powder
     capabilities:
       - backlog management
@@ -151,6 +151,7 @@ mcps:
       - issue updates
       - operator input requests
       - work status tracking
+      - papercut friction reports
     transport: stdio
     command: powder-mcp
     env_refs:

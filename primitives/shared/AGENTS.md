@@ -65,9 +65,10 @@ generic top-level planning does not.
 
 Change approach after two failed tool calls or three unsuccessful edits to the
 same file. Re-read the live request and target before retrying.
-When the harness or a tool causes an avoidable dead end, use the shared
-grievance surface with the failed action, expected affordance, and evidence;
-do not leave the complaint only in chat.
+When any fleet service, harness, or tool causes friction or an avoidable dead
+end, file a papercut immediately — `report_papercut` (Powder MCP) or `powder
+papercut`, one call carrying the failed action, expected affordance, and
+evidence — then keep working; do not leave the complaint only in chat.
 
 ## Safety
 

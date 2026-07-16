@@ -65,8 +65,8 @@ sources:
     alias_prefix: "misty-"
 
   - repo: misty-step/powder
-    ref: a20d4ecefcb6a16d595966177b48c47a87dfffc8
-    pin: a20d4ecefcb6a16d595966177b48c47a87dfffc8
+    ref: 8c7a16a7c1bf3748ea939691a6545bd0f73c8f40
+    pin: 8c7a16a7c1bf3748ea939691a6545bd0f73c8f40
     layout: root
     skills_path: "."
     skill_name: powder
