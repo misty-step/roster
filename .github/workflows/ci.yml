@@ -92,8 +92,10 @@ jobs:
           commit_args=()
           if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
             base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
             git fetch --no-tags --depth=1 origin "$base"
-            commit_args=(--commit-range "$base..HEAD")
+            git fetch --no-tags origin "$head"
+            commit_args=(--commit-range "$base..$head")
           fi
           scripts/publication-security-gate \
             --repo-root . \
