@@ -1,7 +1,7 @@
 ---
-model_reference_review_due: 2026-08-05
-openai_reference_review_due: 2026-07-18
-last_researched: 2026-07-11
+model_reference_review_due: 2026-08-17
+openai_reference_review_due: 2026-08-17
+last_researched: 2026-07-17
 substrate_reference_review_due: 2026-07-20
 substrate_reference_last_researched: 2026-07-13
 speech_reference_review_due: 2026-07-20
@@ -18,7 +18,7 @@ this factual sheet.
 
 ## Freshness Contract
 
-- Review due: 2026-08-05.
+- Review due: 2026-08-17.
 - Treat model facts as stale after the review due date.
 - Verify exact model ids, availability, prices, context windows, and benchmark
   claims from live provider docs or catalogs before changing defaults.
@@ -457,6 +457,50 @@ refresh before quoting spend or composing long-output lanes.
 - Sources: local `~/.codex/models_cache.json`, local `~/.codex/config.toml`,
   and the 2026-07-11 Codex smoke transcript.
 
+### OpenAI GPT-5.6 Sol and Terra (siblings, factual reference)
+
+Not selected as this roster's default Codex dispatch id (Luna is); included
+here as capability-matrix reference input since both are real, GA, dispatchable
+model ids via the same Codex CLI surface.
+
+- **Sol** (flagship tier, `gpt-5.6-sol`): context 1,050,000 in / 128,000 out,
+  knowledge cutoff 2026-02-16. Pricing $5.00/M input, $0.50/M cached input,
+  $30.00/M output (prompts >272K input billed 2x input/1.5x output). Model
+  card labels reasoning strength "Highest" of the three siblings. Also
+  exposes a Codex/ChatGPT-Work-only `ultra` mode (4- to 16-agent parallel
+  orchestration, not a depth level — shown in benchmark tables only as
+  "GPT-5.6 Sol Ultra"). Benchmark (OpenAI's own launch page, citing
+  Artificial Analysis and Agents' Last Exam as third-party primary sources):
+  AA Coding Agent Index 80 (new SOTA at launch, 2.8pts above Claude Fable 5,
+  using <50% the output tokens/time/cost); SWE-Bench Pro 64.6%;
+  Terminal-Bench 2.1 88.8% (91.9% with Ultra); AA Intelligence Index v4.1
+  58.9; Agents' Last Exam 53.6 (beats Fable 5 by ~13pts). Positioning: "best
+  coding model yet," flagship for complex reasoning/coding/cybersecurity/
+  science, strong at multi-day autonomous work and computer-use/design
+  judgment per vendor quotes (Cursor, Cognition, Notion, Qodo).
+- **Terra** (balanced/mid tier, `gpt-5.6-terra`): same context/output/cutoff
+  as Sol. Pricing $2.50/M input, $0.25/M cached, $15.00/M output. Reasoning
+  strength labeled "Higher" (one notch below Sol). Roughly the "mini" tier of
+  prior GPT-5 generations. Benchmark: AA Coding Agent Index 77.4 ("just above
+  Claude Fable 5"); SWE-Bench Pro 63.4%; Terminal-Bench 2.1 87.4%; AA
+  Intelligence Index v4.1 55.0. Positioning: OpenAI markets Terra as the
+  everyday workhorse — "competitive with GPT-5.5 at half the cost" — for
+  review triage, scoped fixes, and standard agentic implementation;
+  third-party Codex-workflow writeups recommend it as the default for
+  routine iteration, reserving Sol for deep architectural work.
+- All three siblings (Sol/Terra/Luna) are grouped by OpenAI under one shared
+  Codex/ChatGPT effort-level UI; the launch blog states users "choose among
+  GPT-5.6 Sol, Terra, and Luna and set an effort level for each," which
+  supports but does not itemize-confirm that Terra/Sol share Luna's
+  confirmed low/medium/high/xhigh/max Codex CLI ladder. [INFERENCE for the
+  exact per-model enum beyond what the launch blog states in prose.]
+- Sources: developers.openai.com/api/docs/models/gpt-5.6-sol,
+  developers.openai.com/api/docs/models/gpt-5.6-terra,
+  developers.openai.com/api/docs/guides/reasoning, openai.com/index/gpt-5-6/
+  (all fetched directly, 2026-07-17); artificialanalysis.ai/evaluations/
+  artificial-analysis-coding-agent-index (cited by OpenAI as primary
+  third-party source).
+
 ### Google Gemini 3.5 Flash Through Antigravity
 
 - Active local id: `gemini-3.5-flash`.
@@ -469,6 +513,158 @@ refresh before quoting spend or composing long-output lanes.
   `gemini-3.1-pro-preview` (`$2/$12`, 1M, per the same coverage).
 - Sources: 2026-07 coverage (tokenmix.ai, VentureBeat); verify against
   ai.google.dev model docs before changing a default.
+
+### Reasoning-effort taxonomies (2026-07-17 refresh)
+
+Reasoning-effort mechanisms differ by family; do not assume a shared
+low/medium/high vocabulary. Confirmed via live provider docs and OpenRouter's
+`supported_parameters`/`reasoning` model metadata on 2026-07-17:
+
+| Family | Mechanism | Levels (low->high) | Default | Can disable | Source |
+|---|---|---|---|---|---|
+| Anthropic Claude 5 (Sonnet 5, Fable 5, Mythos 5, Opus 4.7/4.8) | Adaptive thinking + `effort` param | low / medium / high / xhigh / max | high | Sonnet 5 yes (`thinking:{type:"disabled"}`); Fable 5/Mythos 5 no | platform.claude.com/docs/en/build-with-claude/adaptive-thinking |
+| xAI Grok 4.5 | `reasoning_effort` | low / medium / high | high | no | docs.x.ai/developers/model-capabilities/text/reasoning |
+| OpenAI GPT-5.6 (Sol/Terra/Luna) | `reasoning.effort` | none / minimal / low / medium / high / xhigh, plus Codex/ChatGPT-Work `max`; Sol additionally has `ultra` (4-16 agent parallel orchestration, not a depth level) | not itemized per-model by OpenAI; Luna confirmed low/medium/high/xhigh/max via local Codex cache, Sol/Terra assumed to share the ladder [INFERENCE] | not below `none` | developers.openai.com/api/docs/guides/reasoning, openai.com/index/gpt-5-6/ |
+| Thinking Machines Inkling | `reasoning_effort` (OpenAI-Codex-style) | none / minimal / low / medium / high / xhigh / max | high | yes (`none`) | huggingface.co/blog/thinkingmachines-inkling (grepped directly for the 7 preset names) |
+| Google Gemini 3.5 Flash | `thinking_level` | minimal / low / medium / high | medium | yes (`minimal`) | ai.google.dev/gemini-api/docs/generate-content/thinking |
+| Google Gemini 3.1 Flash-Lite | `thinking_level` | minimal / low / medium / high | minimal | yes | ai.google.dev/gemini-api/docs/generate-content/thinking |
+| Google Gemini 3.1 Pro (Preview) | `thinking_level` | low / medium / high | high | **no** (no minimal/off) | ai.google.dev/gemini-api/docs/generate-content/thinking |
+| Meta Muse Spark 1.1 | `reasoning_effort` (OpenAI-SDK-compatible) | minimal / low / medium / high | not confirmed [MODERATE CONFIDENCE, secondary sources only] | not confirmed | secondary aggregators (datacamp.com, artificialanalysis.ai); meta.com did not return readable primary content in this refresh |
+| Moonshot Kimi K3 | `reasoning_effort`, mandatory always-on | `max` only today ("more levels coming soon" per Moonshot) | max (only option) | no | openrouter.ai/moonshotai/kimi-k3, platform.kimi.ai/docs/guide/kimi-k3-quickstart#thinking-effort |
+| Moonshot Kimi K2.7 Code (existing default) | boolean `reasoning` | on/off only, no graded levels | on | yes | OpenRouter model metadata |
+| Z.ai GLM 5.2 | `reasoning_effort` | high / xhigh (`xhigh` = vendor "Max" mode) | high | not confirmed disableable | openrouter.ai/z-ai/glm-5.2 page prose, explicit |
+| DeepSeek V4 Flash / Pro | `reasoning_effort` | high / xhigh (`xhigh` = max reasoning) | high | not confirmed disableable | openrouter.ai/deepseek/deepseek-v4-flash, -pro page prose, explicit |
+| Qwen 3.7 Max | `reasoning` object metadata declares high/xhigh, but the flat `reasoning_effort` alias is absent from OpenRouter's `supported_parameters` for this model | high / xhigh **[INFERENCE, not corroborated by Alibaba's own docs — flag as unconfirmed]** | high | not confirmed | OpenRouter API metadata only; page prose silent |
+| MiniMax M3 | boolean `reasoning` | on/off only, no graded levels | on | yes | OpenRouter model metadata; page has no "reasoning efforts supported" sentence (unlike GLM 5.2/DeepSeek V4) |
+| NVIDIA Nemotron 3 Ultra | boolean `enable_thinking` (chat-template flag) | on/off only | on [not explicitly confirmed as default; typical vendor convention] | yes | build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b |
+
+### Google Gemini 3.1 Flash-Lite
+
+- Active id: `gemini-3.1-flash-lite`. Context 1,048,576 in / 65,536 out (same
+  ceiling as 3.5 Flash and 3.1 Pro). Pricing: $0.25/M input, $1.50/M output
+  (ai.google.dev/gemini-api/docs/pricing). GA/Stable per the Gemini model
+  catalog page. Used by the open-source Gemini CLI itself as a
+  task-complexity classifier/router to Flash or Pro — i.e. its own vendor
+  treats it as the cheap triage tier, not a general-purpose workhorse.
+  Not found on any fetched Arena.ai text leaderboard (only its image sibling,
+  `gemini-3.1-flash-lite-image`, ranked #7 on Text-to-Image).
+- Sources: ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite,
+  ai.google.dev/gemini-api/docs/pricing, arena.ai/leaderboard (2026-07-17).
+
+### Google Gemini 3.1 Pro (Preview)
+
+- Active id: `gemini-3.1-pro-preview`. Context 1,048,576 in / 65,536 out —
+  **corrects a false "2M context" claim found in secondary sources**; the
+  official model card states the same ceiling as 3.5 Flash and 3.1
+  Flash-Lite. Pricing: $2.00/M input, $12.00/M output at <=200k input;
+  $4.00/M input, $18.00/M output above 200k. Still labeled Preview, not GA,
+  per the Gemini model catalog page. Cannot disable thinking (no `minimal`
+  level). A separate `gemini-3.1-pro-preview-customtools` endpoint exists for
+  bash/custom-tool-heavy agents. Arena.ai: `gemini-3.1-pro-grounding` ranked
+  #7 on Search (1211+-5).
+- Sources: ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview,
+  ai.google.dev/gemini-api/docs/pricing, arena.ai/leaderboard (2026-07-17).
+
+### NVIDIA Nemotron 3 Ultra
+
+- Active id: `nvidia/nemotron-3-ultra-550b-a55b` (build.nvidia.com). 550B
+  total / 55B active params, LatentMoE architecture, OpenMDW-1.1 license
+  (open-weight). Context up to 1M (vLLM defaults to 262,144 unless
+  `VLLM_ALLOW_LONG_MAX_MODEL_LEN=1`). Released 2026-06-04.
+- Benchmark (vendor's own model card, citing the NVIDIA Nemotron 3 Ultra
+  Technical Report): SWE-bench Verified 71.9% (BF16) / 69.7% (NVFP4). **Not
+  directly comparable to other rows' SWE-bench Pro scores** — Verified and
+  Pro are different benchmark variants; do not average them together.
+  Terminal-Bench 2.1, GPQA, and RULER-1M (long-context retrieval) also cited
+  on the same card.
+- Not a locally dispatchable harness id as of this refresh — no local CLI
+  binding exists in `primitives/providers.yaml`. Listed here as capability
+  reference only.
+- Source: build.nvidia.com/nvidia/nemotron-3-ultra-550b-a55b (fetched
+  directly).
+
+### Thinking Machines Inkling
+
+- Thinking Machines Lab's (Mira Murati's startup) first open-weights model,
+  released 2026-07-15. MoE transformer, 975B total / 41B active params,
+  pretrained on 45T tokens (text/image/audio/video), Apache-2.0. A smaller
+  `Inkling-Small` sibling (12B active) was previewed alongside it. Context up
+  to 1M.
+- Pricing (Thinking Machines' own hosted Tinker platform, tiered by context):
+  64K context — $1.87/M input, $4.68/M output; 256K context — $3.74/M input,
+  $9.36/M output. **[INFERENCE-caveat: reported by secondary aggregators, not
+  independently fetched from a primary Tinker pricing page.]** Self-hostable
+  since open-weight.
+- Benchmark (vendor's own announcement page, fetched directly): GDPval-AA v2
+  Elo 1238 (ahead of Kimi K2.6's 1190, DeepSeek V4 Flash-max's 1189); Design
+  Arena Agentic-Web-Dev 1257 (behind Sonnet 5/Fable 5/Opus 4.8/GLM 5.2/Grok
+  4.5, ahead of GPT-5.6 Sol and several open-weight peers). Independent
+  aggregator (sebastianraschka.com): SWE-Bench Pro (Public) ~54.3%,
+  Terminal-Bench 2.1 ~63.8%, IFBench 79.8%.
+- Positioning: Thinking Machines' own post states plainly "Inkling is not the
+  strongest overall model available today, open or closed. Instead, a
+  combination of qualities makes it a good open-weights base for
+  customization" — confirmed independently by TechCrunch. Simon Willison
+  flagged it as token-hungry (16,000+ output tokens on his pelican-SVG
+  benchmark).
+- Not a locally dispatchable harness id as of this refresh.
+- Sources: thinkingmachines.ai/news/introducing-inkling/ (fetched in full),
+  huggingface.co/blog/thinkingmachines-inkling (grepped directly for the
+  7 reasoning_effort preset names), techcrunch.com/2026/07/15/... .
+
+### Meta Muse Spark 1.1
+
+- Confirmed real via direct Wikipedia fetch (en.wikipedia.org/wiki/Muse_Spark,
+  not merely AI-search synthesis): developed by Meta Superintelligence Labs
+  (MSL), introduced April 2026, launched as "Muse Spark 1.1" 2026-07-09.
+  Proprietary (unlike Meta's open-weight Llama line) — marks Meta's shift
+  into paid developer-facing API access for a frontier-tier agentic model.
+- **meta.com did not return readable primary content when fetched directly
+  in this refresh; the fields below rest on secondary/aggregator sources
+  (datacamp.com, artificialanalysis.ai summaries) that were internally
+  consistent across repeated searches but are [MODERATE CONFIDENCE, not
+  primary-source-verified]**, unlike the Wikipedia-confirmed existence/timeline
+  facts above.
+- Context 1,048,576 (up from 262K in Muse Spark 1.0, April 2026). Pricing:
+  $1.25/M input, $4.25/M output, ~$0.15/M cached-prompt hits; $20 free
+  developer credits (US, public preview). Multimodal: text, image, video,
+  audio, PDF input.
+- Benchmark (moderate confidence, not independently verified against the
+  primary benchmark sites): SWE-bench Pro ~61.5%, DeepSWE 1.1 ~53.3%
+  ("trailing some frontier competitors" per the same secondary sources).
+- Not a locally dispatchable harness id as of this refresh.
+- Sources: en.wikipedia.org/wiki/Muse_Spark (primary-verified existence/
+  timeline); other figures per secondary aggregator consensus only.
+
+### Moonshot Kimi K3
+
+- **Confirmed a new, distinct, larger model — not a rename of Kimi K2.7
+  Code.** Two different, simultaneously-live OpenRouter slugs
+  (`moonshotai/kimi-k3` vs `moonshotai/kimi-k2.7-code`), released ~5 weeks
+  apart. K3: 2.8T total params (MoE, 896 experts/16 active, per web
+  reporting), released 2026-07-16 (one day before this refresh — extremely
+  fresh). Context 1,048,576 (K2.7 Code: 262,144). Pricing $3/M input, $15/M
+  output, $0.30/M cache-read (K2.7 Code: $0.75/$3.50/$0.16).
+- Reasoning: mandatory, always-on, graded `reasoning_effort` param but
+  currently ships exactly one level (`max`) — "more levels are coming soon"
+  per Moonshot's own docs.
+- Benchmark (Artificial Analysis via OpenRouter API metadata): Intelligence
+  Index 57.1, Coding Index 76.2, Agentic Index 50.1 — a large jump over K2.7
+  Code's 44.4 / 58.6 / 35.4 on the same index. `design_arena` data is empty
+  for K3 (too new for OpenRouter's crowd-sourced Design Arena to have
+  accumulated votes at refresh time).
+- Positioning/sentiment: strong Reddit/HN buzz (moonshot.ai, tomshardware.com,
+  forbes.com domains per web search, exact thread URLs redirect-obscured)
+  mixing genuine excitement at a Chinese lab hitting frontier-adjacent scores
+  despite export controls, geopolitical/competitive commentary about
+  pressure on OpenAI/Anthropic, and explicit skepticism that
+  vendor-published benchmarks aren't yet independently verified. Full
+  open-weights release promised 2026-07-27 — API-only at refresh time.
+- Not yet a locally dispatchable harness id as of this refresh (K2.7 Code
+  remains the configured default in `primitives/providers.yaml`); update
+  providers.yaml separately if/when K3 is smoke-tested through a harness.
+- Sources: openrouter.ai/api/v1/models (live JSON), openrouter.ai/moonshotai/
+  kimi-k3 (fetched directly).
 
 ### Cursor Composer 2.5
 

@@ -34,11 +34,12 @@ should be bound to for this task. Before binding or overriding a role's
 model: counter the same-family dispatch bias (frontier models default to
 dispatching their own family — that's trained-in, not evidence-based), check
 live capacity via `overmind_fleet` before a wide wave, and match task shape
-to measured/curated capability data. Full matrix and procedure:
-`references/model-capability-matrix.md` (one row per model, Crucible-measured
-where available) and `references/dispatch-decision-procedure.md` (the
-step-by-step judgment, including the herdr-space-vs-native-subagent
-boundary).
+and reasoning-level to curated evidence. Full matrix and procedure:
+`references/model-capability-matrix.md` (one row per model+reasoning-level
+pair, third-party-benchmark-grounded — Crucible is supplementary only, see
+the matrix's own doctrine on why) and `references/dispatch-decision-procedure.md`
+(the step-by-step judgment, including reasoning-level selection and the
+herdr-space-vs-native-subagent boundary).
 
 ## Dispatch
 
