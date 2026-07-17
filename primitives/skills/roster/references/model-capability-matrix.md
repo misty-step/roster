@@ -56,10 +56,10 @@ directionally correct, not precisely calibrated.
 | Gemini 3.5 Flash | low | 5 | 5 | 6 | 6 | 7 | 5 | 5 |
 | Gemini 3.5 Flash | medium (default) | 6 | 6 | 6 | 6 | 7 | 5 | 5 |
 | Gemini 3.5 Flash | high | 7 | 7 | 6 | 6 | 7 | 5 | 5 |
-| Gemini 3.1 Flash-Lite | minimal (default) | 4 | 4 | 4 | 4 | 5 | 3 | 4 |
-| Gemini 3.1 Flash-Lite | low | 5 | 5 | 4 | 4 | 5 | 3 | 4 |
-| Gemini 3.1 Flash-Lite | medium | 6 | 6 | 4 | 4 | 5 | 3 | 4 |
-| Gemini 3.1 Flash-Lite | high | 6 | 6 | 4 | 4 | 5 | 3 | 4 |
+| Gemini 3.1 Flash-Lite | minimal (default) | 4 | 3 | 4 | 4 | 5 | 3 | 4 |
+| Gemini 3.1 Flash-Lite | low | 5 | 4 | 4 | 4 | 5 | 3 | 4 |
+| Gemini 3.1 Flash-Lite | medium | 6 | 5 | 4 | 4 | 5 | 3 | 4 |
+| Gemini 3.1 Flash-Lite | high | 7 | 6 | 4 | 4 | 5 | 3 | 4 |
 | Gemini 3.1 Pro (Preview) | low | 5 | 6 | 6 | 6 | 8 | 6 | 6 |
 | Gemini 3.1 Pro (Preview) | medium | 6 | 7 | 6 | 6 | 8 | 6 | 6 |
 | Gemini 3.1 Pro (Preview) | high (default) | 7 | 8 | 6 | 6 | 8 | 6 | 6 |
@@ -71,16 +71,16 @@ directionally correct, not precisely calibrated.
 | Sonnet 5 | max | 10 | 9 | 7 | 5 | 6 | 6 | 9 |
 | Fable 5 | low | 7 | 8 | 8 | 8 | 8 | 7 | 8 |
 | Fable 5 | medium | 8 | 9 | 8 | 8 | 8 | 7 | 8 |
-| Fable 5 | high (default) | 9 | 10 | 8 | 8 | 8 | 7 | 8 |
-| Fable 5 | xhigh | 10 | 10 | 8 | 8 | 8 | 7 | 8 |
+| Fable 5 | high (default) | 9 | 9 | 8 | 8 | 8 | 7 | 8 |
+| Fable 5 | xhigh | 9 | 10 | 8 | 8 | 8 | 7 | 8 |
 | Fable 5 | max | 10 | 10 | 8 | 8 | 8 | 7 | 8 |
 | Grok 4.5 | low | 6 | 6 | 7 | 5 | 7 | 10 | 7 |
 | Grok 4.5 | medium | 7 | 7 | 7 | 5 | 7 | 10 | 7 |
 | Grok 4.5 | high (default) | 8 | 8 | 7 | 5 | 7 | 10 | 7 |
 | GPT-5.6 Sol | low | 8 | 7 | 6 | 8 | 7 | 7 | 9 |
 | GPT-5.6 Sol | medium | 9 | 8 | 6 | 8 | 7 | 7 | 9 |
-| GPT-5.6 Sol | high (default) | 10 | 9 | 6 | 8 | 7 | 7 | 9 |
-| GPT-5.6 Sol | xhigh | 10 | 10 | 6 | 8 | 7 | 7 | 9 |
+| GPT-5.6 Sol | high (default) | 10 | 8 | 6 | 8 | 7 | 7 | 9 |
+| GPT-5.6 Sol | xhigh | 10 | 9 | 6 | 8 | 7 | 7 | 9 |
 | GPT-5.6 Sol | max | 10 | 10 | 6 | 8 | 7 | 7 | 9 |
 | GPT-5.6 Terra | low | 7 | 5 | 6 | 5 | 6 | 6 | 8 |
 | GPT-5.6 Terra | medium | 8 | 6 | 6 | 5 | 6 | 6 | 8 |
@@ -92,8 +92,8 @@ directionally correct, not precisely calibrated.
 | GPT-5.6 Luna | high (default) | 8 | 6 | 5 | 4 | 5 | 5 | 8 |
 | GPT-5.6 Luna | xhigh | 8 | 7 | 5 | 4 | 5 | 5 | 8 |
 | GPT-5.6 Luna | max | 9 | 7 | 5 | 4 | 5 | 5 | 8 |
-| Thinking Machines Inkling | none | 4 | 4 | 5 | 5 | 6 | 5 | 5 |
-| Thinking Machines Inkling | minimal | 4 | 4 | 5 | 5 | 6 | 5 | 5 |
+| Thinking Machines Inkling | none | 3 | 3 | 5 | 5 | 6 | 5 | 5 |
+| Thinking Machines Inkling | minimal | 4 | 3 | 5 | 5 | 6 | 5 | 5 |
 | Thinking Machines Inkling | low | 4 | 4 | 5 | 5 | 6 | 5 | 5 |
 | Thinking Machines Inkling | medium | 5 | 5 | 5 | 5 | 6 | 5 | 5 |
 | Thinking Machines Inkling | high (default) | 6 | 6 | 5 | 5 | 6 | 5 | 5 |
