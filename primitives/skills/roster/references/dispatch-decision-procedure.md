@@ -52,10 +52,7 @@ Task-shape routing:
   `model-capability-ledger.md`'s standing rule, even where a model carries
   no Crucible cell — a blank Crucible cell is a benchmark-coverage gap, not
   a capability signal.
-- Design/visual, product/frontend taste → GLM 5.2 first (matrix's Design
-  column: 10/10 at every level, #1 on OpenRouter's Design Arena in both
-  website and code categories) — it over-edits on small surgical changes,
-  so pair it with a narrower diff-only critic for cleanup passes.
+- Design/visual, product/frontend taste → Kimi K3 (9/10), Fable 5 (8/10), or GPT-5.6 Sol (8/10) first (matrix's Design column). GLM 5.2 (7/10) remains a highly cost-effective alternative but is no longer ranked #1 overall. It over-edits on small surgical changes, so pair it with a narrower diff-only critic for cleanup passes.
 - Long-context research/synthesis → Kimi K3 (fresh, unverified
   independently — sanity-check its first few outputs) or Kimi K2.7 Code
   (the still-configured local default, more proven).

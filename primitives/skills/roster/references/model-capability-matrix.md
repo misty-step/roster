@@ -69,19 +69,19 @@ directionally correct, not precisely calibrated.
 | Sonnet 5 | high (default) | 9 | 7 | 7 | 5 | 6 | 6 | 9 |
 | Sonnet 5 | xhigh | 9 | 8 | 7 | 5 | 6 | 6 | 9 |
 | Sonnet 5 | max | 10 | 9 | 7 | 5 | 6 | 6 | 9 |
-| Fable 5 | low | 7 | 8 | 8 | 6 | 8 | 7 | 8 |
-| Fable 5 | medium | 8 | 9 | 8 | 6 | 8 | 7 | 8 |
-| Fable 5 | high (default) | 9 | 10 | 8 | 6 | 8 | 7 | 8 |
-| Fable 5 | xhigh | 10 | 10 | 8 | 6 | 8 | 7 | 8 |
-| Fable 5 | max | 10 | 10 | 8 | 6 | 8 | 7 | 8 |
+| Fable 5 | low | 7 | 8 | 8 | 8 | 8 | 7 | 8 |
+| Fable 5 | medium | 8 | 9 | 8 | 8 | 8 | 7 | 8 |
+| Fable 5 | high (default) | 9 | 10 | 8 | 8 | 8 | 7 | 8 |
+| Fable 5 | xhigh | 10 | 10 | 8 | 8 | 8 | 7 | 8 |
+| Fable 5 | max | 10 | 10 | 8 | 8 | 8 | 7 | 8 |
 | Grok 4.5 | low | 6 | 6 | 7 | 5 | 7 | 10 | 7 |
 | Grok 4.5 | medium | 7 | 7 | 7 | 5 | 7 | 10 | 7 |
 | Grok 4.5 | high (default) | 8 | 8 | 7 | 5 | 7 | 10 | 7 |
-| GPT-5.6 Sol | low | 8 | 7 | 6 | 5 | 7 | 7 | 9 |
-| GPT-5.6 Sol | medium | 9 | 8 | 6 | 5 | 7 | 7 | 9 |
-| GPT-5.6 Sol | high (default) | 10 | 9 | 6 | 5 | 7 | 7 | 9 |
-| GPT-5.6 Sol | xhigh | 10 | 10 | 6 | 5 | 7 | 7 | 9 |
-| GPT-5.6 Sol | max | 10 | 10 | 6 | 5 | 7 | 7 | 9 |
+| GPT-5.6 Sol | low | 8 | 7 | 6 | 8 | 7 | 7 | 9 |
+| GPT-5.6 Sol | medium | 9 | 8 | 6 | 8 | 7 | 7 | 9 |
+| GPT-5.6 Sol | high (default) | 10 | 9 | 6 | 8 | 7 | 7 | 9 |
+| GPT-5.6 Sol | xhigh | 10 | 10 | 6 | 8 | 7 | 7 | 9 |
+| GPT-5.6 Sol | max | 10 | 10 | 6 | 8 | 7 | 7 | 9 |
 | GPT-5.6 Terra | low | 7 | 5 | 6 | 5 | 6 | 6 | 8 |
 | GPT-5.6 Terra | medium | 8 | 6 | 6 | 5 | 6 | 6 | 8 |
 | GPT-5.6 Terra | high (default) | 9 | 7 | 6 | 5 | 6 | 6 | 8 |
@@ -103,11 +103,11 @@ directionally correct, not precisely calibrated.
 | Meta Muse Spark 1.1 | low | 6 | 5 | 6 | 6 | 6 | 5 | 6 |
 | Meta Muse Spark 1.1 | medium (default, unconfirmed) | 7 | 6 | 6 | 6 | 6 | 5 | 6 |
 | Meta Muse Spark 1.1 | high | 8 | 7 | 6 | 6 | 6 | 5 | 6 |
-| Kimi K3 | max (only level shipped) | 9 | 8 | 7 | 6 | 9 | 5 | 7 |
+| Kimi K3 | max (only level shipped) | 9 | 8 | 7 | 9 | 9 | 5 | 7 |
 | MiniMax M3 | reasoning off | 5 | 3 | 5 | 4 | 5 | 4 | 6 |
 | MiniMax M3 | reasoning on (default) | 7 | 5 | 5 | 4 | 5 | 4 | 6 |
-| GLM 5.2 | high (default) | 7 | 6 | 6 | 10 | 6 | 5 | 6 |
-| GLM 5.2 | xhigh | 8 | 7 | 6 | 10 | 6 | 5 | 6 |
+| GLM 5.2 | high (default) | 7 | 6 | 6 | 7 | 6 | 5 | 6 |
+| GLM 5.2 | xhigh | 8 | 7 | 6 | 7 | 6 | 5 | 6 |
 | DeepSeek V4 Flash | high (default) | 7 | 4 | 5 | 4 | 5 | 5 | 5 |
 | DeepSeek V4 Flash | xhigh | 8 | 5 | 5 | 4 | 5 | 5 | 5 |
 | DeepSeek V4 Pro | high (default) | 8 | 7 | 6 | 4 | 6 | 6 | 6 |
@@ -124,11 +124,13 @@ directionally correct, not precisely calibrated.
   model runs at barely moves the needle in this model — pick the model, then
   default to its vendor-recommended default level rather than paying for
   `max` on a task that won't use the extra depth.
-- **GLM 5.2 leads Design/Visual by a wide margin (10/10) at every level** —
-  OpenRouter's Design Arena ranks it #1 of all tracked models in both the
-  "website" (1343 Elo, 60.9% win rate) and "code" categories (1348 Elo,
-  61.2% win rate). Community sentiment is polarized but net-positive for
-  frontend generation specifically; it over-edits on small surgical changes.
+- **Kimi K3 (9/10), Fable 5 (8/10), and GPT-5.6 Sol (8/10) lead Design/Visual.**
+  GLM 5.2 (7/10) remains a highly cost-effective option for design/frontend
+  tasks, but is no longer ranked #1 overall. Note that OpenRouter's Design
+  Arena still ranks GLM 5.2 #1 of all tracked models in both the "website"
+  (1343 Elo, 60.9% win rate) and "code" categories (1348 Elo, 61.2% win rate)
+  -- a strong cost/performance indicator, but the curated matrix prioritizes
+  our own experience of its surgical over-editing weakness.
 - **GPT-5.6 Sol at high/xhigh is the strongest measured coding tier in this
   table** — Artificial Analysis Coding Agent Index 80, a new SOTA at launch,
   beating Claude Fable 5 by 2.8 points using under half the tokens/time/cost.
