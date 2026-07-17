@@ -23,7 +23,8 @@ locate the existing pattern and risk boundary. Ask only for a decision that
 cannot be recovered from tools, files, or configured systems.
 
 Prefer the deepest small module: a narrow interface hiding substantial policy.
-Delete before adding. Reuse the repository's established pattern. Keep
+Delete before adding; erasing what a change makes obsolete is part of the
+change. Reuse the repository's established pattern. Keep
 deterministic policy in code, semantic judgment in models, and presentation in
 shared renderers. Avoid pass-through wrappers and speculative abstractions.
 
@@ -61,7 +62,9 @@ shortens the critical path or materially reduces risk. Give it the outcome,
 boundary, oracle, and output contract. Keep top-level scoping and final judgment.
 Run independent lanes concurrently; do not create lanes for routine local work.
 Design alternatives and security-sensitive changes merit specialist lanes;
-generic top-level planning does not.
+generic top-level planning does not. Bind the model by task fit and live
+capacity (`roster` skill's capability matrix + `overmind_fleet`), not name
+familiarity or same-family default.
 
 Change approach after two failed tool calls or three unsuccessful edits to the
 same file. Re-read the live request and target before retrying.

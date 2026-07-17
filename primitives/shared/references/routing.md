@@ -24,9 +24,11 @@ judgment in the skill.
 | Question a different model family answers better: second opinion, adversarial critique, competing attempt | Peer harness CLI (`/roster`) |
 | Tens-to-hundreds of parallel agents, or findings that need adversarial cross-checking at scale | The harness's own large-scale orchestration feature when it has one; otherwise parallel subagents or a sprite fleet |
 | Heavy, long-running, detached, or isolation-needing lane | Sprite lane via `/sprites` |
+| Autonomous, end-to-end, hours-long delivery that must survive this session ending | herdr space (`workspace.create`/`tab.create`) — see `roster` skill's `references/dispatch-decision-procedure.md` §4 for the exact boundary against a native subagent |
 | Recurring event-driven workflow | Mode B: the event plane (bitterblossom), not ad-hoc Roster |
 | Mechanical command already chosen; emergency preservation; user forbids delegation | Direct solo |
 | Need tool/permission isolation only | Static project subagent |
+| Choosing which model to bind to any of the above | `roster` skill's `references/model-capability-matrix.md` + `references/dispatch-decision-procedure.md` — not name familiarity or same-family default |
 
 ## Search Vs Research
 

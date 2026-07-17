@@ -27,6 +27,19 @@ roster show <agent>    # one agent's exact resolved composition (role, model,
 Pick by role fit, not by name familiarity. An agent's role description is the
 contract for what it will and won't do.
 
+## Choosing a model
+
+`roster show <agent>` tells you what a role is bound to today, not what it
+should be bound to for this task. Before binding or overriding a role's
+model: counter the same-family dispatch bias (frontier models default to
+dispatching their own family — that's trained-in, not evidence-based), check
+live capacity via `overmind_fleet` before a wide wave, and match task shape
+to measured/curated capability data. Full matrix and procedure:
+`references/model-capability-matrix.md` (one row per model, Crucible-measured
+where available) and `references/dispatch-decision-procedure.md` (the
+step-by-step judgment, including the herdr-space-vs-native-subagent
+boundary).
+
 ## Dispatch
 
 ```sh
