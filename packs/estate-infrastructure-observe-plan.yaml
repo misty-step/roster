@@ -1,6 +1,6 @@
 schema_version: roster.pack.v1
 name: estate-infrastructure-observe-plan
-description: Describe read-only Estate observation and exact-plan generation.
+description: Describe read-only Estate map, resource, provider-readback, and exact-plan work.
 include:
   - core/guidance:estate-infrastructure-observe-plan
   - core/skill:estate-infrastructure

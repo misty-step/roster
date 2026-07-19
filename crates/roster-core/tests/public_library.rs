@@ -2782,81 +2782,177 @@ fn smith_resolves_the_focused_agent_engineering_surface() {
 }
 
 #[test]
-fn estate_action_classes_materialize_without_granting_authority() {
+fn estate_intents_materialize_provider_native_composition() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let roster = Roster::load_config(root.join("examples/config.yaml")).expect("load example");
 
-    for (class, guidance_identity) in [
+    let mut estate_guidance: Vec<_> = fs::read_dir(root.join("primitives/guidance"))
+        .expect("read public guidance")
+        .map(|entry| entry.expect("read guidance entry").path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with("estate-infrastructure-"))
+        })
+        .filter_map(|path| {
+            path.file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+        })
+        .collect();
+    estate_guidance.sort();
+    assert_eq!(
+        estate_guidance,
+        [
+            "estate-infrastructure-manage.md".to_owned(),
+            "estate-infrastructure-observe-plan.md".to_owned(),
+        ]
+    );
+
+    let mut estate_packs: Vec<_> = fs::read_dir(root.join("packs"))
+        .expect("read public packs")
+        .map(|entry| entry.expect("read pack entry").path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with("estate-infrastructure-"))
+        })
+        .filter_map(|path| {
+            path.file_name()
+                .map(|name| name.to_string_lossy().into_owned())
+        })
+        .collect();
+    estate_packs.sort();
+    assert_eq!(
+        estate_packs,
+        [
+            "estate-infrastructure-manage.yaml".to_owned(),
+            "estate-infrastructure-observe-plan.yaml".to_owned(),
+        ]
+    );
+
+    for (intent, guidance_identity) in [
         (
             "observe-plan",
             "core/guidance:estate-infrastructure-observe-plan",
         ),
-        (
-            "bounded-reversible",
-            "core/guidance:estate-infrastructure-bounded-reversible",
-        ),
-        (
-            "exact-plan-mutation",
-            "core/guidance:estate-infrastructure-exact-plan-mutation",
-        ),
+        ("manage", "core/guidance:estate-infrastructure-manage"),
     ] {
-        let include = vec![format!("core/pack:estate-infrastructure-{class}")];
+        let include = vec![format!("core/pack:estate-infrastructure-{intent}")];
         let resolved = roster
             .resolve_ad_hoc(
                 "hephaestus",
-                &format!("estate-{class}"),
-                &format!("Request Estate {class} work."),
+                &format!("estate-{intent}"),
+                &format!("Request Estate {intent} work."),
                 &include,
             )
-            .unwrap_or_else(|error| panic!("resolve {class}: {error}"));
+            .unwrap_or_else(|error| panic!("resolve {intent}: {error}"));
+        let expected_role = format!("ad-hoc/role:estate-{intent}");
+        let expected_pack = format!("core/pack:estate-infrastructure-{intent}");
 
         assert_eq!(resolved.role, "ad-hoc");
-        assert_eq!(resolved.guidance[0].identity, guidance_identity);
+        assert_eq!(resolved.guidance.len(), 1);
+        assert_eq!(resolved.skills.len(), 1);
         assert_eq!(
-            resolved.skills[0].identity,
-            "core/skill:estate-infrastructure"
+            resolved
+                .guidance
+                .iter()
+                .map(|item| item.identity.as_str())
+                .collect::<Vec<_>>(),
+            [guidance_identity]
+        );
+        assert_eq!(
+            resolved
+                .skills
+                .iter()
+                .map(|item| item.identity.as_str())
+                .collect::<Vec<_>>(),
+            ["core/skill:estate-infrastructure"]
         );
         assert_eq!(
             resolved.guidance[0].via,
-            [[
-                format!("ad-hoc/role:estate-{class}"),
-                format!("core/pack:estate-infrastructure-{class}"),
-            ]]
+            [[expected_role.clone(), expected_pack.clone()]]
         );
+        assert_eq!(resolved.skills[0].via, [[expected_role, expected_pack]]);
     }
 
-    let include = vec!["core/pack:estate-infrastructure-exact-plan-mutation".to_owned()];
+    let include = vec!["core/pack:estate-infrastructure-manage".to_owned()];
     let resolved = roster
         .resolve_ad_hoc(
             "hephaestus",
-            "estate-exact-plan-proof",
-            "Prove the public Estate exact-plan projection.",
+            "estate-manage-proof",
+            "Prove the public Estate provider-native manage projection.",
             &include,
         )
-        .expect("resolve Estate proof agent");
+        .expect("resolve Estate manage proof agent");
     let temp = tempfile::tempdir().expect("tempdir");
     let bundle = temp.path().join("bundle");
     let manifest = resolved
         .write_bundle(&bundle, temp.path())
-        .expect("materialize Estate proof agent");
+        .expect("materialize Estate manage proof agent");
     let agents = fs::read_to_string(bundle.join("AGENTS.md")).expect("read AGENTS.md");
     let skill = fs::read_to_string(bundle.join("skills/estate-infrastructure/SKILL.md"))
         .expect("read Estate skill");
 
     assert_eq!(manifest.role, "ad-hoc");
+    assert_eq!(manifest.guidance.len(), 1);
+    assert_eq!(manifest.skills.len(), 1);
     assert_eq!(
-        manifest.guidance[0].identity,
-        "core/guidance:estate-infrastructure-exact-plan-mutation"
+        manifest
+            .guidance
+            .iter()
+            .map(|item| item.identity.as_str())
+            .collect::<Vec<_>>(),
+        ["core/guidance:estate-infrastructure-manage"]
     );
     assert_eq!(
-        manifest.skills[0].identity,
-        "core/skill:estate-infrastructure"
+        manifest
+            .skills
+            .iter()
+            .map(|item| item.identity.as_str())
+            .collect::<Vec<_>>(),
+        ["core/skill:estate-infrastructure"]
     );
-    assert!(agents.contains("The declaration grants nothing"));
+    assert_eq!(
+        manifest.guidance[0].via,
+        [[
+            "ad-hoc/role:estate-manage-proof".to_owned(),
+            "core/pack:estate-infrastructure-manage".to_owned(),
+        ]]
+    );
+    assert_eq!(
+        manifest.skills[0].via,
+        [[
+            "ad-hoc/role:estate-manage-proof".to_owned(),
+            "core/pack:estate-infrastructure-manage".to_owned(),
+        ]]
+    );
+    let normalized_skill = skill.split_whitespace().collect::<Vec<_>>().join(" ");
+    assert!(normalized_skill.contains("ordinary OpenTofu/provider tooling"));
     assert!(agents.contains("skills/estate-infrastructure/SKILL.md"));
-    assert!(skill.contains("standards/vendor-inventory.toml"));
-    assert!(skill.contains("not runtime identity or Estate approval"));
-    assert!(skill.contains("ad-hoc role may prove this projection"));
+    assert!(normalized_skill.contains("estate map"));
+    assert!(normalized_skill.contains("estate resource <id>"));
+    assert!(normalized_skill.contains("saved exact OpenTofu/provider plan"));
+    assert!(
+        normalized_skill
+            .contains("obtain explicit operator approval of that exact plan and digest")
+    );
+    assert!(normalized_skill.contains("scoped Mint/provider credential"));
+    assert!(normalized_skill.contains("provider readback"));
+    assert!(
+        normalized_skill.contains("secret-free evidence pointer for Estate's next reconciliation")
+    );
+
+    for removed in [
+        "primitives/guidance/estate-infrastructure-bounded-reversible.md",
+        "primitives/guidance/estate-infrastructure-exact-plan-mutation.md",
+        "packs/estate-infrastructure-bounded-reversible.yaml",
+        "packs/estate-infrastructure-exact-plan-mutation.yaml",
+    ] {
+        assert!(
+            !root.join(removed).exists(),
+            "obsolete Estate primitive remains: {removed}"
+        );
+    }
 
     let projected = format!("{agents}\n{skill}").to_ascii_lowercase();
     for forbidden in [

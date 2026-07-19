@@ -1,0 +1,6 @@
+schema_version: roster.pack.v1
+name: estate-infrastructure-manage
+description: Describe the provider-native Estate management loop from a saved exact plan through readback.
+include:
+  - core/guidance:estate-infrastructure-manage
+  - core/skill:estate-infrastructure
