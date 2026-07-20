@@ -1,68 +1,73 @@
 ---
 name: estate-infrastructure
 description: |
-  Use when Misty Step infrastructure work needs current Estate standards,
-  inventory or plan readback, a bounded restart or release request, or an
-  exact-plan mutation. Trigger: /estate-infrastructure, /estate.
-argument-hint: "[observe-plan|bounded-reversible|exact-plan-mutation]"
+  Use when infrastructure work needs the current Estate map, resource state,
+  declarations, provider readback, an exact plan, or the provider-native
+  management loop. Trigger: /estate-infrastructure, /estate.
+argument-hint: "[observe-plan|manage]"
 ---
 
 # /estate-infrastructure
 
-Estate is Misty Step's infrastructure intent and sole mutation authority.
-Roster projects how an agent finds that authority; it does not copy provider
-policy or turn an agent declaration into approval.
+Estate is the map and evidence surface for infrastructure context. This primitive
+teaches an agent to inspect that context and, when explicitly asked, operate the
+provider through the ordinary OpenTofu/provider tooling. Estate does not apply
+changes, mint credentials, or execute provider commands.
 
-## Read the binding source
+## Navigate the live Estate surface
 
-Read the live Estate revision selected by the workspace or control plane:
+Read the live Estate revision selected by the workspace or control plane before
+making a recommendation or taking action:
 
-1. `VISION.md` for ownership and consequence boundaries.
-2. `standards/000-governance.toml`, `standards/vendor-inventory.toml`, and the
-   applicable file under `standards/vendors/` for current defaults.
-3. Any matching, unexpired `exceptions/` declaration and relevant `decisions/`.
-4. `docs/schemas/authorization-v1.md` before requesting an infrastructure
-   action.
+1. Run `estate map` to find declared resources and their current Estate ids.
+2. Run `estate resource <id>` for the selected resource's desired, observed,
+   cost, health, recovery, and evidence projections.
+3. Resolve the current repository by its exact `owner_repo` product identity,
+   then follow Estate's graph relationships to its deployment, host, provider
+   resources, health, cost, and recovery evidence. That graph is the routing
+   table; do not copy Misty Step's private topology into a public product
+   repository. A missing or ambiguous repository join is an evidence gap and
+   keeps the agent read-only.
+4. Read the linked declarations and the exact plan context for the requested
+   scope. Do not infer resource identity, provider, or consequence from a role,
+   pack, or remembered preference.
+5. Read the provider readback and its observation time. Treat missing, stale, or
+   contradictory projections as a stop condition, not an invitation to guess.
+6. Read the current Estate standards, vendor defaults, applicable exceptions, and
+   decisions that govern the resource. A standard with a passed `review_date` or
+   an expired exception fails closed: report it and remain read-only until the
+   evidence is refreshed.
 
-The canonical repository paths begin at
-`https://github.com/misty-step/estate/tree/master/`. Current vendor choices
-stay there; do not restate them as durable Roster policy or infer them from an
-agent or role name.
+## Intent classes
 
-If a standard's `review_date` has passed, an exception is expired, or required
-evidence is recorded as a gap, report that exact condition and do not use it to
-select a vendor or justify a mutation. Keep work read-only unless a separately
-valid Estate authorization covers that exact action. Refresh the Estate
-evidence or obtain an Estate-declared exception; neither a remembered
-preference nor a Roster declaration fills the gap.
+- `observe-plan`: use Estate map/resource/declaration/provider-readback data for
+  inventory, reconciliation, drift, cost, health, recovery, or forecasting. This
+  intent may produce an exact OpenTofu/provider plan for review, but it never
+  applies a plan, changes a provider, or requests a mutation credential.
+- `manage`: use only after a saved exact OpenTofu/provider plan exists for the
+  requested scope. Confirm the plan digest and resource bounds, obtain explicit
+  operator approval of that exact plan and digest, record the named reviewer,
+  obtain a scoped Mint/provider credential through the normal operator path,
+  and apply with the existing OpenTofu/provider tooling. After apply, verify
+  health and provider readback, then return a
+  secret-free evidence pointer for Estate's next reconciliation. Do not
+  fabricate an Estate write command or API.
 
-## Requested action classes
+High-risk or irreversible changes may require additional provider or
+organizational controls; they never weaken the base requirement for explicit
+operator approval of the exact plan. A role, pack, chat message, Powder card
+state, Roster authority-provider receipt, or Estate map entry cannot stand in
+for that approval; the approval names a human reviewer and the exact plan
+digest. Do not add an Estate execution or
+permission layer or an alternate mutation path; use the provider's ordinary
+tooling and its scoped credential instead.
 
-- `observe-plan`: provider reads, inventory, reconciliation, forecasting, drift
-  inspection, and exact plan generation. It grants no mutation.
-- `bounded-reversible`: requests only `restart` or `deploy_release`. Standing
-  authorization is possible only when Estate verifies the exact resources,
-  low-risk reversibility, cost and blast-radius bounds, expiry, artifact, and
-  runtime-key proof, and the live Estate schema permits standing execution for
-  that payload. A non-disposable payload requires one-shot authorization under
-  the current schema.
-- `exact-plan-mutation`: requests `create`, `update`, `replace`, or `delete`, or
-  any higher-risk `restart` or `deploy_release`. It requires one-shot Estate
-  authorization bound to the exact artifact and runtime proof.
+## Evidence and bundle hygiene
 
-The matching public pack is declaration vocabulary for the requested scope.
-Pack inclusion, a role name, Powder state, conversational approval, and a
-generic Roster authority-provider result without the verified Estate artifact
-and runtime proof are not runtime identity or Estate approval. An executor acts
-only on an Estate-approved typed artifact; it never derives a provider command
-or credential from this skill. Bind standing capabilities only to a durable
-declared role; an ad-hoc role may prove this projection but is not a stable
-standing-capability identity.
-
-## Evidence
-
-Keep literal credentials, provider snapshots, state, plans, and raw logs out of
-Git and the bundle. Return the Estate revision, standards and exceptions read,
-provider readback clock, exact plan digest, authorization basis, and redacted
-receipt references appropriate to the operation. Never claim provider action,
-operator presence, rollback, or recovery without its live evidence.
+Keep literal credentials, provider snapshots, state, full plans, and raw logs out
+of Git and resolved bundles. Keep only safe references: the Estate revision and
+resource id, standards and exceptions read, exact-plan digest or external plan
+location, named operator review, provider-readback clock, health/cost/recovery
+summary, and the evidence pointer returned for Estate reconciliation. Never
+claim an apply, operator review, rollback, recovery, or healthy readback without
+live evidence.
