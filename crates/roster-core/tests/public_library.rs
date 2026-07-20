@@ -2786,44 +2786,29 @@ fn estate_intents_materialize_provider_native_composition() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     let roster = Roster::load_config(root.join("examples/config.yaml")).expect("load example");
 
-    let mut estate_guidance: Vec<_> = fs::read_dir(root.join("primitives/guidance"))
-        .expect("read public guidance")
-        .map(|entry| entry.expect("read guidance entry").path())
-        .filter(|path| {
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with("estate-infrastructure-"))
-        })
-        .filter_map(|path| {
-            path.file_name()
-                .map(|name| name.to_string_lossy().into_owned())
-        })
-        .collect();
-    estate_guidance.sort();
+    let estate_files = |directory: &str| {
+        let mut names = fs::read_dir(root.join(directory))
+            .unwrap_or_else(|error| panic!("read public {directory}: {error}"))
+            .map(|entry| entry.expect("read public entry").path())
+            .filter_map(|path| {
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .filter(|name| name.starts_with("estate-infrastructure-"))
+                    .map(str::to_owned)
+            })
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    };
     assert_eq!(
-        estate_guidance,
+        estate_files("primitives/guidance"),
         [
             "estate-infrastructure-manage.md".to_owned(),
             "estate-infrastructure-observe-plan.md".to_owned(),
         ]
     );
-
-    let mut estate_packs: Vec<_> = fs::read_dir(root.join("packs"))
-        .expect("read public packs")
-        .map(|entry| entry.expect("read pack entry").path())
-        .filter(|path| {
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .is_some_and(|name| name.starts_with("estate-infrastructure-"))
-        })
-        .filter_map(|path| {
-            path.file_name()
-                .map(|name| name.to_string_lossy().into_owned())
-        })
-        .collect();
-    estate_packs.sort();
     assert_eq!(
-        estate_packs,
+        estate_files("packs"),
         [
             "estate-infrastructure-manage.yaml".to_owned(),
             "estate-infrastructure-observe-plan.yaml".to_owned(),
@@ -2926,33 +2911,39 @@ fn estate_intents_materialize_provider_native_composition() {
             "core/pack:estate-infrastructure-manage".to_owned(),
         ]]
     );
+    let normalized_agents = agents.split_whitespace().collect::<Vec<_>>().join(" ");
+    assert!(
+        normalized_agents.contains(
+            "Manage only from a saved exact OpenTofu/provider plan whose resource scope and digest have been checked"
+        )
+    );
+    assert!(
+        normalized_agents
+            .contains("Expired standards or exceptions and missing evidence fail closed.")
+    );
+    assert!(normalized_agents.contains("secret-free evidence pointer"));
     let normalized_skill = skill.split_whitespace().collect::<Vec<_>>().join(" ");
     assert!(normalized_skill.contains("ordinary OpenTofu/provider tooling"));
     assert!(agents.contains("skills/estate-infrastructure/SKILL.md"));
     assert!(normalized_skill.contains("estate map"));
     assert!(normalized_skill.contains("estate resource <id>"));
     assert!(normalized_skill.contains("saved exact OpenTofu/provider plan"));
+    assert!(normalized_skill.contains("exact `owner_repo` product identity"));
+    assert!(normalized_skill.contains("That graph is the routing table"));
+    assert!(
+        normalized_skill
+            .contains("do not copy Misty Step's private topology into a public product repository")
+    );
     assert!(
         normalized_skill
             .contains("obtain explicit operator approval of that exact plan and digest")
     );
     assert!(normalized_skill.contains("scoped Mint/provider credential"));
+    assert!(normalized_skill.contains("Roster authority-provider receipt"));
     assert!(normalized_skill.contains("provider readback"));
     assert!(
         normalized_skill.contains("secret-free evidence pointer for Estate's next reconciliation")
     );
-
-    for removed in [
-        "primitives/guidance/estate-infrastructure-bounded-reversible.md",
-        "primitives/guidance/estate-infrastructure-exact-plan-mutation.md",
-        "packs/estate-infrastructure-bounded-reversible.yaml",
-        "packs/estate-infrastructure-exact-plan-mutation.yaml",
-    ] {
-        assert!(
-            !root.join(removed).exists(),
-            "obsolete Estate primitive remains: {removed}"
-        );
-    }
 
     let projected = format!("{agents}\n{skill}").to_ascii_lowercase();
     for forbidden in [

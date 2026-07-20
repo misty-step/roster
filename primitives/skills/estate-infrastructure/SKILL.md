@@ -22,12 +22,18 @@ making a recommendation or taking action:
 1. Run `estate map` to find declared resources and their current Estate ids.
 2. Run `estate resource <id>` for the selected resource's desired, observed,
    cost, health, recovery, and evidence projections.
-3. Read the linked declarations and the exact plan context for the requested
+3. Resolve the current repository by its exact `owner_repo` product identity,
+   then follow Estate's graph relationships to its deployment, host, provider
+   resources, health, cost, and recovery evidence. That graph is the routing
+   table; do not copy Misty Step's private topology into a public product
+   repository. A missing or ambiguous repository join is an evidence gap and
+   keeps the agent read-only.
+4. Read the linked declarations and the exact plan context for the requested
    scope. Do not infer resource identity, provider, or consequence from a role,
    pack, or remembered preference.
-4. Read the provider readback and its observation time. Treat missing, stale, or
+5. Read the provider readback and its observation time. Treat missing, stale, or
    contradictory projections as a stop condition, not an invitation to guess.
-5. Read the current Estate standards, vendor defaults, applicable exceptions, and
+6. Read the current Estate standards, vendor defaults, applicable exceptions, and
    decisions that govern the resource. A standard with a passed `review_date` or
    an expired exception fails closed: report it and remain read-only until the
    evidence is refreshed.
@@ -49,8 +55,10 @@ making a recommendation or taking action:
 
 High-risk or irreversible changes may require additional provider or
 organizational controls; they never weaken the base requirement for explicit
-operator approval of the exact plan. A role, pack, chat message, or Estate map
-entry cannot stand in for that approval. Do not add an Estate execution or
+operator approval of the exact plan. A role, pack, chat message, Powder card
+state, Roster authority-provider receipt, or Estate map entry cannot stand in
+for that approval; the approval names a human reviewer and the exact plan
+digest. Do not add an Estate execution or
 permission layer or an alternate mutation path; use the provider's ordinary
 tooling and its scoped credential instead.
 

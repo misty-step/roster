@@ -8,7 +8,7 @@ than a custom path.
 
 High-risk or irreversible work may require additional controls; it never
 weakens the base exact-plan approval requirement. After apply, verify health and
-provider readback, then return a safe evidence pointer for Estate's next
+provider readback, then return a secret-free evidence pointer for Estate's next
 reconciliation with the plan digest, reviewer, observation time, and outcome.
 Do not invent an Estate write API. Keep credentials, provider state, full plans,
 and raw logs out of bundles. Expired standards or exceptions and missing
